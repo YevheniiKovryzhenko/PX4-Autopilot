@@ -54,6 +54,7 @@ px4_add_board(
 		tone_alarm
 		uavcan
 	MODULES
+		sim_ctrl_mod
 		airspeed_selector
 		attitude_estimator_q
 		battery_status

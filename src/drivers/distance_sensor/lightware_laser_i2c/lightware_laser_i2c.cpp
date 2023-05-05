@@ -36,6 +36,7 @@
  *
  * @author ecmnet <ecm@gmx.de>
  * @author Vasily Evseenko <svpcom@gmail.com>
+ * @author Yevhenii Kovryzhenko <yzk0058@auburn.edu>
  *
  * Driver for the Lightware lidar range finder series.
  * Default I2C address 0x66 is used.
@@ -197,6 +198,13 @@ int LightwareLaser::init()
 		_px4_rangefinder.set_max_distance(100.0f);
 		_conversion_interval = 20834;
 		_type = Type::LW20c;
+		break;
+		
+	case 7:
+		/* SF30/d (200m 39-20000Hz) */
+		_px4_rangefinder.set_min_distance(0.001f);
+		_px4_rangefinder.set_max_distance(200.0f);
+		_conversion_interval = 20834;
 		break;
 
 	default:
