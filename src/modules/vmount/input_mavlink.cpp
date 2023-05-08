@@ -357,7 +357,7 @@ void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 
 	vehicle_command_ack.timestamp = hrt_absolute_time();
 	vehicle_command_ack.command = cmd->command;
-	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	vehicle_command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 
@@ -673,7 +673,7 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 						break;
 					}
 
-					_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					_ack_vehicle_command(&vehicle_command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
 
@@ -712,7 +712,7 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 					_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
 
 					*control_data = &_control_data;
-					_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					_ack_vehicle_command(&vehicle_command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE) {
 
@@ -788,7 +788,7 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 					// TODO: support secondary control
 					// TODO: support gimbal device id for multiple gimbals
 
-					_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					_ack_vehicle_command(&vehicle_command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW) {
 
@@ -804,11 +804,11 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 
 						_set_control_data_from_set_attitude(flags, q, angular_velocity);
 						*control_data = &_control_data;
-						_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+						_ack_vehicle_command(&vehicle_command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
 						PX4_ERR("GIMBAL_MANAGER_PITCHYAW denied, not in control");
-						_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+						_ack_vehicle_command(&vehicle_command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 					}
 
 				} else {

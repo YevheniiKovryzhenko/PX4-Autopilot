@@ -37,12 +37,17 @@ cmake_policy(SET CMP0057 NEW)
 set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
+	actuator_motors.msg
 	actuator_outputs.msg
+	actuator_servos_trim.msg
+	actuator_servos.msg
+	actuator_test.msg
 	adc_report.msg
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
 	battery_status.msg
+	button_event.msg
 	camera_capture.msg
 	camera_trigger.msg
 	cellular_status.msg
@@ -81,6 +86,7 @@ set(msg_files
 	home_position.msg
 	hover_thrust_estimate.msg
 	input_rc.msg
+	internal_combustion_engine_status.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
 	landing_gear.msg
@@ -128,11 +134,14 @@ set(msg_files
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_gnss_relative.msg
 	sensor_gps.msg
 	sensor_gyro.msg
+	sensor_hygrometer.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
 	sensor_mag.msg
+	sensor_optical_flow.msg
 	sensor_preflight_mag.msg
 	sensor_selection.msg
 	sensors_status_imu.msg

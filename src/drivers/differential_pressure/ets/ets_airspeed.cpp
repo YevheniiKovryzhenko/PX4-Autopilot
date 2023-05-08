@@ -116,7 +116,7 @@ ETSAirspeed::collect()
 	uint8_t val[2] = {0, 0};
 
 	perf_begin(_sample_perf);
-
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
@@ -124,32 +124,29 @@ ETSAirspeed::collect()
 		return ret;
 	}
 
-	float diff_pres_pa_raw = (float)(val[1] << 8 | val[0]);
+	float diff_press_pa = (float)(val[1] << 8 | val[0]);
 
-	differential_pressure_s report{};
-	report.timestamp = hrt_absolute_time();
-
-	if (diff_pres_pa_raw < FLT_EPSILON) {
+	if (diff_press_pa < FLT_EPSILON) {
 		// a zero value indicates no measurement
 		// since the noise floor has been arbitrarily killed
 		// it defeats our stuck sensor detection - the best we
 		// can do is to output some numerical noise to show
 		// that we are still correctly sampling.
-		diff_pres_pa_raw = 0.001f * (report.timestamp & 0x01);
+		diff_press_pa = 0.001f * (timestamp_sample & 0x01);
 	}
 
 	// The raw value still should be compensated for the known offset
-	diff_pres_pa_raw -= _diff_pres_offset;
+	diff_press_pa -= _diff_pres_offset;
 
-	report.error_count = perf_event_count(_comms_errors);
-
-	// XXX we may want to smooth out the readings to remove noise.
-	report.differential_pressure_filtered_pa = diff_pres_pa_raw;
-	report.differential_pressure_raw_pa = diff_pres_pa_raw;
-	report.temperature = -1000.0f;
-	report.device_id = _device_id.devid;
-
-	_airspeed_pub.publish(report);
+	differential_pressure_s differential_pressure{};
+	differential_pressure.timestamp_sample = timestamp_sample;
+	differential_pressure.device_id = _device_id.devid;
+	differential_pressure.differential_pressure_pa = diff_press_pa;
+	differential_pressure.differential_pressure_raw_pa = diff_press_pa;
+	differential_pressure.temperature = NAN;
+	differential_pressure.error_count = perf_event_count(_comms_errors);
+	differential_pressure.timestamp = hrt_absolute_time();
+	_airspeed_pub.publish(differential_pressure);
 
 	ret = OK;
 
@@ -157,6 +154,7 @@ ETSAirspeed::collect()
 
 	return ret;
 }
+
 
 void
 ETSAirspeed::RunImpl()

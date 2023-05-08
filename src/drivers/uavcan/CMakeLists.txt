@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,7 +40,10 @@ set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM "generic")
 
 if(CONFIG_ARCH_CHIP)
-	if(${CONFIG_ARCH_CHIP} MATCHES "kinetis")
+	if(${CONFIG_NET_CAN} MATCHES "y")
+		set(UAVCAN_DRIVER "socketcan")
+		set(UAVCAN_TIMER 1)
+	elseif(${CONFIG_ARCH_CHIP} MATCHES "kinetis")
 		set(UAVCAN_DRIVER "kinetis")
 		set(UAVCAN_TIMER 1)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32h7")
@@ -51,7 +54,7 @@ if(CONFIG_ARCH_CHIP)
 		endif()
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		set(UAVCAN_DRIVER "stm32")
-		set(UAVCAN_TIMER 5) # The default timer is TIM5
+		set(UAVCAN_TIMER 6) # The default timer is TIM6
 		if (DEFINED config_uavcan_timer_override)
 			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
 		endif()
@@ -85,6 +88,7 @@ add_compile_options(
 	-Wno-deprecated-copy # TODO: fix
 	-Wno-address-of-packed-member
 )
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE) # silence libuavcan deprecation warning for now (TODO: fix and remove)
 add_subdirectory(${LIBUAVCAN_DIR} libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
@@ -97,12 +101,13 @@ target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
 
 
 # generated DSDL
-set(DSDLC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dsdl")
+set(DSDLC_DIR "${PX4_SOURCE_DIR}/src/drivers/uavcan/dsdl")
 set(DSDLC_INPUTS
-	"${DSDLC_DIR}/com"
-	"${DSDLC_DIR}/ardupilot"
+	"${LIBUAVCAN_DIR}/dsdl/ardupilot"
+	"${LIBUAVCAN_DIR}/dsdl/com"
+	"${LIBUAVCAN_DIR}/dsdl/cuav"
+	"${LIBUAVCAN_DIR}/dsdl/dronecan"
 	"${LIBUAVCAN_DIR}/dsdl/uavcan"
-	"${DSDLC_DIR}/cuav"
 )
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
 
@@ -112,7 +117,10 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
 	list(APPEND DSDLC_INPUT_FILES ${DSDLC_NEW_INPUT_FILES})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
-	COMMAND ${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+	COMMAND
+		${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc
+			--outdir ${DSDLC_OUTPUT} ${DSDLC_INPUTS}
+			#--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
 	DEPENDS ${DSDLC_INPUT_FILES}
 	COMMENT "PX4 UAVCAN dsdl compiler"
@@ -123,6 +131,10 @@ px4_add_module(
 	MODULE drivers__uavcan
 	MAIN uavcan
 	STACK_MAIN 4096
+	COMPILE_FLAGS
+		-Wno-format-security # logmessage.hpp
+		#-O0
+		#-DDEBUG_BUILD
 	INCLUDES
 		${DSDLC_OUTPUT}
 		${LIBUAVCAN_DIR}/libuavcan/include
@@ -130,6 +142,8 @@ px4_add_module(
 		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
 		${LIBUAVCAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
 	SRCS
+		arming_status.cpp
+		arming_status.hpp
 		beep.cpp
 		beep.hpp
 		rgbled.cpp
@@ -144,12 +158,13 @@ px4_add_module(
 		# Actuators
 		actuators/esc.cpp
 		actuators/hardpoint.cpp
+		actuators/servo.cpp
 
 		# Sensors
 		sensors/sensor_bridge.cpp
 		sensors/differential_pressure.cpp
 		sensors/baro.cpp
-		sensors/battery.cpp
+		#sensors/battery.cpp
 		sensors/airspeed.cpp
 		sensors/flow.cpp
 		sensors/gnss.cpp
@@ -157,19 +172,24 @@ px4_add_module(
 		sensors/rangefinder.cpp
 		sensors/accel.cpp
 		sensors/gyro.cpp
-		sensors/cbat.cpp
-
+		sensors/ice_status.cpp
+		sensors/hygrometer.cpp
+		sensors/safety_button.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_uavcan_dsdlc
 
+		button_publisher
+		drivers_rangefinder
 		led
-		mixer
 		mixer_module
-		output_limit
 		version
 
 		git_uavcan
 		uavcan_${UAVCAN_DRIVER}_driver
+
+		drivers_rangefinder # Fix undefined reference when no distance sensors are selected
 
 		# within libuavcan
 		uavcan

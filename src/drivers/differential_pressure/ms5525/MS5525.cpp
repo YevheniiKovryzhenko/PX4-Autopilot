@@ -255,7 +255,7 @@ MS5525::collect()
 
 		diff_pressure.error_count = perf_event_count(_comms_errors);
 		diff_pressure.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
-		diff_pressure.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
+		diff_pressure.differential_pressure_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
 		diff_pressure.temperature = temperature_c;
 		diff_pressure.device_id = _device_id.devid;
 		diff_pressure.timestamp = hrt_absolute_time();

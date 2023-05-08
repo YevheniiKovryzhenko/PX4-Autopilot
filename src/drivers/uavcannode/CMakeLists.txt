@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,7 +40,10 @@ set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM "generic")
 
 if(CONFIG_ARCH_CHIP)
-	if(${CONFIG_ARCH_CHIP} MATCHES "kinetis")
+	if(${CONFIG_NET_CAN} MATCHES "y")
+		set(UAVCAN_DRIVER "socketcan")
+		set(UAVCAN_TIMER 1)
+	elseif(${CONFIG_ARCH_CHIP} MATCHES "kinetis")
 		set(UAVCAN_DRIVER "kinetis")
 		set(UAVCAN_TIMER 1)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32h7")
@@ -52,6 +55,9 @@ if(CONFIG_ARCH_CHIP)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		set(UAVCAN_DRIVER "stm32")
 		set(UAVCAN_TIMER 5) # The default timer is TIM5
+		if (DEFINED config_uavcan_timer_override)
+			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
+		endif()
 	endif()
 endif()
 
@@ -82,6 +88,7 @@ add_compile_options(
 	-Wno-deprecated-copy # TODO: fix
 	-Wno-address-of-packed-member
 )
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE) # silence libuavcan deprecation warning for now (TODO: fix and remove)
 add_subdirectory(${LIBUAVCAN_DIR} libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
@@ -96,8 +103,10 @@ target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
 # generated DSDL
 set(DSDLC_DIR "${PX4_SOURCE_DIR}/src/drivers/uavcan/dsdl")
 set(DSDLC_INPUTS
-	"${DSDLC_DIR}/com"
-	"${DSDLC_DIR}/ardupilot"
+	"${LIBUAVCAN_DIR}/dsdl/ardupilot"
+	"${LIBUAVCAN_DIR}/dsdl/com"
+	"${LIBUAVCAN_DIR}/dsdl/cuav"
+	"${LIBUAVCAN_DIR}/dsdl/dronecan"
 	"${LIBUAVCAN_DIR}/dsdl/uavcan"
 )
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
@@ -108,7 +117,10 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
 	list(APPEND DSDLC_INPUT_FILES ${DSDLC_NEW_INPUT_FILES})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
-	COMMAND ${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+	COMMAND
+		${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc
+			--outdir ${DSDLC_OUTPUT} ${DSDLC_INPUTS}
+			#--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
 	DEPENDS ${DSDLC_INPUT_FILES}
 	COMMENT "PX4 UAVCAN dsdl compiler"
@@ -118,14 +130,15 @@ add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
 px4_add_module(
 	MODULE drivers__uavcannode
 	MAIN uavcannode
+	COMPILE_FLAGS
+		#-O0
+		#-DDEBUG_BUILD
 	INCLUDES
 		${DSDLC_OUTPUT}
 		${LIBUAVCAN_DIR}/libuavcan/include
 		${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
 		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
 		${LIBUAVCAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
-	COMPILE_OPTIONS
-		#-O0
 	SRCS
 		allocator.hpp
 		uavcan_driver.hpp
@@ -139,7 +152,7 @@ px4_add_module(
 
 		drivers_bootloaders
 		version
-
+		conversion
 		git_uavcan
 		uavcan_${UAVCAN_DRIVER}_driver
 

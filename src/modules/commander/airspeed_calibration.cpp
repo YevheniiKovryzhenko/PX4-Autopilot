@@ -143,7 +143,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			/* any differential pressure failure a reason to abort */
 			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu64 ")",
+				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu32 ")",
 							 diff_pres.error_count);
 				calibration_log_critical(mavlink_log_pub, "[cal] Check wiring, reboot vehicle, and try again");
 				feedback_calibration_failed(mavlink_log_pub);
@@ -220,16 +220,16 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
 
-			if (fabsf(diff_pres.differential_pressure_filtered_pa) > 50.0f) {
-				if (diff_pres.differential_pressure_filtered_pa > 0) {
+			if (fabsf(diff_pres.differential_pressure_pa) > 50.0f) {
+				if (diff_pres.differential_pressure_pa > 0) {
 					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)",
-							     (int)diff_pres.differential_pressure_filtered_pa);
+							     (int)diff_pres.differential_pressure_pa);
 					break;
 
 				} else {
 					/* do not allow negative values */
 					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
-								 (int)diff_pres.differential_pressure_filtered_pa);
+								 (int)diff_pres.differential_pressure_pa);
 					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
 					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -251,7 +251,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			if (calibration_counter % 500 == 0) {
 				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
-						     (int)diff_pres.differential_pressure_filtered_pa);
+						     (int)diff_pres.differential_pressure_pa);
 				tune_neutral(true);
 			}
 

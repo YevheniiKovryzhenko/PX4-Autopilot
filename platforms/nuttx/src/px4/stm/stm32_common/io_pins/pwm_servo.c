@@ -140,6 +140,11 @@ void up_pwm_update(void)
 	io_timer_trigger();
 }
 
+void up_pwm_update_new(unsigned channels_mask)
+{
+	io_timer_trigger_new(channels_mask);
+}
+
 int up_pwm_servo_set_rate(unsigned rate)
 {
 	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {

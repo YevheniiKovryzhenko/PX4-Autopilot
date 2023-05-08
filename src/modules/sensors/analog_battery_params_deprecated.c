@@ -37,7 +37,7 @@
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
+//PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
 
 /**
  * This parameter is deprecated. Please use BAT1_A_PER_V.
@@ -45,4 +45,4 @@ PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
+//PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);

@@ -513,7 +513,7 @@ CameraTrigger::Run()
 	int poll_interval_usec = 50000;
 
 	vehicle_command_s cmd{};
-	unsigned cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+	unsigned cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 	bool need_ack = false;
 
 	// this flag is set when the polling loop is slowed down to allow the camera to power on
@@ -535,7 +535,7 @@ CameraTrigger::Run()
 
 			if (now - _last_trigger_timestamp < _min_interval * 1000) {
 				// triggering too fast, abort
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 			} else {
 				if (commandParamToInt(cmd.param7) == 1) {
@@ -548,7 +548,7 @@ CameraTrigger::Run()
 					_one_shot = true;
 				}
 
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			}
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
@@ -575,7 +575,7 @@ CameraTrigger::Run()
 				_trigger_enabled = false;
 			}
 
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
 			PX4_DEBUG("received DO_SET_CAM_TRIGG_DIST");
@@ -613,7 +613,7 @@ CameraTrigger::Run()
 				_one_shot = true;
 			}
 
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL) {
 			PX4_DEBUG("received DO_SET_CAM_TRIGG_INTERVAL");
@@ -632,7 +632,7 @@ CameraTrigger::Run()
 				}
 			}
 
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_OBLIQUE_SURVEY) {
 			PX4_INFO("received OBLIQUE_SURVEY");
@@ -681,7 +681,7 @@ CameraTrigger::Run()
 				_CAMPOS_num_poses = 0;
 			}
 
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else {
 			goto unknown_cmd;

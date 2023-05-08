@@ -633,6 +633,38 @@ void io_timer_trigger(void)
 	}
 }
 
+void io_timer_trigger_new(unsigned channels_mask)
+{
+	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot) & channels_mask;
+
+	if (oneshots != 0) {
+		uint32_t action_cache[MAX_IO_TIMERS] = {0};
+		int actions = 0;
+
+		/* Pre-calculate the list of timers to Trigger */
+
+		for (int timer = 0; timer < MAX_IO_TIMERS; timer++) {
+			if (validate_timer_index(timer) == 0) {
+				int channels = get_timer_channels(timer);
+
+				if (oneshots & channels) {
+					action_cache[actions++] = io_timers[timer].base;
+				}
+			}
+		}
+
+		/* Now do them all with the shortest delay in between */
+
+		irqstate_t flags = px4_enter_critical_section();
+
+		for (actions = 0; actions < MAX_IO_TIMERS && action_cache[actions] != 0; actions++) {
+			_REG32(action_cache[actions], STM32_GTIM_EGR_OFFSET) |= GTIM_EGR_UG;
+		}
+
+		px4_leave_critical_section(flags);
+	}
+}
+
 int io_timer_init_timer(unsigned timer)
 {
 	/* Do this only once per timer */

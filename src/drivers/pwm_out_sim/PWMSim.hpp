@@ -44,6 +44,13 @@
 #include <px4_platform_common/time.h>
 #include <uORB/topics/parameter_update.h>
 
+
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+#define PARAM_PREFIX "PWM_MAIN"
+#else
+#define PARAM_PREFIX "HIL_ACT"
+#endif
+
 using namespace time_literals;
 
 class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>, public OutputModuleInterface

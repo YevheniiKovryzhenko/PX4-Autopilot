@@ -33,6 +33,7 @@
 #pragma once
 
 #include <drivers/device/device.h>
+#include <lib/mixer_module/mixer_module.hpp>
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_mixer.h>
 #include <lib/mixer_module/mixer_module.hpp>
@@ -200,7 +201,7 @@ private:
 
 	void update_telemetry_num_motors();
 
-	MixingOutput _mixing_output{DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	Telemetry *_telemetry{nullptr};
 
