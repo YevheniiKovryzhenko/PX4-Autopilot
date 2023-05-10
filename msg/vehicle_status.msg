@@ -2,6 +2,10 @@
 # in state_machine_helper.cpp as well.
 uint64 timestamp				# time since system start (microseconds)
 
+uint64 armed_time # Arming timestamp (microseconds)
+uint64 takeoff_time # Takeoff timestamp (microseconds)
+
+uint8 arming_state
 uint8 ARMING_STATE_INIT = 0
 uint8 ARMING_STATE_STANDBY = 1
 uint8 ARMING_STATE_ARMED = 2
@@ -10,6 +14,53 @@ uint8 ARMING_STATE_SHUTDOWN = 4
 uint8 ARMING_STATE_IN_AIR_RESTORE = 5
 uint8 ARMING_STATE_MAX = 6
 
+uint8 latest_arming_reason
+uint8 latest_disarming_reason
+uint8 ARM_DISARM_REASON_TRANSITION_TO_STANDBY = 0
+uint8 ARM_DISARM_REASON_RC_STICK = 1
+uint8 ARM_DISARM_REASON_RC_SWITCH = 2
+uint8 ARM_DISARM_REASON_COMMAND_INTERNAL = 3
+uint8 ARM_DISARM_REASON_COMMAND_EXTERNAL = 4
+uint8 ARM_DISARM_REASON_MISSION_START = 5
+uint8 ARM_DISARM_REASON_SAFETY_BUTTON = 6
+uint8 ARM_DISARM_REASON_AUTO_DISARM_LAND = 7
+uint8 ARM_DISARM_REASON_AUTO_DISARM_PREFLIGHT = 8
+uint8 ARM_DISARM_REASON_KILL_SWITCH = 9
+uint8 ARM_DISARM_REASON_LOCKDOWN = 10
+uint8 ARM_DISARM_REASON_FAILURE_DETECTOR = 11
+uint8 ARM_DISARM_REASON_SHUTDOWN = 12
+uint8 ARM_DISARM_REASON_UNIT_TEST = 13
+
+uint64 nav_state_timestamp # time when current nav_state activated
+
+uint8 nav_state_user_intention                  # Mode that the user selected (might be different from nav_state in a failsafe situation)
+
+uint8 nav_state                                 # Currently active mode
+uint8 NAVIGATION_STATE_MANUAL = 0               # Manual mode
+uint8 NAVIGATION_STATE_ALTCTL = 1               # Altitude control mode
+uint8 NAVIGATION_STATE_POSCTL = 2               # Position control mode
+uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
+uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
+uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
+uint8 NAVIGATION_STATE_AUTO_LANDENGFAIL = 8 	# Auto land on engine failure
+uint8 NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9	# Auto land on gps failure (e.g. open loop loiter down)
+uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode
+uint8 NAVIGATION_STATE_UNUSED1 = 11             # Free slot
+uint8 NAVIGATION_STATE_DESCEND = 12             # Descend mode (no position control)
+uint8 NAVIGATION_STATE_TERMINATION = 13         # Termination mode
+uint8 NAVIGATION_STATE_OFFBOARD = 14
+uint8 NAVIGATION_STATE_STAB = 15                # Stabilized mode
+uint8 NAVIGATION_STATE_UNUSED2 = 16             # Free slot
+uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17        # Takeoff
+uint8 NAVIGATION_STATE_AUTO_LAND = 18           # Land
+uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19  # Auto Follow
+uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20       # Precision land with landing target
+uint8 NAVIGATION_STATE_ORBIT = 21               # Orbit in a circle
+uint8 NAVIGATION_STATE_AUTO_VTOL_TAKEOFF = 22   # Takeoff, transition, establish loiter
+uint8 NAVIGATION_STATE_MAX = 23
+
+
+uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 # FailureDetector status
 uint8 FAILURE_NONE = 0
 uint8 FAILURE_ROLL = 1 	        # (1 << 0)
@@ -22,56 +73,24 @@ uint8 FAILURE_ARM_ESC = 16      # (1 << 4)
 uint8 HIL_STATE_OFF = 0
 uint8 HIL_STATE_ON = 1
 
-# Navigation state, i.e. "what should vehicle do".
-uint8 NAVIGATION_STATE_MANUAL = 0		# Manual mode
-uint8 NAVIGATION_STATE_ALTCTL = 1		# Altitude control mode
-uint8 NAVIGATION_STATE_POSCTL = 2		# Position control mode
-uint8 NAVIGATION_STATE_AUTO_MISSION = 3		# Auto mission mode
-uint8 NAVIGATION_STATE_AUTO_LOITER = 4		# Auto loiter mode
-uint8 NAVIGATION_STATE_AUTO_RTL = 5		# Auto return to launch mode
-uint8 NAVIGATION_STATE_AUTO_LANDENGFAIL = 8 	# Auto land on engine failure
-uint8 NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9	# Auto land on gps failure (e.g. open loop loiter down)
-uint8 NAVIGATION_STATE_ACRO = 10		# Acro mode
-uint8 NAVIGATION_STATE_UNUSED = 11		# Free slot
-uint8 NAVIGATION_STATE_DESCEND = 12		# Descend mode (no position control)
-uint8 NAVIGATION_STATE_TERMINATION = 13		# Termination mode
-uint8 NAVIGATION_STATE_OFFBOARD = 14
-uint8 NAVIGATION_STATE_STAB = 15		# Stabilized mode
-uint8 NAVIGATION_STATE_UNUSED2 = 16		# Free slot
-uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
-uint8 NAVIGATION_STATE_AUTO_LAND = 18		# Land
-uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19	# Auto Follow
-uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20	# Precision land with landing target
-uint8 NAVIGATION_STATE_ORBIT = 21       # Orbit in a circle
-uint8 NAVIGATION_STATE_MAX = 22
-
-uint8 RC_IN_MODE_DEFAULT = 0
-uint8 RC_IN_MODE_OFF = 1
-uint8 RC_IN_MODE_GENERATED = 2
-
+# If it's a VTOL, then the value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter, and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
+uint8 vehicle_type
 uint8 VEHICLE_TYPE_UNKNOWN = 0
 uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
 uint8 VEHICLE_TYPE_ROVER = 3
 uint8 VEHICLE_TYPE_AIRSHIP = 4
 
+uint8 RC_IN_MODE_DEFAULT = 0
+uint8 RC_IN_MODE_OFF = 1
+uint8 RC_IN_MODE_GENERATED = 2
+
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
 
-uint8 nav_state				# set navigation state machine to specified value
-uint64 nav_state_timestamp              # time when current nav_state activated
-uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
 uint64 failsafe_timestamp               # time when failsafe was activated
-
-uint8 system_type			# system type, contains mavlink MAV_TYPE
-uint8 system_id			# system id, contains MAVLink's system ID field
-uint8 component_id			# subsystem / component id, contains MAVLink's component ID field
-
-uint8 vehicle_type          # Type of vehicle (fixed-wing, rotary wing, ground)
-                            # If the vehicle is a VTOL, then this value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter,
-                            # and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
 
 bool is_vtol				# True if the system is VTOL capable
 bool is_vtol_tailsitter                 # True if the system performs a 90° pitch down rotation during transition from MC to FW
@@ -91,32 +110,33 @@ bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish
 bool geofence_violated
 
-uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
 uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
 
+# MAVLink identification
+uint8 system_type  # system type, contains mavlink MAV_TYPE
+uint8 system_id	   # system id, contains MAVLink's system ID field
+uint8 component_id # subsystem / component id, contains MAVLink's component ID field
 
-uint8 ARM_DISARM_REASON_TRANSITION_TO_STANDBY = 0
-uint8 ARM_DISARM_REASON_RC_STICK = 1
-uint8 ARM_DISARM_REASON_RC_SWITCH = 2
-uint8 ARM_DISARM_REASON_COMMAND_INTERNAL = 3
-uint8 ARM_DISARM_REASON_COMMAND_EXTERNAL = 4
-uint8 ARM_DISARM_REASON_MISSION_START = 5
-uint8 ARM_DISARM_REASON_SAFETY_BUTTON = 6
-uint8 ARM_DISARM_REASON_AUTO_DISARM_LAND = 7
-uint8 ARM_DISARM_REASON_AUTO_DISARM_PREFLIGHT = 8
-uint8 ARM_DISARM_REASON_KILL_SWITCH = 9
-uint8 ARM_DISARM_REASON_LOCKDOWN = 10
-uint8 ARM_DISARM_REASON_FAILURE_DETECTOR = 11
-uint8 ARM_DISARM_REASON_SHUTDOWN = 12
-uint8 ARM_DISARM_REASON_UNIT_TEST = 13
+bool safety_button_available # Set to true if a safety button is connected
+bool safety_off # Set to true if safety is off
 
-uint8 latest_arming_reason
-uint8 latest_disarming_reason
+bool power_input_valid                            # set if input power is valid
+bool usb_connected                                # set to true (never cleared) once telemetry received from usb link
 
-uint64 armed_time       # Arming timestamp (microseconds)
+bool open_drone_id_system_present
+bool open_drone_id_system_healthy
 
-uint64 takeoff_time     # Takeoff timestamp (microseconds)
+bool parachute_system_present
+bool parachute_system_healthy
+
+bool avoidance_system_required                    # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
+bool avoidance_system_valid                       # Status of the obstacle avoidance system
+
+bool rc_calibration_in_progress
+bool calibration_enabled
+
+bool pre_flight_checks_pass		# true if all checks necessary to arm pass

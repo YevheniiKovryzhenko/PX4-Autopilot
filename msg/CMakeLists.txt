@@ -36,6 +36,7 @@ cmake_policy(SET CMP0057 NEW)
 
 set(msg_files
 	actuator_armed.msg
+	actuator_controls_status.msg
 	actuator_controls.msg
 	actuator_motors.msg
 	actuator_outputs.msg
@@ -44,6 +45,7 @@ set(msg_files
 	actuator_test.msg
 	adc_report.msg
 	airspeed.msg
+	autotune_attitude_control_status.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
 	battery_status.msg
@@ -70,6 +72,7 @@ set(msg_files
 	estimator_states.msg
 	estimator_status.msg
 	estimator_status_flags.msg
+	failsafe_flags.msg
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg
@@ -82,6 +85,7 @@ set(msg_files
 	gimbal_manager_status.msg
 	gps_dump.msg
 	gps_inject_data.msg
+	health_report.msg
 	heater_status.msg
 	home_position.msg
 	hover_thrust_estimate.msg

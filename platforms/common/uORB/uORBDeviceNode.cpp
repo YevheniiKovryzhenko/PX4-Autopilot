@@ -38,22 +38,15 @@
 
 #include "SubscriptionCallback.hpp"
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
+
+#if defined(__PX4_NUTTX)
+#include <nuttx/mm/mm.h>
+#endif
 
 static uORB::SubscriptionInterval *filp_to_subscription(cdev::file_t *filp) { return static_cast<uORB::SubscriptionInterval *>(filp->f_priv); }
-
-// Determine the data range
-static inline bool is_in_range(unsigned left, unsigned value, unsigned right)
-{
-	if (right > left) {
-		return (left <= value) && (value <= right);
-
-	} else {  // Maybe the data overflowed and a wraparound occurred
-		return (left <= value) || (value <= right);
-	}
-}
 
 // round up to nearest power of two
 // Such as 0 => 1, 1 => 1, 2 => 2 ,3 => 4, 10 => 16, 60 => 64, 65...255 => 128
@@ -82,7 +75,7 @@ static inline uint8_t round_pow_of_two_8(uint8_t n)
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path,
 			     uint8_t queue_size) :
-	CDev(path),
+	CDev(strdup(path)), // success is checked in CDev::init
 	_meta(meta),
 	_instance(instance),
 	_queue_size(round_pow_of_two_8(queue_size))
@@ -91,9 +84,17 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t inst
 
 uORB::DeviceNode::~DeviceNode()
 {
-	delete[] _data;
+	free(_data);
 
-	CDev::unregister_driver_and_memory();
+	const char *devname = get_devname();
+
+	if (devname) {
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+		kmm_free((void *)devname);
+#else
+		free((void *)devname);
+#endif
+	}
 }
 
 int
@@ -151,46 +152,6 @@ uORB::DeviceNode::close(cdev::file_t *filp)
 	return CDev::close(filp);
 }
 
-bool
-uORB::DeviceNode::copy(void *dst, unsigned &generation)
-{
-	if ((dst != nullptr) && (_data != nullptr)) {
-		if (_queue_size == 1) {
-			ATOMIC_ENTER;
-			memcpy(dst, _data, _meta->o_size);
-			generation = _generation.load();
-			ATOMIC_LEAVE;
-			return true;
-
-		} else {
-			ATOMIC_ENTER;
-			const unsigned current_generation = _generation.load();
-
-			if (current_generation == generation) {
-				/* The subscriber already read the latest message, but nothing new was published yet.
-				* Return the previous message
-				*/
-				--generation;
-			}
-
-			// Compatible with normal and overflow conditions
-			if (!is_in_range(current_generation - _queue_size, generation, current_generation - 1)) {
-				// Reader is too far behind: some messages are lost
-				generation = current_generation - _queue_size;
-			}
-
-			memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
-			ATOMIC_LEAVE;
-
-			++generation;
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
 ssize_t
 uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
@@ -225,7 +186,9 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 			/* re-check size */
 			if (nullptr == _data) {
-				_data = new uint8_t[_meta->o_size * _queue_size];
+				const size_t data_size = _meta->o_size * _queue_size;
+				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
+				memset(_data, 0, data_size);
 			}
 
 			unlock();
@@ -323,7 +286,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	}
 
 	/* check if the orb meta data matches the publication */
-	if (devnode->_meta != meta) {
+	if (devnode->_meta->o_id != meta->o_id) {
 		errno = EINVAL;
 		return PX4_ERROR;
 	}
@@ -341,7 +304,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		return PX4_ERROR;
 	}
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	/*
 	 * if the write is successful, send the data over the Multi-ORB link
 	 */
@@ -354,7 +317,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		}
 	}
 
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	return PX4_OK;
 }
@@ -383,7 +346,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 	return PX4_OK;
 }
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 {
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
@@ -394,19 +357,7 @@ int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 
 	return -1;
 }
-
-/*
-//TODO: Check if we need this since we only unadvertise when things all shutdown and it doesn't actually remove the device
-int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta)
-{
-	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
-	if (ch != nullptr && meta != nullptr) {
-		return ch->topic_unadvertised(meta->o_name);
-	}
-	return -1;
-}
-*/
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 px4_pollevent_t
 uORB::DeviceNode::poll_state(cdev::file_t *filp)
@@ -450,7 +401,7 @@ void uORB::DeviceNode::add_internal_subscriber()
 	lock();
 	_subscriber_count++;
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count > 0) {
@@ -458,7 +409,7 @@ void uORB::DeviceNode::add_internal_subscriber()
 		ch->add_subscription(_meta->o_name, 1);
 
 	} else
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	{
 		unlock();
@@ -470,7 +421,7 @@ void uORB::DeviceNode::remove_internal_subscriber()
 	lock();
 	_subscriber_count--;
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count == 0) {
@@ -478,14 +429,14 @@ void uORB::DeviceNode::remove_internal_subscriber()
 		ch->remove_subscription(_meta->o_name);
 
 	} else
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 	{
 		unlock();
 	}
 }
 
-#ifdef ORB_COMMUNICATOR
-int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
+#ifdef CONFIG_ORB_COMMUNICATOR
+int16_t uORB::DeviceNode::process_add_subscription()
 {
 	// if there is already data in the node, send this out to
 	// the remote entity.
@@ -527,7 +478,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 
 	return PX4_OK;
 }
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 {

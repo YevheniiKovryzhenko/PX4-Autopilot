@@ -44,6 +44,7 @@
 #include <systemlib/mavlink_log.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/airspeed_validated.h>

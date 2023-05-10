@@ -146,14 +146,14 @@ add_custom_command(
 set(extras_dependencies)
 
 # copy px4io binary if configured
-if(config_io_board)
-	list(APPEND extras_dependencies
-		copy_px4io_bin
-		${fw_io_bin}
-	)
-	file(RELATIVE_PATH iofw_file_relative ${PX4_SOURCE_DIR} ${fw_io_bin})
-	message(STATUS "ROMFS:  Adding ${iofw_file_relative} -> /etc/extras/${config_io_board}.bin")
-endif()
+#if(config_io_board)
+#	list(APPEND extras_dependencies
+#		copy_px4io_bin
+#		${fw_io_bin}
+#	)
+#	file(RELATIVE_PATH iofw_file_relative ${PX4_SOURCE_DIR} ${fw_io_bin})
+#	message(STATUS "ROMFS:  Adding ${iofw_file_relative} -> /etc/extras/${config_io_board}.bin")
+#endif()
 
 
 # board bootloader (built or included)

@@ -33,4 +33,5 @@ uint16 rc_total_frame_count		# Number of total RC frames. Note: intended purpose
 uint16 rc_ppm_frame_length		# Length of a single PPM frame. Zero for non-PPM systems
 
 uint8 input_source			# Input source
+int8 link_quality			# link quality. Percentage 0-100%. -1 = invalid
 uint16[18] values			# measured pulse widths for each of the supported channels

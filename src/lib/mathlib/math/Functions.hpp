@@ -121,6 +121,75 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
 	return expo(deadzone(value, dz), e);
 }
 
+/*
+ * Constant, linear, constant function with the two corner points as parameters
+ * y_high          -------
+ *                /
+ *               /
+ *              /
+ * y_low -------
+ *         x_low   x_high
+ */
+template<typename T>
+const T interpolate(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
+{
+	if (value <= x_low) {
+		return y_low;
+
+	} else if (value > x_high) {
+		return y_high;
+
+	} else {
+		/* linear function between the two points */
+		T a = (y_high - y_low) / (x_high - x_low);
+		T b = y_low - (a * x_low);
+		return (a * value) + b;
+	}
+}
+
+/*
+ * Constant, piecewise linear, constant function with 1/N size intervalls and N corner points as parameters
+ * y[N-1]               -------
+ *                     /
+ *                   /
+ * y[1]            /
+ *               /
+ *              /
+ *             /
+ * y[0] -------
+ *        0 1/(N-1) 2/(N-1) ... 1
+ */
+template<typename T, size_t N>
+const T interpolateN(const T &value, const T(&y)[N])
+{
+	size_t index = constrain((int)(value * (N - 1)), 0, (int)(N - 2));
+	return interpolate(value, (T)index / (T)(N - 1), (T)(index + 1) / (T)(N - 1), y[index], y[index + 1]);
+}
+
+/*
+ * Constant, piecewise linear, constant function with N corner points as parameters
+ * y[N-1]               -------
+ *                     /
+ *                   /
+ * y[1]            /
+ *               /
+ *              /
+ *             /
+ * y[0] -------
+ *          x[0] x[1] ... x[N-1]
+ * Note: x[N] corner coordinates have to be sorted in ascending order
+ */
+template<typename T, size_t N>
+const T interpolateNXY(const T &value, const T(&x)[N], const T(&y)[N])
+{
+	size_t index = 0;
+
+	while ((value > x[index + 1]) && (index < (N - 2))) {
+		index++;
+	}
+
+	return interpolate(value, x[index], x[index + 1], y[index], y[index + 1]);
+}
 
 /*
  * Constant, linear, constant function with the two corner points as parameters
@@ -222,6 +291,24 @@ template<>
 constexpr int16_t negate<int16_t>(int16_t value)
 {
 	return (value == INT16_MIN) ? INT16_MAX : -value;
+}
+
+/*
+ * This function calculates the Hamming weight, i.e. counts the number of bits that are set
+ * in a given integer.
+ */
+
+template<typename T>
+int countSetBits(T n)
+{
+	int count = 0;
+
+	while (n) {
+		count += n & 1;
+		n >>= 1;
+	}
+
+	return count;
 }
 
 inline bool isFinite(const float &value)

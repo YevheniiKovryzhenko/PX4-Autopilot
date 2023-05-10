@@ -265,39 +265,6 @@ typedef uint16_t	servo_position_t;
 #define	PWM_RATE_LOWER_LIMIT		1u
 #define	PWM_RATE_UPPER_LIMIT		10000u
 
-typedef enum {
-	DShot_cmd_motor_stop = 0,
-	DShot_cmd_beacon1,
-	DShot_cmd_beacon2,
-	DShot_cmd_beacon3,
-	DShot_cmd_beacon4,
-	DShot_cmd_beacon5,
-	DShot_cmd_esc_info, // V2 includes settings
-	DShot_cmd_spin_direction_1,
-	DShot_cmd_spin_direction_2,
-	DShot_cmd_3d_mode_off,
-	DShot_cmd_3d_mode_on,
-	DShot_cmd_settings_request, // Currently not implemented
-	DShot_cmd_save_settings,
-	DShot_cmd_spin_direction_normal   = 20,
-	DShot_cmd_spin_direction_reversed = 21,
-	DShot_cmd_led0_on,      // BLHeli32 only
-	DShot_cmd_led1_on,      // BLHeli32 only
-	DShot_cmd_led2_on,      // BLHeli32 only
-	DShot_cmd_led3_on,      // BLHeli32 only
-	DShot_cmd_led0_off,     // BLHeli32 only
-	DShot_cmd_led1_off,     // BLHeli32 only
-	DShot_cmd_led2_off,     // BLHeli32 only
-	DShot_cmd_led4_off,     // BLHeli32 only
-	DShot_cmd_audio_stream_mode_on_off              = 30, // KISS audio Stream mode on/off
-	DShot_cmd_silent_mode_on_off                    = 31, // KISS silent Mode on/off
-	DShot_cmd_signal_line_telemeetry_disable        = 32,
-	DShot_cmd_signal_line_continuous_erpm_telemetry = 33,
-	DShot_cmd_MAX          = 47,     // >47 are throttle values
-	DShot_cmd_MIN_throttle = 48,
-	DShot_cmd_MAX_throttle = 2047
-} dshot_command_t;
-
 
 /*
  * Low-level PWM output interface.
@@ -408,24 +375,6 @@ __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
  * @return OK on success.
  */
 __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
-
-/**
- * Set the current dshot throttle value for a channel (motor).
- *
- * @param channel	The channel to set.
- * @param throttle	The output dshot throttle value in [0 = DSHOT_DISARM_VALUE, 1 = DSHOT_MIN_THROTTLE, 1999 = DSHOT_MAX_THROTTLE].
- * @param telemetry	If true, request telemetry from that motor
- */
-__EXPORT extern void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry);
-
-/**
- * Send DShot command to a channel (motor).
- *
- * @param channel	The channel to set.
- * @param command	dshot_command_t
- * @param telemetry	If true, request telemetry from that motor
- */
-__EXPORT extern void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry);
 
 /**
  * Trigger dshot data transfer.

@@ -3,13 +3,21 @@
         {
             "name": "PX4",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/home/ubuntu/Source/PX4-Autopilot/boards/cubepilot/cubeorange/src",
+                "/home/ubuntu/Source/PX4-Autopilot/platforms/nuttx/src/px4/stm/stm32h7/include",
+                "/home/ubuntu/Source/PX4-Autopilot/platforms/nuttx/NuttX/nuttx/include/"
             ],
             "defines": [],
             "macFrameworkPath": [],
             "configurationProvider": "ms-vscode.cmake-tools",
             "cppStandard": "c++14",
-            "cStandard": "c11"
+            "cStandard": "c11",
+            "dotConfig": "/home/ubuntu/Source/PX4-Autopilot/build/cubepilot_cubeorange_test/NuttX/nuttx/.config",
+            "forcedInclude": [
+                 "/home/ubuntu/Source/PX4-Autopilot/build/cubepilot_cubeorange_test/px4_boardconfig.h",
+                 "/home/ubuntu/Source/PX4-Autopilot/platforms/common/include/px4_platform_common/defines.h"
+                 ]
         }
     ],
     "version": 4

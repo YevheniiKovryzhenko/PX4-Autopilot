@@ -44,8 +44,8 @@ px4_add_board(
 		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
-		pwm_out_sim
-		pwm_out
+		#pwm_out_sim
+		#pwm_out
 		px4io
 		roboclaw
 		rpm
@@ -100,14 +100,14 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
-		mixer
+		#mixer
 		motor_ramp
 		motor_test
 		mtd
 		nshterm
 		param
 		perf
-		pwm
+		#pwm
 		reboot
 		reflect
 		sd_bench

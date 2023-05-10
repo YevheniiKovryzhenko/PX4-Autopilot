@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,7 +40,6 @@ endif()
 px4_add_module(
 	MODULE drivers__dshot
 	MAIN dshot
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-DPARAM_PREFIX="${PARAM_PREFIX}"
 	SRCS
@@ -49,9 +48,7 @@ px4_add_module(
 	DEPENDS
 		arch_io_pins
 		arch_dshot
-		mixer
 		mixer_module
-		output_limit
 	MODULE_CONFIG
 		module.yaml
 	)
