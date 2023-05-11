@@ -47,7 +47,7 @@
 #include <poll.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
@@ -388,9 +388,9 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				}
 
 				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
-				if (PX4_ISFINITE(manual_control_setpoint.z) &&
-				    (manual_control_setpoint.z >= 0.6f) &&
-				    (manual_control_setpoint.z <= 1.0f)) {
+				if (PX4_ISFINITE(manual_control_setpoint.throttle) &&
+				    (manual_control_setpoint.throttle >= 0.6f) &&
+				    (manual_control_setpoint.throttle <= 1.0f)) {
 				}
 
 				/* get the system status and the flight mode we're in */

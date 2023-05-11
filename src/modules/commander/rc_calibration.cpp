@@ -36,6 +36,7 @@
  * Remote Control calibration routine
  */
 
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/defines.h>
@@ -57,7 +58,9 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	bool changed = manual_control_setpoint_sub.updated();
 
 	if (!changed) {
-		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
+		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting\t");
+		events::send(events::ID("commander_cal_no_inputs"), {events::Log::Error, events::LogInternal::Info},
+			     "No inputs, aborting RC trim calibration");
 		return PX4_ERROR;
 	}
 
@@ -82,23 +85,26 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	/* set parameters: the new trim values are the combination of active trim values
 	   and the values coming from the remote control of the user
 	*/
-	float p = manual_control_setpoint.y * roll_scale + roll_trim_active;
+	float p = manual_control_setpoint.roll * roll_scale + roll_trim_active;
 	int p1r = param_set(param_find("TRIM_ROLL"), &p);
 	/*
 	 we explicitly swap sign here because the trim is added to the actuator controls
 	 which are moving in an inverse sense to manual pitch inputs
 	*/
-	p = -manual_control_setpoint.x * pitch_scale + pitch_trim_active;
+	p = -manual_control_setpoint.pitch * pitch_scale + pitch_trim_active;
 	int p2r = param_set(param_find("TRIM_PITCH"), &p);
-	p = manual_control_setpoint.r * yaw_scale + yaw_trim_active;
+	p = manual_control_setpoint.yaw * yaw_scale + yaw_trim_active;
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
 
 	if (p1r != 0 || p2r != 0 || p3r != 0) {
-		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
+		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL\t");
+		events::send(events::ID("commander_cal_trim_param_set_failed"), events::Log::Critical,
+			     "RC trim calibration: failed to set parameters");
 		return PX4_ERROR;
 	}
 
-	mavlink_log_info(mavlink_log_pub, "trim cal done");
+	mavlink_log_info(mavlink_log_pub, "trim cal done\t");
+	events::send(events::ID("commander_cal_trim_done"), events::Log::Info, "RC trim calibration completed");
 
 	return PX4_OK;
 }

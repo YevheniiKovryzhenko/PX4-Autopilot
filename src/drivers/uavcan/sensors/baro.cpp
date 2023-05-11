@@ -41,7 +41,7 @@
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
-#include <ecl/geo/geo.h> // For CONSTANTS_*
+#include <lib/geo/geo.h> // For CONSTANTS_*
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 

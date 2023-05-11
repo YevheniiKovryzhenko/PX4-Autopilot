@@ -35,6 +35,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 set(msg_files
+	action_request.msg
 	actuator_armed.msg
 	actuator_controls_status.msg
 	actuator_controls.msg
@@ -51,6 +52,7 @@ set(msg_files
 	battery_status.msg
 	button_event.msg
 	camera_capture.msg
+	camera_status.msg
 	camera_trigger.msg
 	cellular_status.msg
 	collision_constraints.msg
@@ -64,15 +66,25 @@ set(msg_files
 	ekf_gps_drift.msg
 	esc_report.msg
 	esc_status.msg
+	estimator_aid_source1d.msg
+	estimator_aid_source2d.msg
+	estimator_aid_source3d.msg
+	estimator_bias.msg
+	estimator_bias3d.msg
 	estimator_event_flags.msg
+	estimator_gps_status.msg
 	estimator_innovations.msg
 	estimator_optical_flow_vel.msg
 	estimator_selector_status.msg
 	estimator_sensor_bias.msg
 	estimator_states.msg
-	estimator_status.msg
 	estimator_status_flags.msg
+	estimator_status.msg
+	event.msg
 	failsafe_flags.msg
+	failure_detector_status.msg
+	follow_target_estimator.msg
+	follow_target_status.msg
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg
@@ -93,9 +105,11 @@ set(msg_files
 	internal_combustion_engine_status.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
+	landing_gear_wheel.msg
 	landing_gear.msg
 	landing_target_innovations.msg
 	landing_target_pose.msg
+	launch_detection_status.msg
 	led_control.msg
 	log_message.msg
 	logger_status.msg
@@ -103,11 +117,15 @@ set(msg_files
 	manual_control_setpoint.msg
 	manual_control_switches.msg
 	mavlink_log.msg
+	mavlink_tunnel.msg
 	mission.msg
+	mode_completed.msg
 	mission_result.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
 	navigator_mission_item.msg
+	normalized_unsigned_setpoint.msg
+	npfg_status.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
@@ -131,6 +149,7 @@ set(msg_files
 	rc_parameter_map.msg
 	rpm.msg
 	rtl_flight_time.msg
+	rtl_time_estimate.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
@@ -156,9 +175,11 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
+	tiltrotor_extra_controls.msg
 	timesync.msg
 	timesync_status.msg
 	trajectory_bezier.msg
+	trajectory_setpoint.msg
 	trajectory_waypoint.msg
 	transponder_report.msg
 	tune_control.msg
@@ -187,6 +208,7 @@ set(msg_files
 	vehicle_local_position_setpoint.msg
 	vehicle_magnetometer.msg
 	vehicle_odometry.msg
+	vehicle_optical_flow.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg

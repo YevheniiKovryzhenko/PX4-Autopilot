@@ -36,11 +36,16 @@
  * Included Files
  ****************************************************************************/
 #include <px4_platform_common/px4_config.h>
+#include <px4_arch/micro_hal.h>
 #include <systemlib/px4_macros.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#include <stm32_bbsram.h>
+typedef struct bbsramd_s dump_s;
+
 #define HARDFAULT_REBOOT_FILENO 0
 #define HARDFAULT_REBOOT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_REBOOT_FILENO)
 #define HARDFAULT_ULOG_FILENO 3

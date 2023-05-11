@@ -38,7 +38,7 @@
 #include "differential_pressure.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
 

@@ -60,11 +60,8 @@ int FlightModeManager::_initTask(FlightTaskIndex task_index)
 @# loop through all requested tasks
 @[if tasks]@
 @[for task in tasks]@
-@{
-firstLowercase = lambda s: s[:1].lower() + s[1:] if s else ''
-}@
 	case FlightTaskIndex::@(task):
-		_current_task.task = new (&_task_union.@(firstLowercase(task))) FlightTask@(task)();
+		_current_task.task = new (&_task_union.@(task)) FlightTask@(task)();
 		break;
 
 @[end for]@
@@ -77,24 +74,4 @@ firstLowercase = lambda s: s[:1].lower() + s[1:] if s else ''
 	// task construction succeeded
 	_current_task.index = task_index;
 	return 0;
-}
-
-FlightTaskIndex FlightModeManager::switchVehicleCommand(const int command)
-{
-    switch (command) {
-@# loop through all additional tasks
-@[if tasks_add]@
-@[for task in tasks_add]@
-@{
-upperCase = lambda s: s[:].upper() if s else ''
-}@
-	case vehicle_command_s::VEHICLE_CMD_DO_@(upperCase(task)) :
-		return FlightTaskIndex::@(task);
-		break;
-
-@[end for]@
-@[end if]@
-	// ignore all unkown commands
-	default : return FlightTaskIndex::None;
-	}
 }

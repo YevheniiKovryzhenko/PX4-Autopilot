@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +52,23 @@ template<typename T>
 int signNoZero(T val)
 {
 	return (T(0) <= val) - (val < T(0));
+}
+
+/**
+ * Sign function based on a boolean
+ *
+ * @param[in] positive Truth value to take the sign from
+ * @return 1 if positive is true, -1 if positive is false
+ */
+inline int signFromBool(bool positive)
+{
+	return positive ? 1 : -1;
+}
+
+template<typename T>
+T sq(T val)
+{
+	return val * val;
 }
 
 /*
@@ -120,6 +137,7 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
 {
 	return expo(deadzone(value, dz), e);
 }
+
 
 /*
  * Constant, linear, constant function with the two corner points as parameters
@@ -192,57 +210,6 @@ const T interpolateNXY(const T &value, const T(&x)[N], const T(&y)[N])
 }
 
 /*
- * Constant, linear, constant function with the two corner points as parameters
- * y_high          -------
- *                /
- *               /
- *              /
- * y_low -------
- *         x_low   x_high
- */
-template<typename T>
-const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
-{
-	if (value < x_low) {
-		return y_low;
-
-	} else if (value > x_high) {
-		return y_high;
-
-	} else {
-		/* linear function between the two points */
-		T a = (y_high - y_low) / (x_high - x_low);
-		T b = y_low - a * x_low;
-		return  a * value + b;
-	}
-}
-
-/*
- * Constant, linear, linear, constant function with the three corner points as parameters
- *  y_high               -------
- *                      /
- *                    /
- *  y_middle        /
- *                /
- *               /
- *              /
- * y_low -------
- *         x_low x_middle x_high
- */
-template<typename T>
-const T gradual3(const T &value,
-		 const T &x_low, const T &x_middle, const T &x_high,
-		 const T &y_low, const T &y_middle, const T &y_high)
-{
-	if (value < x_middle) {
-		return gradual(value, x_low, x_middle, y_low, y_middle);
-
-	} else {
-		return gradual(value, x_middle, x_high, y_middle, y_high);
-	}
-}
-
-/*
  * Squareroot, linear function with fixed corner point at intersection (1,1)
  *                     /
  *      linear        /
@@ -290,7 +257,14 @@ constexpr T negate(T value)
 template<>
 constexpr int16_t negate<int16_t>(int16_t value)
 {
-	return (value == INT16_MIN) ? INT16_MAX : -value;
+	if (value == INT16_MAX) {
+		return INT16_MIN;
+
+	} else if (value == INT16_MIN) {
+		return INT16_MAX;
+	}
+
+	return -value;
 }
 
 /*
@@ -318,7 +292,7 @@ inline bool isFinite(const float &value)
 
 inline bool isFinite(const matrix::Vector3f &value)
 {
-	return PX4_ISFINITE(value(0)) && PX4_ISFINITE(value(1)) && PX4_ISFINITE(value(2));
+	return value.isAllFinite();
 }
 
 } /* namespace math */

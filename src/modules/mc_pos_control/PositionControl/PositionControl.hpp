@@ -41,6 +41,7 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
@@ -108,6 +109,12 @@ public:
 	void setThrustLimits(const float min, const float max);
 
 	/**
+	 * Set margin that is kept for horizontal control when prioritizing vertical thrust
+	 * @param margin of normalized thrust that is kept for horizontal control e.g. 0.3
+	 */
+	void setHorizontalThrustMargin(const float margin);
+
+	/**
 	 * Set the maximum tilt angle in radians the output attitude is allowed to have
 	 * @param tilt angle in radians from level orientation
 	 */
@@ -115,9 +122,9 @@ public:
 
 	/**
 	 * Set the normalized hover thrust
-	 * @param thrust [0.1, 0.9] with which the vehicle hovers not acelerating down or up with level orientation
+	 * @param hover_thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 	 */
-	void setHoverThrust(const float hover_thrust) { _hover_thrust = math::constrain(hover_thrust, 0.1f, 0.9f); }
+	void setHoverThrust(const float hover_thrust) { _hover_thrust = math::constrain(hover_thrust, HOVER_THRUST_MIN, HOVER_THRUST_MAX); }
 
 	/**
 	 * Update the hover thrust without immediately affecting the output
@@ -135,9 +142,9 @@ public:
 	/**
 	 * Pass the desired setpoints
 	 * Note: NAN value means no feed forward/leave state uncontrolled if there's no higher order setpoint.
-	 * @param setpoint a vehicle_local_position_setpoint_s structure
+	 * @param setpoint setpoints including feed-forwards to execute in update()
 	 */
-	void setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint);
+	void setInputSetpoint(const trajectory_setpoint_s &setpoint);
 
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
@@ -172,8 +179,17 @@ public:
 	 */
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
+	/**
+	 * All setpoints are set to NAN (uncontrolled). Timestampt zero.
+	 */
+	static const trajectory_setpoint_s empty_trajectory_setpoint;
+
 private:
-	bool _updateSuccessful();
+	// The range limits of the hover thrust configuration/estimate
+	static constexpr float HOVER_THRUST_MIN = 0.05f;
+	static constexpr float HOVER_THRUST_MAX = 0.9f;
+
+	bool _inputValid();
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
@@ -191,9 +207,10 @@ private:
 	float _lim_vel_down{}; ///< Downwards velocity limit with feed forward and position control
 	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
+	float _lim_thr_xy_margin{}; ///< Margin to keep for horizontal control when saturating prioritized vertical thrust
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
 
-	float _hover_thrust{}; ///< Thrust [0.1, 0.9] with which the vehicle hovers not accelerating down or up with level orientation
+	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 
 	// States
 	matrix::Vector3f _pos; /**< current position */

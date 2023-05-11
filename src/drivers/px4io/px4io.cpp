@@ -38,7 +38,7 @@
  * PX4IO is connected via DMA enabled high-speed UART.
  */
 #include <px4_platform_common/defines.h>
-//#include <px4_platform_common/events.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
@@ -397,15 +397,15 @@ int PX4IO::init()
 	/* if the error still persists after timing out, we give up */
 	if (protocol == _io_reg_get_error) {
 		mavlink_log_emergency(&_mavlink_log_pub, "Failed to communicate with IO, abort.\t");
-		//events::send(events::ID("px4io_comm_failed"), events::Log::Emergency,
-		//	     "Failed to communicate with IO, aborting initialization");
+		events::send(events::ID("px4io_comm_failed"), events::Log::Emergency,
+			     "Failed to communicate with IO, aborting initialization");
 		return -1;
 	}
 
 	if (protocol != PX4IO_PROTOCOL_VERSION) {
 		mavlink_log_emergency(&_mavlink_log_pub, "IO protocol/firmware mismatch, abort.\t");
-		//events::send(events::ID("px4io_proto_fw_mismatch"), events::Log::Emergency,
-		//	     "IO protocol/firmware mismatch, aborting initialization");
+		events::send(events::ID("px4io_proto_fw_mismatch"), events::Log::Emergency,
+			     "IO protocol/firmware mismatch, aborting initialization");
 		return -1;
 	}
 
@@ -421,8 +421,8 @@ int PX4IO::init()
 
 		PX4_ERR("config read error");
 		mavlink_log_emergency(&_mavlink_log_pub, "[IO] config read fail, abort.\t");
-		//events::send(events::ID("px4io_config_read_failed"), events::Log::Emergency,
-		//	     "IO config read failed, aborting initialization");
+		events::send(events::ID("px4io_config_read_failed"), events::Log::Emergency,
+			     "IO config read failed, aborting initialization");
 
 		// ask IO to reboot into bootloader as the failure may
 		// be due to mismatched firmware versions and we want
@@ -456,8 +456,8 @@ int PX4IO::init()
 
 	if (ret != OK) {
 		mavlink_log_critical(&_mavlink_log_pub, "IO RC config upload fail\t");
-		//events::send(events::ID("px4io_io_rc_config_upload_failed"), events::Log::Critical,
-		//	     "IO RC config upload failed, aborting initialization");
+		events::send(events::ID("px4io_io_rc_config_upload_failed"), events::Log::Critical,
+			     "IO RC config upload failed, aborting initialization");
 		return ret;
 	}
 

@@ -9,7 +9,7 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	BUILD_BOOTLOADER
 	IO cubepilot_io-v2_default
-	UAVCAN_INTERFACES 2
+	UAVCAN_INTERFACES 2-
 	SERIAL_PORTS
 		TEL1:/dev/ttyS0
 		TEL2:/dev/ttyS1
@@ -38,7 +38,7 @@ px4_add_board(
 		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
-		osd
+		#osd
 		pca9685
 		pca9685_pwm_out
 		power_monitor/ina226
@@ -54,19 +54,22 @@ px4_add_board(
 		tone_alarm
 		uavcan
 	MODULES
-		sim_ctrl_mod
+		#sim_ctrl_mod
 		airspeed_selector
 		attitude_estimator_q
 		battery_status
 		camera_feedback
 		commander
+		control_allocator
 		dataman
 		ekf2
 		esc_battery
 		events
 		flight_mode_manager
+		fw_rate_control
 		fw_att_control
-		fw_pos_control_l1
+		fw_pos_control
+		#fw_pos_control_l1
 		gyro_calibration
 		gyro_fft
 		land_detector
@@ -88,7 +91,7 @@ px4_add_board(
 		temperature_compensation
 		#uuv_att_control
 		#uuv_pos_control
-		vmount
+		#vmount
 		vtol_att_control
 	SYSTEMCMDS
 		bl_update

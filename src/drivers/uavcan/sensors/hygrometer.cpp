@@ -34,7 +34,7 @@
 #include "hygrometer.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 const char *const UavcanHygrometerBridge::NAME = "hygrometer_sensor";
 

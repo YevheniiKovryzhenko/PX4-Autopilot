@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,7 +44,7 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -64,6 +64,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -71,8 +72,8 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 
 using matrix::Dcmf;
 
@@ -106,7 +107,6 @@ private:
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};  /**< navigation capabilities publication */
-	uORB::Publication<actuator_controls_s>		_actuator_controls_pub{ORB_ID(actuator_controls_0)};  /**< actuator controls publication */
 
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)}; /**< control mode subscription */
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
@@ -123,9 +123,10 @@ private:
 	vehicle_control_mode_s			_control_mode{};		/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
-	actuator_controls_s				_act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s				_vehicle_att{};
-	vehicle_local_position_setpoint_s       _trajectory_setpoint{};
+	trajectory_setpoint_s _trajectory_setpoint{};
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
@@ -134,8 +135,7 @@ private:
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
 	hrt_abstime _manual_setpoint_last_called{0};
 
-	map_projection_reference_s _global_local_proj_ref{};
-	float                      _global_local_alt0{NAN};
+	MapProjection _global_local_proj_ref{};
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
@@ -167,6 +167,8 @@ private:
 
 	float _manual_yaw_sp{0.0};
 	bool _reset_yaw_sp{true};
+	float _throttle_control{0.f};
+	float _yaw_control{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::GND_L1_PERIOD>) _param_l1_period,

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,14 +33,14 @@
 
 /**
  * @file StickAccelerationXY.hpp
- * @brief Generate horizontal position, velocity and acceleration from stick input
+ * @brief Generate horizontal position, velocity and acceleration setpoints from stick input
  * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #pragma once
 
 #include <px4_platform_common/module_params.h>
-#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/takeoff_status.h>
@@ -54,11 +54,15 @@ public:
 	~StickAccelerationXY() = default;
 
 	void resetPosition();
+	void resetPosition(const matrix::Vector2f &position);
 	void resetVelocity(const matrix::Vector2f &velocity);
 	void resetAcceleration(const matrix::Vector2f &acceleration);
 	void generateSetpoints(matrix::Vector2f stick_xy, const float yaw, const float yaw_sp, const matrix::Vector3f &pos,
 			       const matrix::Vector2f &vel_sp_feedback, const float dt);
 	void getSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, matrix::Vector3f &acc_sp);
+	float getMaxAcceleration() { return _param_mpc_acc_hor.get(); };
+	float getMaxJerk() { return _param_mpc_jerk_max.get(); };
+	void setVelocityConstraint(float vel) { _velocity_constraint = fmaxf(vel, FLT_EPSILON); };
 
 private:
 	void applyJerkLimit(const float dt);
@@ -78,10 +82,13 @@ private:
 	matrix::Vector2f _acceleration_setpoint;
 	matrix::Vector2f _acceleration_setpoint_prev;
 
+	float _velocity_constraint{INFINITY};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+		(ParamFloat<px4::params::MPC_VEL_MAN_SIDE>) _param_mpc_vel_man_side,
+		(ParamFloat<px4::params::MPC_VEL_MAN_BACK>) _param_mpc_vel_man_back,
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor,
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
-		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max
 	)
 };

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 
 namespace calibration
@@ -54,21 +53,22 @@ public:
 	static constexpr const char *SensorString() { return "MAG"; }
 
 	Magnetometer();
-	explicit Magnetometer(uint32_t device_id, bool external = false);
+	explicit Magnetometer(uint32_t device_id);
 
 	~Magnetometer() = default;
 
 	void PrintStatus();
 
-	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
-	void set_device_id(uint32_t device_id, bool external = false);
-	void set_external(bool external = true);
+	bool set_calibration_index(int calibration_index);
+	void set_device_id(uint32_t device_id);
 	bool set_offset(const matrix::Vector3f &offset);
 	bool set_scale(const matrix::Vector3f &scale);
 	bool set_offdiagonal(const matrix::Vector3f &offdiagonal);
 	void set_rotation(Rotation rotation);
 
+	bool calibrated() const { return (_device_id != 0) && (_calibration_index >= 0); }
 	uint8_t calibration_count() const { return _calibration_count; }
+	int8_t calibration_index() const { return _calibration_index; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
@@ -88,10 +88,12 @@ public:
 	// Compute sensor offset from bias (board frame)
 	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
 	{
-		return _scale.I() * _rotation.I() * bias + _offset;
+		// updated calibration offset = existing offset + bias rotated to sensor frame and unscaled
+		return _offset + (_scale.I() * _rotation.I() * bias);
 	}
 
-	bool ParametersSave();
+	bool ParametersLoad();
+	bool ParametersSave(int desired_calibration_index = -1, bool force = false);
 	void ParametersUpdate();
 
 	void Reset();

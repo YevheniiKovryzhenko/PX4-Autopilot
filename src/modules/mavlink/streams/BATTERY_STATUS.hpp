@@ -157,8 +157,8 @@ private:
 						static constexpr int uorb_cell_slots =
 							(sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]));
 
-						const int cell_slots = math::min(math::min(static_cast<int>(battery_status.cell_count),
-										 uorb_cell_slots),
+						const int cell_slots = math::min(static_cast<int>(battery_status.cell_count),
+										 uorb_cell_slots,
 										 mavlink_cell_slots + mavlink_cell_slots_extension);
 
 						for (int cell = 0; cell < cell_slots; cell++) {

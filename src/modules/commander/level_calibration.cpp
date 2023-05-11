@@ -42,7 +42,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <matrix/math.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/parameters/param.h>
@@ -70,9 +70,6 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 	float pitch_offset_current = 0.f;
 	param_get(roll_offset_handle, &roll_offset_current);
 	param_get(pitch_offset_handle, &pitch_offset_current);
-
-	int32_t board_rot_current = 0;
-	param_get(param_find("SENS_BOARD_ROT"), &board_rot_current);
 
 	const Dcmf board_rotation_offset{Eulerf{radians(roll_offset_current), radians(pitch_offset_current), 0.f}};
 

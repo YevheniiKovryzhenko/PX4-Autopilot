@@ -48,16 +48,20 @@
 PARAM_DEFINE_FLOAT(LNDMC_TRIG_TIME, 1.0f);
 
 /**
- * Multicopter max climb rate
+ * Multicopter vertical velocity threshold
  *
- * Maximum vertical velocity allowed in the landed state
+ * Vertical velocity threshold to detect landing.
+ * Has to be set lower than the expected minimal speed for landing,
+ * which is either MPC_LAND_SPEED or MPC_LAND_CRWL.
+ * This is enforced by an automatic check.
  *
  * @unit m/s
- * @decimal 1
+ * @min 0
+ * @decimal 2
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.50f);
+PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.25f);
 
 /**
  * Multicopter max horizontal velocity
@@ -113,4 +117,4 @@ PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, -1.0f);
  * @group Land Detector
  *
  */
-PARAM_DEFINE_FLOAT(LNDMC_ALT_GND, -1.0f);
+PARAM_DEFINE_FLOAT(LNDMC_ALT_GND, 2.f);

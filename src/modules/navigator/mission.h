@@ -33,7 +33,9 @@
 /**
  * @file mission.h
  *
- * Navigator mode to access missions
+ * Mission mode class that handles everything related to executing a mission.
+ * This class gets included as one of the 'modes' in the Navigator, along with other
+ * modes like RTL, Loiter, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
@@ -94,6 +96,7 @@ public:
 	double get_landing_lat() { return _landing_lat; }
 	double get_landing_lon() { return _landing_lon; }
 	float get_landing_alt() { return _landing_alt; }
+	float get_landing_loiter_rad() { return _landing_loiter_radius; }
 
 	void set_closest_item_as_current();
 
@@ -104,6 +107,8 @@ public:
 	 */
 	void set_execution_mode(const uint8_t mode);
 private:
+
+	void mission_init();
 
 	/**
 	 * Update mission topic
@@ -116,7 +121,10 @@ private:
 	void advance_mission();
 
 	/**
-	 * Set new mission items
+	 * @brief Configures mission items in current setting
+	 *
+	 * Configure the mission items depending on current mission item index and settings such
+	 * as terrain following, etc.
 	 */
 	void set_mission_items();
 
@@ -219,11 +227,6 @@ private:
 	bool need_to_reset_mission();
 
 	/**
-	 * Project current location with heading to far away location and fill setpoint.
-	 */
-	void generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw);
-
-	/**
 	 * Find and store the index of the landing sequence (DO_LAND_START)
 	 */
 	bool find_mission_land_start();
@@ -239,7 +242,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
-		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
 	)
 
@@ -261,9 +263,9 @@ private:
 	double _landing_lon{0.0};
 	float _landing_alt{0.0f};
 
-	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+	float _landing_loiter_radius{0.f};
 
-	hrt_abstime _time_mission_deactivated{0};
+	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	enum {
 		MISSION_TYPE_NONE,
@@ -276,12 +278,13 @@ private:
 	bool _mission_waypoints_changed{false};
 	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
+	// Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
 	enum work_item_type {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
-		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,
+		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
