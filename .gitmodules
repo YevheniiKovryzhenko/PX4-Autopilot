@@ -58,3 +58,7 @@
 	path = src/modules/microdds_client/Micro-XRCE-DDS-Client
 	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
 	branch = px4
+[submodule "src/drivers/gps/devices"]
+	path = src/drivers/gps/devices
+	url = https://github.com/PX4/PX4-GPSDrivers.git
+	branch = main
