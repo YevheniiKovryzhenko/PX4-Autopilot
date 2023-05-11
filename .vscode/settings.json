@@ -127,6 +127,5 @@
         "terminal.integrated.scrollback": 15000,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
-        },
-        "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
+        }
 }
