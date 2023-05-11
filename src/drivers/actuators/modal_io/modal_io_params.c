@@ -82,7 +82,6 @@ PARAM_DEFINE_INT32(MODAL_IO_BAUD, 250000);
  * Minimum RPM for ESC
  *
  * @group MODAL IO
- * @unit rpm
  */
 PARAM_DEFINE_INT32(MODAL_IO_RPM_MIN, 5500);
 
@@ -92,7 +91,6 @@ PARAM_DEFINE_INT32(MODAL_IO_RPM_MIN, 5500);
  * Maximum RPM for ESC
  *
  * @group MODAL IO
- * @unit rpm
  */
 PARAM_DEFINE_INT32(MODAL_IO_RPM_MAX, 15000);
 

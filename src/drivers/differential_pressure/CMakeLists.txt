@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(ets)
-add_subdirectory(ms4525)
-add_subdirectory(ms5525)
+add_subdirectory(ms4515)
+add_subdirectory(ms4525do)
+add_subdirectory(ms5525dso)
 add_subdirectory(sdp3x)

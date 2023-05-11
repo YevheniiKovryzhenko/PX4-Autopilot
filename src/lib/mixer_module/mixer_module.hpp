@@ -38,10 +38,10 @@
 #include "functions/FunctionActuatorSet.hpp"
 #include "functions/FunctionConstantMax.hpp"
 #include "functions/FunctionConstantMin.hpp"
-//#include "functions/FunctionGimbal.hpp"
-//#include "functions/FunctionGripper.hpp"
-//#include "functions/FunctionLandingGear.hpp"
-//#include "functions/FunctionLandingGearWheel.hpp"
+#include "functions/FunctionGimbal.hpp"
+#include "functions/FunctionGripper.hpp"
+#include "functions/FunctionLandingGear.hpp"
+#include "functions/FunctionLandingGearWheel.hpp"
 #include "functions/FunctionManualRC.hpp"
 #include "functions/FunctionMotors.hpp"
 #include "functions/FunctionParachute.hpp"
@@ -123,8 +123,6 @@ public:
 		     bool support_esc_calibration, bool ramp_up = true);
 
 	~MixingOutput();
-
-	void setDriverInstance(uint8_t instance) { _driver_instance = instance; }
 
 	void printStatus() const;
 
@@ -273,7 +271,6 @@ private:
 	const bool _support_esc_calibration;
 
 	bool _wq_switched{false};
-	uint8_t _driver_instance{0}; ///< for boards that supports multiple outputs (e.g. PX4IO + FMU)
 	uint8_t _max_num_outputs;
 
 	OutputModuleInterface &_interface;

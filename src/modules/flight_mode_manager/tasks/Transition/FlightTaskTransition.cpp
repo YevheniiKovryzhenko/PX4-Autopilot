@@ -36,8 +36,7 @@
  */
 
 #include "FlightTaskTransition.hpp"
-
-using namespace matrix;
+#include "Sticks.hpp"
 
 FlightTaskTransition::FlightTaskTransition()
 {
@@ -51,6 +50,7 @@ FlightTaskTransition::FlightTaskTransition()
 
 bool FlightTaskTransition::updateInitialize()
 {
+
 	updateParameters();
 	return FlightTask::updateInitialize();
 }
@@ -110,7 +110,8 @@ bool FlightTaskTransition::update()
 
 	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by _param_pitch_cruise_degrees
 	// and zero roll angle
-	const Vector2f tmp = Dcm2f(_yaw) * Vector2f(-1.0f, 0.0f);
+	matrix::Vector2f tmp(-1.0f, 0.0f);
+	Sticks::rotateIntoHeadingFrameXY(tmp, _yaw, NAN);
 	_acceleration_setpoint.xy() = tmp * tanf(math::radians(_param_pitch_cruise_degrees)) * CONSTANTS_ONE_G;
 
 	// slowly move vertical velocity setpoint to zero

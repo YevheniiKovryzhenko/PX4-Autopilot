@@ -41,10 +41,10 @@
 #include "ina226.h"
 
 
-INA226::INA226(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address, int battery_index) :
-	I2C(DRV_POWER_DEVTYPE_INA226, MODULE_NAME, bus, address, bus_frequency),
+INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
+	I2C(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
+	I2CSPIDriver(config),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
@@ -102,14 +102,19 @@ int INA226::read(uint8_t address, int16_t &data)
 {
 	// read desired little-endian value via I2C
 	uint16_t received_bytes;
-	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
+	int ret = PX4_ERROR;
 
-	if (ret == PX4_OK) {
-		data = swap16(received_bytes);
+	for (size_t i = 0; i < 3; i++) {
+		ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
-	} else {
-		perf_count(_comms_errors);
-		PX4_DEBUG("i2c::transfer returned %d", ret);
+		if (ret == PX4_OK) {
+			data = swap16(received_bytes);
+			break;
+
+		} else {
+			perf_count(_comms_errors);
+			PX4_DEBUG("i2c::transfer returned %d", ret);
+		}
 	}
 
 	return ret;
@@ -133,7 +138,7 @@ INA226::init()
 
 	write(INA226_REG_CONFIGURATION, INA226_RST);
 
-	_cal = INA226_CONST / (_current_lsb * INA226_SHUNT);
+	_cal = INA226_CONST / (_current_lsb * _rshunt);
 
 	if (write(INA226_REG_CALIBRATION, _cal) < 0) {
 		return -3;

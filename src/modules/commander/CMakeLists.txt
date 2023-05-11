@@ -62,7 +62,7 @@ px4_add_module(
 	DEPENDS
 		circuit_breaker
 		failure_detector
-		#geo
+		geo
 		health_and_arming_checks
 		hysteresis
 		ArmAuthorization

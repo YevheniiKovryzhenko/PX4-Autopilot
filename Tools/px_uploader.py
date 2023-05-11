@@ -77,11 +77,23 @@ except ImportError as e:
     print("")
     sys.exit(1)
 
+
+# Define time to use time.time() by default
+def _time():
+    return time.time()
+
 # Detect python version
 if sys.version_info[0] < 3:
     runningPython3 = False
 else:
     runningPython3 = True
+    if sys.version_info[1] >=3:
+        # redefine to use monotonic time when available
+        def _time():
+            try:
+                return time.monotonic()
+            except Exception:
+                return time.time()
 
 class FirmwareNotSuitableException(Exception):
     def __init__(self, message):
@@ -230,7 +242,7 @@ class uploader(object):
 
     def open(self):
         # upload timeout
-        timeout = time.time() + 0.2
+        timeout = _time() + 0.2
 
         # attempt to open the port while it exists and until timeout occurs
         while self.port is not None:
@@ -240,7 +252,7 @@ class uploader(object):
             except AttributeError:
                 portopen = self.port.isOpen()
 
-            if not portopen and time.time() < timeout:
+            if not portopen and _time() < timeout:
                 try:
                     self.port.open()
                 except OSError:
@@ -331,7 +343,7 @@ class uploader(object):
 
         except NotImplementedError:
             raise RuntimeError("Programing not supported for this version of silicon!\n"
-                               "See https://docs.px4.io/master/en/flight_controller/silicon_errata.html")
+                               "See https://docs.px4.io/main/en/flight_controller/silicon_errata.html")
         except RuntimeError:
             # timeout, no response yet
             return False
@@ -415,16 +427,16 @@ class uploader(object):
                     uploader.EOC)
 
         # erase is very slow, give it 30s
-        deadline = time.time() + 30.0
-        while time.time() < deadline:
+        deadline = _time() + 30.0
+        while _time() < deadline:
 
             usualEraseDuration = 15.0
-            estimatedTimeRemaining = deadline-time.time()
+            estimatedTimeRemaining = deadline-_time()
             if estimatedTimeRemaining >= usualEraseDuration:
                 self.__drawProgressBar(label, 30.0-estimatedTimeRemaining, usualEraseDuration)
             else:
                 self.__drawProgressBar(label, 10.0, 10.0)
-                sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()))
+                sys.stdout.write(" (timeout: %d seconds) " % int(deadline-_time()))
                 sys.stdout.flush()
 
             if self.__trySync():
@@ -570,9 +582,37 @@ class uploader(object):
         self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
 
     # upload the firmware
-    def upload(self, fw, force=False, boot_delay=None):
+    def upload(self, fw_list, force=False, boot_delay=None, boot_check=False):
+        # select correct binary
+        found_suitable_firmware = False
+        for file in fw_list:
+            fw = firmware(file)
+            if self.board_type == fw.property('board_id'):
+                if len(fw_list) > 1: print("using firmware binary {}".format(file))
+                found_suitable_firmware = True
+                break
+
+        if not found_suitable_firmware:
+            msg = "Firmware not suitable for this board (Firmware board_type=%u board_id=%u)" % (
+                self.board_type, fw.property('board_id'))
+            print("WARNING: %s" % msg)
+            if force:
+                if len(fw_list) > 1:
+                    raise FirmwareNotSuitableException("force flashing failed, more than one file provided, none suitable")
+                print("FORCED WRITE, FLASHING ANYWAY!")
+            else:
+                raise FirmwareNotSuitableException(msg)
+
+        percent = fw.property('image_size') / fw.property('image_maxsize')
+        binary_size = float(fw.property('image_size'))
+        binary_max_size = float(fw.property('image_maxsize'))
+        percent = (binary_size / binary_max_size) * 100
+
+        print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%) " % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
+        print()
+
         # Make sure we are doing the right thing
-        start = time.time()
+        start = _time()
         if self.board_type != fw.property('board_id'):
             msg = "Firmware not suitable for this board (Firmware board_type=%u board_id=%u)" % (
                 self.board_type, fw.property('board_id'))
@@ -668,7 +708,7 @@ class uploader(object):
         print("\nRebooting.", end='')
         self.__reboot()
         self.port.close()
-        print(" Elapsed Time %3.3f\n" % (time.time() - start))
+        print(" Elapsed Time %3.3f\n" % (_time() - start))
 
     def __next_baud_flightstack(self):
         if self.baudrate_flightstack_idx + 1 >= len(self.baudrate_flightstack):
@@ -682,7 +722,28 @@ class uploader(object):
 
         return True
 
-    def send_reboot(self):
+    def send_protocol_splitter_format(self, data):
+        # Header Structure:
+        #      bits:   1 2 3 4 5 6 7 8
+        # header[0] - |     Magic     | (='S')
+        # header[1] - |T|   LenH      | (T - 0: mavlink; 1: rtps)
+        # header[2] - |     LenL      |
+        # header[3] - |   Checksum    |
+
+        MAGIC = 83
+
+        len_bytes = len(data).to_bytes(2, "big")
+        LEN_H = len_bytes[0] & 127
+        LEN_L = len_bytes[1] & 255
+        CHECKSUM = MAGIC ^ LEN_H ^ LEN_L
+
+        header_ints = [MAGIC, LEN_H, LEN_L, CHECKSUM]
+        header_bytes = struct.pack("{}B".format(len(header_ints)), *header_ints)
+
+        self.__send(header_bytes)
+        self.__send(data)
+
+    def send_reboot(self, use_protocol_splitter_format=False):
         if (not self.__next_baud_flightstack()):
             return False
 
@@ -693,15 +754,19 @@ class uploader(object):
             print("If the board does not respond, unplug and re-plug the USB connector.", file=sys.stderr)
 
         try:
+            send_fct = self.__send
+            if use_protocol_splitter_format:
+                send_fct = self.send_protocol_splitter_format
+
             # try MAVLINK command first
             self.port.flush()
-            self.__send(uploader.MAVLINK_REBOOT_ID1)
-            self.__send(uploader.MAVLINK_REBOOT_ID0)
+            send_fct(uploader.MAVLINK_REBOOT_ID1)
+            send_fct(uploader.MAVLINK_REBOOT_ID0)
             # then try reboot via NSH
-            self.__send(uploader.NSH_INIT)
-            self.__send(uploader.NSH_REBOOT_BL)
-            self.__send(uploader.NSH_INIT)
-            self.__send(uploader.NSH_REBOOT)
+            send_fct(uploader.NSH_INIT)
+            send_fct(uploader.NSH_REBOOT_BL)
+            send_fct(uploader.NSH_INIT)
+            send_fct(uploader.NSH_REBOOT)
             self.port.flush()
             self.port.baudrate = self.baudrate_bootloader
         except Exception:
@@ -726,8 +791,12 @@ def main():
     parser.add_argument('--baud-flightstack', action="store", default="57600", help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports.")
     parser.add_argument('--force', action='store_true', default=False, help='Override board type check, or silicon errata checks and continue loading')
     parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
-    parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
+    parser.add_argument('--use-protocol-splitter-format', action='store_true', help='use protocol splitter format for reboot')
+    parser.add_argument('firmware', action="store", nargs='+', help="Firmware file(s)")
     args = parser.parse_args()
+
+    if args.use_protocol_splitter_format:
+        print("Using protocol splitter format to reboot pixhawk!")
 
     # warn people about ModemManager which interferes badly with Pixhawk
     if os.path.exists("/usr/sbin/ModemManager"):
@@ -735,17 +804,7 @@ def main():
         print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
         print("==========================================================================================================")
 
-    # Load the firmware file
-    fw = firmware(args.firmware)
-
-    percent = fw.property('image_size') / fw.property('image_maxsize')
-    binary_size = float(fw.property('image_size'))
-    binary_max_size = float(fw.property('image_maxsize'))
-    percent = (binary_size / binary_max_size) * 100
-
-    print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%), waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
-    print()
-
+    print("Waiting for bootloader...")
     # tell any GCS that might be connected to the autopilot to give up
     # control of the serial port
 
@@ -830,7 +889,7 @@ def main():
 
                     except Exception:
 
-                        if not up.send_reboot():
+                        if not up.send_reboot(args.use_protocol_splitter_format):
                             break
 
                         # wait for the reboot, without we might run into Serial I/O Error 5
@@ -848,7 +907,7 @@ def main():
 
                 try:
                     # ok, we have a bootloader, try flashing it
-                    up.upload(fw, force=args.force, boot_delay=args.boot_delay)
+                    up.upload(args.firmware, force=args.force, boot_delay=args.boot_delay)
 
                     # if we made this far without raising exceptions, the upload was successful
                     successful = True

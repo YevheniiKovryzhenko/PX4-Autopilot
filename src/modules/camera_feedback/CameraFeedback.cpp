@@ -33,19 +33,28 @@
 
 #include "CameraFeedback.hpp"
 
+using namespace time_literals;
+
 CameraFeedback::CameraFeedback() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
+
+	if (_p_cam_cap_fback != PARAM_INVALID) {
+		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
+	}
 }
 
 bool
 CameraFeedback::init()
 {
 	if (!_trigger_sub.registerCallback()) {
-		PX4_ERR("camera_trigger callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
+
+	_capture_pub.advertise();
 
 	return true;
 }
@@ -61,7 +70,7 @@ CameraFeedback::Run()
 
 	camera_trigger_s trig{};
 
-	if (_trigger_sub.update(&trig)) {
+	while (_trigger_sub.update(&trig)) {
 
 		// update geotagging subscriptions
 		vehicle_global_position_s gpos{};
@@ -75,7 +84,12 @@ CameraFeedback::Run()
 		    att.timestamp == 0) {
 
 			// reject until we have valid data
-			return;
+			continue;
+		}
+
+		if ((_cam_cap_fback >= 1) && !trig.feedback) {
+			// Ignore triggers that are not feedback when camera capture feedback is enabled
+			continue;
 		}
 
 		camera_capture_s capture{};
@@ -100,11 +114,39 @@ CameraFeedback::Run()
 		}
 
 		// Fill attitude data
-		// TODO : this needs to be rotated by camera orientation or set to gimbal orientation when available
-		capture.q[0] = att.q[0];
-		capture.q[1] = att.q[1];
-		capture.q[2] = att.q[2];
-		capture.q[3] = att.q[3];
+		gimbal_device_attitude_status_s gimbal{};
+
+		if (_gimbal_sub.copy(&gimbal) && (hrt_elapsed_time(&gimbal.timestamp) < 1_s)) {
+			if (gimbal.device_flags & gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK) {
+				// Gimbal yaw angle is absolute angle relative to North
+				capture.q[0] = gimbal.q[0];
+				capture.q[1] = gimbal.q[1];
+				capture.q[2] = gimbal.q[2];
+				capture.q[3] = gimbal.q[3];
+
+			} else {
+				// Gimbal quaternion frame is in the Earth frame rotated so that the x-axis is pointing
+				// forward (yaw relative to vehicle). Get heading from the vehicle attitude and combine it
+				// with the gimbal orientation.
+				const matrix::Eulerf euler_vehicle(matrix::Quatf(att.q));
+				const matrix::Quatf q_heading(matrix::Eulerf(0.0f, 0.0f, euler_vehicle(2)));
+				matrix::Quatf q_gimbal(gimbal.q);
+				q_gimbal = q_heading * q_gimbal;
+
+				capture.q[0] = q_gimbal(0);
+				capture.q[1] = q_gimbal(1);
+				capture.q[2] = q_gimbal(2);
+				capture.q[3] = q_gimbal(3);
+			}
+
+		} else {
+			// No gimbal orientation, use vehicle attitude
+			capture.q[0] = att.q[0];
+			capture.q[1] = att.q[1];
+			capture.q[2] = att.q[2];
+			capture.q[3] = att.q[3];
+		}
+
 		capture.result = 1;
 
 		_capture_pub.publish(capture);

@@ -183,8 +183,8 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io")
 		px4_parameters.hpp
 	)
 
-	#target_link_libraries(parameters PRIVATE perf tinybson px4_platform)
-	target_link_libraries(parameters PRIVATE perf tinybson px4_layer px4_platform)
+	target_link_libraries(parameters PRIVATE perf tinybson px4_platform)
+
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters" -D__KERNEL__)
 	target_compile_options(parameters
 		PRIVATE

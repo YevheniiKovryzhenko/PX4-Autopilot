@@ -164,7 +164,7 @@ px4_add_module(
 		sensors/sensor_bridge.cpp
 		sensors/differential_pressure.cpp
 		sensors/baro.cpp
-		#sensors/battery.cpp
+		sensors/battery.cpp
 		sensors/airspeed.cpp
 		sensors/flow.cpp
 		sensors/gnss.cpp

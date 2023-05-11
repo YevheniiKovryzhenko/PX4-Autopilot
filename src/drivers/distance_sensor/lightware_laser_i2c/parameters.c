@@ -32,11 +32,11 @@
  ****************************************************************************/
 
 /**
- * Lightware SF1xx/SF20/LW20/SF30/ laser rangefinder (i2c)
+ * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
  *
  * @reboot_required true
  * @min 0
- * @max 7
+ * @max 6
  * @group Sensors
  * @value 0 Disabled
  * @value 1 SF10/a
@@ -45,6 +45,5 @@
  * @value 4 SF11/c
  * @value 5 SF/LW20/b
  * @value 6 SF/LW20/c
- * @value 7 SF30/d
  */
 PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);

@@ -56,7 +56,7 @@ add_executable(failsafe_test EXCLUDE_FROM_ALL
 	)
 set_property(TARGET failsafe_test PROPERTY UNITY_BUILD ON) # avoids some method calls to e.g. param_name or param_type
 set_property(TARGET failsafe_test PROPERTY LINK_DEPENDS ${html_output_file})
-#add_dependencies(failsafe_test failsafe_uorb_struct_header uorb_headers parameters_header events_header mode_util)
+add_dependencies(failsafe_test failsafe_uorb_struct_header uorb_headers parameters_header events_header mode_util)
 target_compile_definitions(failsafe_test PUBLIC EMSCRIPTEN_BUILD PRINTF_LOG MODULE_NAME=\"failsafe\")
 set_target_properties(failsafe_test PROPERTIES OUTPUT_NAME "index.html")
 

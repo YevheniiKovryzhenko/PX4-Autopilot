@@ -1142,7 +1142,7 @@ int PX4IO::io_publish_raw_rc()
 	if (input_rc.input_source != input_rc_s::RC_INPUT_SOURCE_UNKNOWN) {
 
 		input_rc.link_quality = -1;
-		input_rc.rssi = -1;
+		input_rc.rssi_dbm = NAN;
 
 		_to_input_rc.publish(input_rc);
 	}
@@ -1243,8 +1243,7 @@ int PX4IO::print_status()
 	uORB::SubscriptionData<px4io_status_s> status_sub{ORB_ID(px4io_status)};
 	status_sub.update();
 
-	//print_message(ORB_ID(px4io_status), status_sub.get());
-	print_message(status_sub.get());
+	print_message(ORB_ID(px4io_status), status_sub.get());
 
 	/* now clear alarms */
 	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0x0000);

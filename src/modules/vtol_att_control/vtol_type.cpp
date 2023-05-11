@@ -347,9 +347,9 @@ bool VtolType::isRollExceeded()
 bool VtolType::isFrontTransitionTimeout()
 {
 	// check front transition timeout
-	if (getFrontTransitionTimeout()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
+	if (_param_vt_trans_timeout.get()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
 
-		if (_time_since_trans_start > getFrontTransitionTimeout()) {
+		if (_time_since_trans_start > _param_vt_trans_timeout.get()) {
 			// transition timeout occured, abort transition
 			return true;
 		}
@@ -580,11 +580,6 @@ float VtolType::getFrontTransitionTimeFactor() const
 float VtolType::getMinimumFrontTransitionTime() const
 {
 	return getFrontTransitionTimeFactor() * _param_vt_trans_min_tm.get();
-}
-
-float VtolType::getFrontTransitionTimeout() const
-{
-	return getFrontTransitionTimeFactor() * _param_vt_trans_timeout.get();
 }
 
 float VtolType::getOpenLoopFrontTransitionTime() const

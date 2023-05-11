@@ -95,6 +95,7 @@ void Sticks::limitStickUnitLengthXY(Vector2f &v)
 
 void Sticks::rotateIntoHeadingFrameXY(Vector2f &v, const float yaw, const float yaw_setpoint)
 {
+	Vector3f v3(v(0), v(1), 0.f);
 	const float yaw_rotate = PX4_ISFINITE(yaw_setpoint) ? yaw_setpoint : yaw;
-	v = Dcm2f(yaw_rotate) * v;
+	v = Vector2f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * v3);
 }

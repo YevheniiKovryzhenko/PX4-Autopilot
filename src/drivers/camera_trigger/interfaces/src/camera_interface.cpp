@@ -33,63 +33,26 @@
 
 #include "camera_interface.h"
 #include <px4_platform_common/log.h>
+#include <board_config.h>
 
 void CameraInterface::get_pins()
 {
-
-	// Get parameter handle
-	_p_pin = param_find("TRIG_PINS");
-
-	_p_pin_ex = param_find("TRIG_PINS_EX");
-
-	if (_p_pin == PARAM_INVALID && _p_pin_ex == PARAM_INVALID) {
-		PX4_ERR("param TRIG_PINS not found");
-		return;
-	}
-
 	// Set all pins as invalid
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		_pins[i] = -1;
 	}
 
-	int32_t pin_list = 0;
-	int32_t pin_list_ex = 0;
+	unsigned pin_index = 0;
 
-	if (_p_pin_ex != PARAM_INVALID) {
-		param_get(_p_pin_ex, &pin_list_ex);
-	}
+	for (unsigned i = 0; i < 16 && pin_index < arraySize(_pins); ++i) {
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
+		param_t function_handle = param_find(param_name);
+		int32_t function;
 
-	if (_p_pin != PARAM_INVALID) {
-		param_get(_p_pin, &pin_list);
-	}
-
-	if (pin_list_ex == 0) {
-
-		// Convert number to individual channels
-
-		unsigned i = 0;
-		int single_pin;
-
-		while ((single_pin = pin_list % 10)) {
-
-			_pins[i] = single_pin - 1;
-
-			if (_pins[i] < 0) {
-				_pins[i] = -1;
-			}
-
-			pin_list /= 10;
-			i++;
-		}
-
-	} else {
-		unsigned int p = 0;
-
-		for (unsigned int i = 0; i < arraySize(_pins); i++) {
-			int32_t v = (pin_list_ex & (1 << i)) ? i  : -1;
-
-			if (v > 0) {
-				_pins[p++] = v;
+		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
+			if (function == 2000) { // Camera_Trigger
+				_pins[pin_index++] = i;
 			}
 		}
 	}

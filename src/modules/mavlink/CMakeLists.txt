@@ -35,8 +35,7 @@ set(MAVLINK_GIT_DIR "${CMAKE_CURRENT_LIST_DIR}/mavlink")
 set(MAVLINK_LIBRARY_DIR "${CMAKE_BINARY_DIR}/mavlink")
 file(RELATIVE_PATH MAVLINK_GIT_DIR_RELATIVE ${CMAKE_SOURCE_DIR} ${MAVLINK_GIT_DIR})
 
-#px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${MAVLINK_GIT_DIR}")
-px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/")
+px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${MAVLINK_GIT_DIR}")
 
 # always generate uAvionix dialect
 set(MAVLINK_DIALECT_UAVIONIX "uAvionix")
@@ -107,11 +106,6 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
 		#-DDEBUG_BUILD
-		-Wno-cast-align # TODO: fix and enable
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
-	INCLUDES
-		${MAVLINK_LIBRARY_DIR}
-		${PX4_SOURCE_DIR}/mavlink/
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp
@@ -143,7 +137,7 @@ px4_add_module(
 		conversion
 		sensor_calibration
 		geo
-		#mavlink_c
+		mavlink_c
 		timesync
 		tunes
 		version

@@ -9,7 +9,7 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	BUILD_BOOTLOADER
 	IO cubepilot_io-v2_default
-	UAVCAN_INTERFACES 2-
+	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		TEL1:/dev/ttyS0
 		TEL2:/dev/ttyS1
@@ -39,16 +39,16 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
 		#osd
-		pca9685
+		#pca9685
 		pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		#pwm_out_sim
-		#pwm_out
+		pwm_out
 		px4io
-		roboclaw
-		rpm
+		#roboclaw
+		#rpm
 		smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
@@ -56,7 +56,7 @@ px4_add_board(
 	MODULES
 		#sim_ctrl_mod
 		airspeed_selector
-		attitude_estimator_q
+		#attitude_estimator_q
 		battery_status
 		camera_feedback
 		commander
@@ -66,54 +66,56 @@ px4_add_board(
 		esc_battery
 		events
 		flight_mode_manager
-		fw_rate_control
+		fw_autotune_attitude_control
+		fw_path_navigation
 		fw_att_control
-		fw_pos_control
-		#fw_pos_control_l1
+		#fw_pos_control
+		fw_rate_control
+		#gymbal
 		gyro_calibration
 		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
 		logger
+		#local_position_estimator
+		#mag_bias_estimatior
+		manual_control
 		mavlink
 		mc_att_control
+		mc_autotune_attitude_control
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		#micrortps_bridge
+		#microdds_client
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
-		sih
+		#sih
 		temperature_compensation
 		#uuv_att_control
 		#uuv_pos_control
 		#vmount
 		vtol_att_control
 	SYSTEMCMDS
+		actuator_test
+		bsondump
 		bl_update
 		dmesg
-		dumpfile
-		esc_calib
 		gpio
 		hardfault_log
 		i2cdetect
 		led_control
 		mft
-		#mixer
-		motor_ramp
-		motor_test
 		mtd
 		nshterm
 		param
 		perf
-		#pwm
 		reboot
-		reflect
-		sd_bench
+		#reflect
+		#sd_bench
 		#serial_test
 		system_time
 		top
@@ -124,7 +126,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		fake_gps
+		#fake_gps
 		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

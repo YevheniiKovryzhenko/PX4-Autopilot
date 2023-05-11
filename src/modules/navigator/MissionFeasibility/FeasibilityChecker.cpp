@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,7 +50,6 @@ void FeasibilityChecker::reset()
 	_is_landed = false;
 	_home_alt_msl = NAN;
 	_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	_current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	_vehicle_type = VehicleType::RotaryWing;
 
 	_mission_validity_failed = false;
@@ -120,12 +119,6 @@ void FeasibilityChecker::updateData()
 		_is_landed = land_detected.landed;
 	}
 
-	if (_vehicle_global_position_sub.updated()) {
-		vehicle_global_position_s vehicle_global_position = {};
-		_vehicle_global_position_sub.copy(&vehicle_global_position);
-		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
-	}
-
 	param_t handle = param_find("FW_LND_ANG");
 
 	if (handle != PARAM_INVALID) {
@@ -136,6 +129,12 @@ void FeasibilityChecker::updateData()
 
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &_param_mis_dist_1wp);
+	}
+
+	handle = param_find("MIS_DIST_WPS");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &_param_mis_dist_wps);
 	}
 
 	handle = param_find("NAV_ACC_RAD");
@@ -196,7 +195,7 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 	}
 
 	if (!_distance_first_waypoint_failed) {
-		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
+		_distance_first_waypoint_failed = !checkDistanceToFirstWaypoint(mission_item);
 	}
 
 	if (!_below_home_alt_failed) {
@@ -280,7 +279,6 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE &&
-	    mission_item.nav_cmd != NAV_CMD_DO_SET_ACTUATOR &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
@@ -603,44 +601,50 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 }
 
 
-bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
+bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
-	if (_param_mis_dist_1wp > FLT_EPSILON &&
-	    (_current_position_lat_lon.isAllFinite()) && !_first_waypoint_found &&
-	    MissionBlock::item_contains_position(mission_item)) {
+	if (_param_mis_dist_1wp <= 0.0f || !_home_lat_lon.isAllFinite()) {
+		/* param not set, check is ok */
+		return true;
+	}
 
+	if (!_first_waypoint_found && MissionBlock::item_contains_position(mission_item)) {
 		_first_waypoint_found = true;
 
-		float dist_to_1wp_from_current_pos = 1e6f;
 
-		if (_current_position_lat_lon.isAllFinite()) {
-			dist_to_1wp_from_current_pos = get_distance_to_next_waypoint(
-							       mission_item.lat, mission_item.lon,
-							       _current_position_lat_lon(0), _current_position_lat_lon(1));
-		}
+		/* check distance from current position to item */
+		float dist_to_1wp = get_distance_to_next_waypoint(
+					    mission_item.lat, mission_item.lon,
+					    _home_lat_lon(0), _home_lat_lon(1));
 
-		if (dist_to_1wp_from_current_pos < _param_mis_dist_1wp) {
+		if (dist_to_1wp < _param_mis_dist_1wp) {
 
 			return true;
 
 		} else {
-			/* item is too far from current position */
+			/* item is too far from home */
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
+					     (int)dist_to_1wp, (int)_param_mis_dist_1wp);
 			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp_from_current_pos,
-							 (uint32_t)_param_mis_dist_1wp);
+							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp, (uint32_t)_param_mis_dist_1wp);
 
 			return false;
 		}
 	}
 
+	/* no waypoints found in mission, then we will not fly far away */
 	return true;
 }
 
 bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mission_item)
 {
+	if (_param_mis_dist_wps <= 0.0f) {
+		/* param not set, check is ok */
+		return true;
+	}
+
+
 	/* check only items with valid lat/lon */
 	if (!MissionBlock::item_contains_position(mission_item)) {
 		return true;
@@ -654,8 +658,24 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 				_last_lat, _last_lon);
 
 
-		if (dist_between_waypoints < 0.05f &&
-		    (mission_item.nav_cmd == NAV_CMD_CONDITION_GATE || _last_cmd == NAV_CMD_CONDITION_GATE)) {
+		if (dist_between_waypoints > _param_mis_dist_wps) {
+			/* distance between waypoints is too high */
+			mavlink_log_critical(_mavlink_log_pub,
+					     "Distance between waypoints too far: %d meters, %d max.\t",
+					     (int)dist_between_waypoints, (int)_param_mis_dist_wps);
+			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_wp_dist_too_far"), {events::Log::Error, events::LogInternal::Info},
+							 "Distance between waypoints too far: {1m}, (maximum: {2m})", (uint32_t)dist_between_waypoints,
+							 (uint32_t)_param_mis_dist_wps);
+
+
+			return false;
+
+			/* do not allow waypoints that are literally on top of each other */
+
+			/* and do not allow condition gates that are at the same position as a navigation waypoint */
+
+		} else if (dist_between_waypoints < 0.05f &&
+			   (mission_item.nav_cmd == NAV_CMD_CONDITION_GATE || _last_cmd == NAV_CMD_CONDITION_GATE)) {
 
 			/* Waypoints and gate are at the exact same position, which indicates an
 			 * invalid mission and makes calculating the direction from one waypoint

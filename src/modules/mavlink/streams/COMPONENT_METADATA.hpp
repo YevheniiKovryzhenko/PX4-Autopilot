@@ -36,7 +36,7 @@
 
 #include "../mavlink_stream.h"
 
-//#include <component_information/checksums.h>
+#include <component_information/checksums.h>
 
 #include <px4_platform_common/defines.h>
 
