@@ -2,6 +2,10 @@
 	path = src/modules/mavlink/mavlink
 	url = https://github.com/mavlink/mavlink.git
 	branch = master
+[submodule "src/drivers/uavcan/libuavcan"]
+	path = src/drivers/uavcan/libuavcan
+	url = https://github.com/dronecan/libuavcan.git
+	branch = main
 [submodule "Tools/simulation/jmavsim/jMAVSim"]
 	path = Tools/simulation/jmavsim/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -50,7 +54,7 @@
 	path = src/lib/crypto/libtommath
 	url = https://github.com/PX4/libtommath.git
 	branch = px4
-[submodule "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client"]
-	path = src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client
+[submodule "src/modules/microdds_client/Micro-XRCE-DDS-Client"]
+	path = src/modules/microdds_client/Micro-XRCE-DDS-Client
 	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
 	branch = px4
