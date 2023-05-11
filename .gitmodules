@@ -14,10 +14,10 @@
 	path = Tools/sitl_gazebo
 	url = https://github.com/PX4/PX4-SITL_gazebo.git
 	branch = master
-[submodule "src/lib/matrix"]
-	path = src/lib/matrix
-	url = https://github.com/PX4/PX4-Matrix.git
-	branch = master
+#[submodule "src/lib/matrix"]
+#	path = src/lib/matrix
+#	url = https://github.com/PX4/PX4-Matrix.git
+#	branch = master
 [submodule "src/lib/ecl"]
 	path = src/lib/ecl
 	url = https://github.com/PX4/PX4-ECL.git

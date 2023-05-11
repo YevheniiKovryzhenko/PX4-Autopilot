@@ -73,6 +73,7 @@ set(msg_files
 	estimator_status.msg
 	estimator_status_flags.msg
 	failsafe_flags.msg
+	failure_detector_status.msg
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg
@@ -108,6 +109,7 @@ set(msg_files
 	mount_orientation.msg
 	multirotor_motor_limits.msg
 	navigator_mission_item.msg
+	normalized_unsigned_setpoint.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
@@ -156,6 +158,7 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
+	tiltrotor_extra_controls.msg
 	timesync.msg
 	timesync_status.msg
 	trajectory_bezier.msg

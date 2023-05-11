@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_git_submodule(TARGET git_ecl PATH "ecl")
-px4_add_git_submodule(TARGET git_matrix PATH "matrix")
+#px4_add_git_submodule(TARGET git_matrix PATH "matrix")
 px4_add_git_submodule(TARGET git_monocypher PATH "crypto/monocypher")
 
 #add_subdirectory(adsb EXCLUDE_FROM_ALL)
@@ -58,6 +58,7 @@ add_subdirectory(landing_slope EXCLUDE_FROM_ALL)
 add_subdirectory(led EXCLUDE_FROM_ALL)
 add_subdirectory(magnetometer_bias_estimator EXCLUDE_FROM_ALL)
 add_subdirectory(mathlib EXCLUDE_FROM_ALL)
+add_subdirectory(matrix EXCLUDE_FROM_ALL)
 #add_subdirectory(mixer)
 add_subdirectory(mixer_module EXCLUDE_FROM_ALL)
 add_subdirectory(motion_planning EXCLUDE_FROM_ALL)
