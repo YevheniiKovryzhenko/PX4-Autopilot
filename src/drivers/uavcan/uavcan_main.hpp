@@ -54,6 +54,7 @@
 #include "allocator.hpp"
 #include "actuators/esc.hpp"
 #include "actuators/hardpoint.hpp"
+#include "actuators/servo.hpp"
 #include "sensors/sensor_bridge.hpp"
 
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
@@ -104,6 +105,35 @@ private:
 	friend class UavcanNode;
 	pthread_mutex_t &_node_mutex;
 	UavcanEscController &_esc_controller;
+	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+};
+
+/**
+ * UAVCAN mixing class.
+ * It is separate from UavcanNode to have 2 WorkItems and therefore allowing independent scheduling
+ * (I.e. UavcanMixingInterface runs upon actuator_control updates, whereas UavcanNode runs at
+ * a fixed rate or upon bus updates).
+ * Both work items are expected to run on the same work queue.
+ */
+class UavcanMixingInterfaceServo : public OutputModuleInterface
+{
+public:
+	UavcanMixingInterfaceServo(pthread_mutex_t &node_mutex, UavcanServoController &servo_controller)
+		: OutputModuleInterface(MODULE_NAME "-actuators-servo", px4::wq_configurations::uavcan),
+		  _node_mutex(node_mutex),
+		  _servo_controller(servo_controller) {}
+
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+
+	MixingOutput &mixingOutput() { return _mixing_output; }
+
+protected:
+	void Run() override;
+private:
+	friend class UavcanNode;
+	pthread_mutex_t &_node_mutex;
+	UavcanServoController &_servo_controller;
 	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
 
@@ -204,7 +234,9 @@ private:
 	pthread_mutex_t			_node_mutex;
 	px4_sem_t			_server_command_sem;
 	UavcanEscController		_esc_controller;
+	UavcanServoController		_servo_controller;
 	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
+	UavcanMixingInterfaceServo 	_mixing_interface_servo{_node_mutex, _servo_controller};
 	UavcanHardpointController	_hardpoint_controller;
 	UavcanBeep			_beep_controller;
 	UavcanSafetyState         	_safety_state_controller;

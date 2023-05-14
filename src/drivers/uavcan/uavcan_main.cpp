@@ -82,6 +82,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	ModuleParams(nullptr),
 	_node(can_driver, system_clock, _pool_allocator),
 	_esc_controller(_node),
+	_servo_controller(_node),
 	_hardpoint_controller(_node),
 	_beep_controller(_node),
 	_safety_state_controller(_node),
@@ -410,6 +411,7 @@ void
 UavcanNode::update_params()
 {
 	_mixing_interface.updateParams();
+	_mixing_interface_servo.updateParams();
 }
 
 int
@@ -669,7 +671,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	_mixing_interface.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
 	_mixing_interface.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
-
+	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
 	param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
 	enable_idle_throttle_when_armed(true);
 
@@ -816,6 +818,8 @@ UavcanNode::Run()
 	if (_task_should_exit.load()) {
 		_mixing_interface.mixingOutput().unregister();
 		_mixing_interface.ScheduleClear();
+		_mixing_interface_servo.mixingOutput().unregister();
+		_mixing_interface_servo.ScheduleClear();
 		ScheduleClear();
 		teardown();
 		_instance = nullptr;
@@ -934,6 +938,21 @@ void UavcanMixingInterface::mixerChanged()
 	_esc_controller.set_rotor_count(rotor_count);
 }
 
+bool UavcanMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+		unsigned num_control_groups_updated)
+{
+	_servo_controller.update_outputs(stop_motors, outputs, num_outputs);
+	return true;
+}
+
+void UavcanMixingInterfaceServo::Run()
+{
+	pthread_mutex_lock(&_node_mutex);
+	_mixing_output.update();
+	_mixing_output.updateSubscriptions(false);
+	pthread_mutex_unlock(&_node_mutex);
+}
+
 void
 UavcanNode::print_info()
 {
@@ -975,8 +994,10 @@ UavcanNode::print_info()
 
 	printf("\n");
 
-	// ESC mixer status
+	printf("ESC outputs:\n");
 	_mixing_interface.mixingOutput().printStatus();
+	printf("Servo outputs:\n");
+	_mixing_interface_servo.mixingOutput().printStatus();
 
 	printf("\n");
 
