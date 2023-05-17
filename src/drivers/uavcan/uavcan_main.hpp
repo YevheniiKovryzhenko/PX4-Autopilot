@@ -54,7 +54,7 @@
 #include "allocator.hpp"
 #include "actuators/esc.hpp"
 #include "actuators/hardpoint.hpp"
-#include "actuators/servo.hpp"
+//#include "actuators/servo.hpp"
 #include "sensors/sensor_bridge.hpp"
 
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
@@ -115,6 +115,7 @@ private:
  * a fixed rate or upon bus updates).
  * Both work items are expected to run on the same work queue.
  */
+/*
 class UavcanMixingInterfaceServo : public OutputModuleInterface
 {
 public:
@@ -136,6 +137,7 @@ private:
 	UavcanServoController &_servo_controller;
 	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
+*/
 
 /**
  * A UAVCAN node.
@@ -234,9 +236,9 @@ private:
 	pthread_mutex_t			_node_mutex;
 	px4_sem_t			_server_command_sem;
 	UavcanEscController		_esc_controller;
-	UavcanServoController		_servo_controller;
+	//UavcanServoController		_servo_controller;
 	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
-	UavcanMixingInterfaceServo 	_mixing_interface_servo{_node_mutex, _servo_controller};
+	//UavcanMixingInterfaceServo 	_mixing_interface_servo{_node_mutex, _servo_controller};
 	UavcanHardpointController	_hardpoint_controller;
 	UavcanBeep			_beep_controller;
 	UavcanSafetyState         	_safety_state_controller;

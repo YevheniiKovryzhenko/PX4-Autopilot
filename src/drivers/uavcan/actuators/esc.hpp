@@ -53,6 +53,7 @@
 #include <uORB/topics/esc_status.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
+#include <drivers/uavcan/actuators/servo.hpp>
 
 class UavcanEscController
 {
@@ -115,6 +116,7 @@ private:
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
 
+	UavcanServoController		_servo_controller;
 	/*
 	 * ESC states
 	 */
