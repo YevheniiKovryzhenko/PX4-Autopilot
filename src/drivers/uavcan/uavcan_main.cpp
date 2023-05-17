@@ -559,6 +559,8 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
+	_instance->_mixing_interface.ScheduleNow();
+	_instance->_mixing_interface_servo.ScheduleNow();
 
 	return OK;
 }

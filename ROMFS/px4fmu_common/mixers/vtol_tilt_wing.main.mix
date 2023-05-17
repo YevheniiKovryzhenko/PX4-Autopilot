@@ -1,28 +1,33 @@
 # Tilt Wing Tricopter
 
-# Motors
-R: 3y
+Motor speed mixer 1 - Left Wing
+-----------------
+This mixer generates a full-range output (-1 to 1) from an input in the (0 - 1)
+range.  Inputs below zero are treated as zero.
 
-Z:
+M: 1
+S: 1 0      0  20000 -10000 -10000  10000
 
-Tilt mechanism servo mixer
----------------------------
-#RIGHT up:2000 down:1000
-M: 2
-S: 1 4      0 -20000  10000 -10000  10000
-S: 0 2   8000   8000      0 -10000  10000
+Motor speed mixer 2 - Right Wing
+-----------------
+This mixer generates a full-range output (-1 to 1) from an input in the (0 - 1)
+range.  Inputs below zero are treated as zero.
 
-#LEFT up:1000 down:2000
-M: 2
-S: 1 4      0  20000 -10000 -10000  10000
-S: 0 2   8000   8000      0 -10000  10000
+M: 1
+S: 1 1      0  20000 -10000 -10000  10000
 
-Elevon mixers
--------------
-M: 2
-S: 1 0   7500   7500      0 -10000  10000
-S: 1 1   8000   8000      0 -10000  10000
+Motor speed mixer 3 - Tail Up
+-----------------
+This mixer generates a full-range output (-1 to 1) from an input in the (0 - 1)
+range.  Inputs below zero are treated as zero.
 
-M: 2
-S: 1 0   7500   7500      0 -10000  10000
-S: 1 1  -8000  -8000      0 -10000  10000
+M: 1
+S: 1 2      0  20000 -10000 -10000  10000
+
+Motor speed mixer 4 - Tail Down
+-----------------
+This mixer generates a full-range output (-1 to 1) from an input in the (0 - 1)
+range.  Inputs below zero are treated as zero.
+
+M: 1
+S: 1 3      0  20000 -10000 -10000  10000

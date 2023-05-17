@@ -38,6 +38,7 @@ param set-default VT_FW_DIFTHR_SC 0.17
 set MAV_TYPE 21
 
 set MIXER vtol_tilt_wing
+set MIXER_AUX vtol_tilt_wing
 
 set PWM_OUT 1234
 set PWM_AUX_OUT 1234567
