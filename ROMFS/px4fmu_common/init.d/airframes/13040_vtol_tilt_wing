@@ -11,13 +11,13 @@
 # @output MAIN2 motor 2
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
-# @output AUX1 empty
-# @output AUX2 empty
-# @output AUX3 empty
-# @output AUX4 empty
-# @output AUX5 empty
-# @output AUX6 empty
-# @output AUX7 empty
+# @output AUX1 servo 1
+# @output AUX2 servo 2
+# @output AUX3 servo 3
+# @output AUX4 servo 4
+# @output AUX5 servo 5
+# @output AUX6 servo 6
+# @output AUX7 servo 7
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
@@ -41,4 +41,4 @@ set MIXER vtol_tilt_wing
 set MIXER_AUX vtol_tilt_wing
 
 set PWM_OUT 1234
-set PWM_AUX_OUT 1234567
+#set PWM_AUX_OUT 1234567 #this will make aux channels be treated as ESCs
