@@ -40,7 +40,7 @@
 #include "esc.hpp"
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
-#include <math.h>
+#include <uORB/topics/actuator_outputs.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
@@ -51,7 +51,7 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_pub_raw_cmd(node),
 	_uavcan_sub_status(node),
 	_orb_timer(node),
-	_servo_controller(node)
+	_timer(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
 }
@@ -72,14 +72,36 @@ UavcanEscController::init()
 	}
 
 	// ESC status will be relayed from UAVCAN bus into ORB at this rate
-	_orb_timer.setCallback(TimerCbBinder(this, &UavcanEscController::orb_pub_timer_cb));
-	_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
+	if (!_orb_timer.isRunning())
+	{
+		_orb_timer.setCallback(TimerCbBinder(this, &UavcanEscController::orb_pub_timer_cb));
+		_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
+	}
+	if (!_timer.isRunning())
+	{
+		_timer.setCallback(TimerCbBinder(this, &UavcanEscController::update));
+		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
+	}
 
 	return res;
 }
 
 void
-UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+UavcanEscController::update(const uavcan::TimerEvent &)
+{
+	actuator_outputs_s actuator_outputs_esc;
+	actuator_armed_s actuator_armed;
+	_actuator_armed_sub.update(&actuator_armed);
+	//actuator_armed.armed =true;
+
+	if (_actuator_outputs_esc_sub.update(&actuator_outputs_esc))
+	{
+		update_outputs(!actuator_armed.armed, actuator_outputs_esc.output, MAX_ACTUATORS);
+	}
+}
+
+void
+UavcanEscController::update_outputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	if (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) {
 		num_outputs = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
@@ -90,30 +112,18 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	}
 
 	/*
-	 * Rate limiting - we don't want to congest the bus
-	 */
-	const auto timestamp = _node.getMonotonicTime();
-
-	int64_t dt_usec = (timestamp - _prev_cmd_pub).toUSec();
-
-	if (dt_usec < (1000000 / MAX_RATE_HZ)) {
-		return;
-	}
-
-	_prev_cmd_pub = timestamp;
-
-	/*
 	 * Fill the command message
 	 * If unarmed, we publish an empty message anyway
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
 	for (unsigned i = 0; i < num_outputs; i++) {
-		if (stop_motors || outputs[i] == DISARMED_OUTPUT_VALUE) {
+		int val = static_cast<int> ((outputs[i] - 500.0f)*8.191f*2.0f); //[-8191, 8191]
+		if (stop_motors) {
 			msg.cmd.push_back(static_cast<unsigned>(0));
 
 		} else {
-			msg.cmd.push_back(static_cast<int>(outputs[i]));
+			msg.cmd.push_back(val);
 		}
 	}
 
@@ -141,35 +151,6 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
 	_uavcan_pub_raw_cmd.broadcast(msg);
-	static int64_t servo_time_us = 0;
-
-	uint16_t outputs_servos[MAX_ACTUATORS];
-	unsigned num_outputs_servos = 16;
-	static bool pol = false;
-	static uint16_t pwm_mod = 0;
-	servo_time_us += dt_usec;
-
-	if (servo_time_us > 100000)
-	{
-		if (pwm_mod >= 1000)
-		{
-			pol = false;
-		}
-		else if (pwm_mod <= 0)
-		{
-			pol = true;
-		}
-
-		if (pol) pwm_mod += 10;
-		else pwm_mod -= 10;
-		servo_time_us = 0;
-	}
-
-	for (int i = 0; i < MAX_ACTUATORS; i++)
-	{
-		outputs_servos[i] = pwm_mod;
-	}
-	_servo_controller.update_outputs(false, outputs_servos, num_outputs_servos);
 }
 
 void

@@ -41,20 +41,38 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_outputs.h>
 
 class UavcanServoController
 {
 public:
-	static constexpr int MAX_ACTUATORS = 8;
+	static constexpr int MAX_ACTUATORS = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
 	static constexpr unsigned MAX_RATE_HZ = 50;
 	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 6;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
 	UavcanServoController(uavcan::INode &node);
 	~UavcanServoController() = default;
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
+
+	/*
+	 * setup periodic updater
+	 */
+	int init(void);
 
 private:
+
+	/*
+	 * Setup timer and call back function for periodic updates
+	 */
+	void update_outputs(const uavcan::TimerEvent &);
+	typedef uavcan::MethodBinder<UavcanServoController *, void (UavcanServoController::*)(const uavcan::TimerEvent &)>
+	TimerCbBinder;
+
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand> _uavcan_pub_array_cmd;
+
+	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
+
+	uORB::Subscription _actuator_outputs_sv_sub{ORB_ID(actuator_outputs_sv)};
 };

@@ -54,20 +54,25 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <drivers/uavcan/actuators/servo.hpp>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_outputs.h>
 
 class UavcanEscController
 {
 public:
-	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
+	static constexpr int MAX_ACTUATORS = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
-	static constexpr uint16_t DISARMED_OUTPUT_VALUE = UINT16_MAX;
 
 	UavcanEscController(uavcan::INode &node);
 	~UavcanEscController();
 
 	int init();
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
+private:
+
+	void update(const uavcan::TimerEvent &);
+
+	void update_outputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 	/**
 	 * Sets the number of rotors
@@ -76,7 +81,7 @@ public:
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
-private:
+
 	/**
 	 * ESC status message reception will be reported via this callback.
 	 */
@@ -85,7 +90,7 @@ private:
 	/**
 	 * ESC status will be published to ORB from this callback (fixed rate).
 	 */
-	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
+	void orb_pub_timer_cb(const uavcan::TimerEvent &);
 
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
@@ -115,8 +120,10 @@ private:
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
+	uavcan::TimerEventForwarder<TimerCbBinder> 				_timer;
+	uORB::Subscription _actuator_outputs_esc_sub{ORB_ID(actuator_outputs_esc)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
-	UavcanServoController		_servo_controller;
 	/*
 	 * ESC states
 	 */

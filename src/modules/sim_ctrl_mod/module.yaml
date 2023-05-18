@@ -1,0 +1,1183 @@
+module_name: SIM_CTRL_MOD
+parameters:
+    - group: SIM_CTRL_MOD
+      definitions:            
+        SM_AUX_MIX_${i}:
+            description:
+                short: SIMULINK aux ${i} gain for mixing control outputs
+                long: |
+                    SIMULINK aux gain for mixing control outputs
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 8
+            instance_start: 1
+            default: [-0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 1]
+            
+        SM_IDLE_TH:
+            description:
+                short: SIMULINK minimum (IDLE) throttle value
+                long: |
+                    SIMULINK minimum (idle) throttle value.
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.15
+            
+        SM_GAIN_TH_T:
+            description:
+                short: SIMULINK mixing gain for tail rotor
+                long: |
+                    SIMULINK mixing gain controls the fraction of
+                    main thottle applied to the tail rotor.
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+            
+        SM_EN_CAL:
+            description:
+                short: SIMULINK calibration mode
+                long: |
+                    SIMULINK parameter for enabling 
+                    calibration mode. Setting this parameter
+                    to 1234 will disable all control loops. 
+                    Control inputs will be dirrectly fed into
+                    the mixing matrix.
+
+            type: int32
+            reboot_required: false
+            default: -1
+        
+        SM_OVERWRITE:
+            description:
+                short: SIMULINK safety overwrite
+                long: |
+                    SIMULINK parameter for overwriting safety logic.
+                    Setting this parameter to 1234 will make simulink 
+                    independent from PX4 safety logic.
+
+            type: int32
+            reboot_required: false
+            default: -1
+            
+        SM_LATMPTYP:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_TAU_LAT:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_LAT_DEADZ:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0            
+            
+        SM_VLAT_MAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_PHMAX_VFM:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_PHMAX_FFM:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_PHDOT_MAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_DIH_LOW:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_DIH_HIGH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KP_VLAT:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KI_VLAT:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ZLAT_LOW:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ZLAT_HIGH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_LONMAPTYP:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_TAU_LON:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_LON_DEADZ:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+            
+        SM_VVCMD_MAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_FPA_LIM:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_FPADOTMAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_N_MIN:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_N_MAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ZLON_LOW:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ZLON_HIGH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_TAU_DIR:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_DIR_DEADZ:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_RCMD_MAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_BCMD_MAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KBETA:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KNY:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+            
+        SM_TAU_ACC:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ACC_DEADZ:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ACC_CM_MX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ZACC_LOW:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ZACC_HIGH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KV:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_ALTHLD_ON:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KH_P:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KH_I:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_DTAU_ALT:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_VVTHRSHEN:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+        
+        SM_VVTHRSHSC:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_HDGHLD_ON:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_RTHRESH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_DTAU_HDG:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KPSI_P:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KPSI_I:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_HDG_VMAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_TRKHLD_ON:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_PHITHRESH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KTRK_P:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KTRK_I:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_TRK_VMIN:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_POSHLD_ON:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KP_LAT_PH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KI_LAT_PH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KD_LAT_PH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KP_LON_PH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KI_LON_PH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KD_LON_PH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_PH_VTHRSH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_DTAU_PH:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_AP_VMAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_AP_VVMAX:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_AP_TO_FPM:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_AP_TO_AGL:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_AP_TO_K:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_DXN_VCMD:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            default: 0.0
+            
+        SM_KEI_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KEP_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KTI_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KTP_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KFFI_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KFFP_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_DAOADV_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+        SM_KFFA_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_THMAX_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_THMIN_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_ACC2P_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_VV2P_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_ACC2T_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_VV2T_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_DECKL_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KQ_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KTH_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KI_TH_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KP_L_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KR_L_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KPH_L_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KI_PHL_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KI_RL_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KP_D_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KR_D_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KPH_D_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KI_PHD_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_KI_RD_${i}:
+            description:
+                short: SIMULINK ${i} some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            num_instances: 2
+            instance_start: 0
+            default: [0.0, 0.0]
+            
+        SM_WING_R_LIM:
+            description:
+                short: SIMULINK parameter for rate limiter on the wing tilt command
+                long: |
+                    SIMULINK parameter for controling rate
+                    for rate transitioning rate limiter for 
+                    the wing tilt command. It is applied symmetrically
+                    (in -+SM_WING_R_LIM)
+
+            type: float
+            decimal: 4
+            reboot_required: false
+            min: 0.0
+            default: 0.1

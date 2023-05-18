@@ -84,6 +84,7 @@ class UavcanNode;
  * a fixed rate or upon bus updates).
  * Both work items are expected to run on the same work queue.
  */
+/*
 class UavcanMixingInterface : public OutputModuleInterface
 {
 public:
@@ -107,7 +108,7 @@ private:
 	UavcanEscController &_esc_controller;
 	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
-
+*/
 /**
  * UAVCAN mixing class.
  * It is separate from UavcanNode to have 2 WorkItems and therefore allowing independent scheduling
@@ -218,7 +219,7 @@ private:
 	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp) { _setget_response = resp; }
 	void		free_setget_response(void) { _setget_response = nullptr; }
 
-	void enable_idle_throttle_when_armed(bool value);
+	//void enable_idle_throttle_when_armed(bool value);
 
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 	px4::atomic<int>	_fw_server_action{None};
@@ -236,8 +237,8 @@ private:
 	pthread_mutex_t			_node_mutex;
 	px4_sem_t			_server_command_sem;
 	UavcanEscController		_esc_controller;
-	//UavcanServoController		_servo_controller;
-	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
+	UavcanServoController		_servo_controller;
+	//UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
 	//UavcanMixingInterfaceServo 	_mixing_interface_servo{_node_mutex, _servo_controller};
 	UavcanHardpointController	_hardpoint_controller;
 	UavcanBeep			_beep_controller;
@@ -255,6 +256,9 @@ private:
 	int32_t 			_idle_throttle_when_armed_param{0};
 
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	//uORB::PublicationMulti<actuator_outputs_s> _actuator_outputs_sv_pub{ORB_ID(actuator_outputs_sv)};
+	//uORB::PublicationMulti<actuator_outputs_s> _actuator_outputs_esc_pub{ORB_ID(actuator_outputs_esc)};
 
 	perf_counter_t			_cycle_perf;
 	perf_counter_t			_interval_perf;
@@ -278,5 +282,9 @@ private:
 	void cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
 	void cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
+
+
+
+	uavcan::MonotonicTime							_prev_cmd_pub;   ///< rate limiting
 
 };
