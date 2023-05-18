@@ -49,7 +49,8 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
 	_uavcan_sub_status(node),
-	_orb_timer(node)
+	_orb_timer(node),
+	_servo_controller(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
 }
@@ -137,6 +138,8 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
 	_uavcan_pub_raw_cmd.broadcast(msg);
+
+	_servo_controller.update_outputs(false,)
 }
 
 void
