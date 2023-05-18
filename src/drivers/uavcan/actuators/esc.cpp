@@ -40,6 +40,7 @@
 #include "esc.hpp"
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <math.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
@@ -93,7 +94,9 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	 */
 	const auto timestamp = _node.getMonotonicTime();
 
-	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
+	int64_t dt_usec = (timestamp - _prev_cmd_pub).toUSec();
+
+	if (dt_usec < (1000000 / MAX_RATE_HZ)) {
 		return;
 	}
 
@@ -138,8 +141,35 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
 	_uavcan_pub_raw_cmd.broadcast(msg);
+	static int64_t servo_time_us = 0;
 
-	_servo_controller.update_outputs(false,)
+	uint16_t outputs_servos[MAX_ACTUATORS];
+	unsigned num_outputs_servos = 16;
+	static bool pol = false;
+	static uint16_t pwm_mod = 0;
+	servo_time_us += dt_usec;
+
+	if (servo_time_us > 100000)
+	{
+		if (pwm_mod >= 1000)
+		{
+			pol = false;
+		}
+		else if (pwm_mod <= 0)
+		{
+			pol = true;
+		}
+
+		if (pol) pwm_mod += 10;
+		else pwm_mod -= 10;
+		servo_time_us = 0;
+	}
+
+	for (int i = 0; i < MAX_ACTUATORS; i++)
+	{
+		outputs_servos[i] = pwm_mod;
+	}
+	_servo_controller.update_outputs(false, outputs_servos, num_outputs_servos);
 }
 
 void
