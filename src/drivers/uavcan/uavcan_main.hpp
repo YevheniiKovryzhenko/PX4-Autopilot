@@ -257,8 +257,8 @@ private:
 
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	//uORB::PublicationMulti<actuator_outputs_s> _actuator_outputs_sv_pub{ORB_ID(actuator_outputs_sv)};
-	//uORB::PublicationMulti<actuator_outputs_s> _actuator_outputs_esc_pub{ORB_ID(actuator_outputs_esc)};
+	uORB::PublicationMulti<actuator_outputs_s> _actuator_outputs_sv_pub{ORB_ID(actuator_outputs_sv)};
+	uORB::PublicationMulti<actuator_outputs_s> _actuator_outputs_esc_pub{ORB_ID(actuator_outputs_esc)};
 
 	perf_counter_t			_cycle_perf;
 	perf_counter_t			_interval_perf;
