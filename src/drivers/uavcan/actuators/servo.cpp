@@ -68,7 +68,7 @@ UavcanServoController::update_outputs(const uavcan::TimerEvent &)
 		uavcan::equipment::actuator::ArrayCommand msg;
 		for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
 			uavcan::equipment::actuator::Command cmd;
-			cmd.actuator_id = i;
+			cmd.actuator_id = i + 1;
 			cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
 			cmd.command_value = (float)actuator_outputs_sv.output[i] / 500.f - 1.f; // [-1, 1]
 
