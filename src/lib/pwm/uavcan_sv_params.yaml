@@ -1,0 +1,150 @@
+__max_num_config_instances: &max_num_config_instances 8
+
+module_name: uavcan
+
+parameters:
+    - group: UAVCAN Outputs
+      definitions:
+
+        UAVCAN_SV_MIN:
+            description:
+                short: UAVCAN global minimum value
+                long: |
+                    Set to 1000 for industry default or 900 to increase servo travel.
+            type: int32
+            unit: us
+            min: 800
+            max: 1400
+            default: 1000
+
+        UAVCAN_SV_MAX:
+            description:
+                short: UAVCAN servo output global maximum value
+                long: |
+                    Set to 2000 for industry default or 2100 to increase servo travel.
+            type: int32
+            unit: us
+            min: 1600
+            max: 2200
+            default: 2000
+
+        UAVCAN_SV_DISARM:
+            description:
+                short: UAVCAN servo output blobal disarmed value
+                long: |
+                    This is the PWM pulse the autopilot is outputting if not armed.
+                    The main use of this parameter is to silence ESCs when they are disarmed.
+                    If set to < 0, PWM always directly passes though without checking for state (no check if need to send DISARM VALUE).
+                    THIS WON'T DISABLE OUTPUT, use EN flag for that.
+            type: int32
+            unit: us
+            min: -1
+            max: 2200
+            default: -1
+
+        UAVCAN_SV_FAIL:
+            description:
+                short: UAVCAN servo output failsafe value
+                long: |
+                    This is the PWM pulse the autopilot is outputting if in failsafe mode.
+                    If set to < 0, PWM always directly passes though without checking for state (no check if need to send FAIL VALUE).
+                    THIS WON'T DISABLE OUTPUT, use EN flag for that.
+            type: int32
+            unit: us
+            min: -1
+            max: 2200
+            default: -1
+
+        UAVCAN_SV_MIN${i}:
+            description:
+                short: UAVCAN servo output ${i} minimum value
+                long: |
+                    This is the minimum PWM pulse the autopilot is allowed to output.
+                    When set to -1 the value for UAVCAN_SV_MIN will be used
+            type: int32
+            unit: us
+            min: -1
+            max: 1600
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UAVCAN_SV_MAX${i}:
+            description:
+                short: UAVCAN servo output ${i} maximum value
+                long: |
+                    This is the maximum PWM pulse the autopilot is allowed to output.
+                    When set to -1 the value for UAVCAN_SV_MAX will be used
+            type: int32
+            unit: us
+            min: -1
+            max: 2150
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UAVCAN_SV_FAIL${i}:
+            description:
+                short: UAVCAN servo output ${i} failsafe value
+                long: |
+                    This is the PWM pulse the autopilot is outputting if in failsafe mode.
+                    Uses global values if set to < 0
+            type: int32
+            unit: us
+            min: -1
+            max: 2150
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UAVCAN_SV_DIS${i}:
+            description:
+                short: UAVCAN servo output ${i} disarmed value
+                long: |
+                    This is the PWM pulse the autopilot is outputting if not armed.
+                    Uses global values if set to < 0
+            type: int32
+            unit: us
+            min: -1
+            max: 2150
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UAVCAN_SV_TRIM${i}:
+            description:
+                short: UAVCAN servo output ${i} trim value for interpolation
+                long: |
+                    Must be within min/max bounds to be active.
+                    Used as the center point for linear interpolation.
+                    e.g [-1 1] command is always centered at trim value.
+                    Is ignored if set to < 0.
+            type: int32
+            unit: us
+            min: -1
+            max: 2150
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UAVCAN_SV_REV${i}:
+            description:
+                short: UAVCAN servo output ${i} reverse value
+                long: |
+                    Enable to invert the channel.
+                    Warning: Use this parameter when connected to a servo only.
+                    For a brushless motor, invert manually two phases to reverse the direction.
+            type: boolean
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 0
+
+        UAVCAN_SV_EN{i}:
+            description:
+                short: Enable UAVCAN output ${i}
+                long: |
+                    This parameter controls if a servo id ${i} is sent at all
+            type: boolean
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 0

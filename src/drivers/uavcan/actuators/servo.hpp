@@ -43,6 +43,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_armed.h>
 
 class UavcanServoController
 {
@@ -60,12 +61,15 @@ public:
 	 */
 	int init(void);
 
+	void update_params(void);
+
 private:
 
 	/*
 	 * Setup timer and call back function for periodic updates
 	 */
-	void update_outputs(const uavcan::TimerEvent &);
+	void update_outputs(bool armed, bool fail, float outputs[MAX_ACTUATORS]);
+	void update(const uavcan::TimerEvent &);
 	typedef uavcan::MethodBinder<UavcanServoController *, void (UavcanServoController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
@@ -75,4 +79,13 @@ private:
 	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 
 	uORB::Subscription _actuator_outputs_sv_sub{ORB_ID(actuator_outputs_sv)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+
+	bool sv_en_fl[MAX_ACTUATORS];
+	bool sv_rev_fl[MAX_ACTUATORS];
+	int32_t sv_min[MAX_ACTUATORS];
+	int32_t sv_max[MAX_ACTUATORS];
+	int32_t sv_trim[MAX_ACTUATORS];
+	int32_t sv_disarm[MAX_ACTUATORS];
+	int32_t sv_fail[MAX_ACTUATORS];
 };

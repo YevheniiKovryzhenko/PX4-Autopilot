@@ -410,6 +410,8 @@ UavcanNode::get_param(int remote_node_id, const char *name)
 void
 UavcanNode::update_params()
 {
+	updateParams();
+	_servo_controller.update_params();
 	//_mixing_interface.updateParams();
 	//_mixing_interface_servo.updateParams();
 }
