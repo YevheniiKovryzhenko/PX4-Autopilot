@@ -1,4 +1,4 @@
-__max_num_config_instances: &max_num_config_instances 8
+__max_num_config_instances: &max_num_config_instances 16
 
 module_name: uavcan
 
@@ -139,7 +139,7 @@ parameters:
             instance_start: 1
             default: 0
 
-        UAVCAN_SV_EN{i}:
+        UAVCAN_SV_EN${i}:
             description:
                 short: Enable UAVCAN output ${i}
                 long: |

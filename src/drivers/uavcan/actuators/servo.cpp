@@ -89,7 +89,7 @@ UavcanServoController::update(const uavcan::TimerEvent &)
 
 	if (_actuator_outputs_sv_sub.update(&actuator_outputs_sv) || _actuator_armed_sub.update(&actuator_armed))
 	{
-		update_outputs(actuator_armed.armed, actuator_armed.force_failsafe || actuator_armed.manual_lockdown, actuator_outputs_sv.output);
+		update_outputs(actuator_armed.armed, actuator_armed.force_failsafe, actuator_outputs_sv.output);
 	}
 }
 
@@ -115,20 +115,20 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 			float true_range = (float)(sv_max[i] - sv_min[i]);
 			float range_ratio = true_range / assumed_range;
 
-			float pwm_cmd = (float)outputs[i];
-			if (sv_fail[i] && fail) pwm_cmd = (float)sv_fail[i]; //use fail value if enabled and active
-			else if (sv_disarm[i] && !armed) pwm_cmd = (float)sv_disarm[i]; //use armed value if enabled and active
+			float pwm_cmd = (float)outputs[i] + 1000.f; //input is [0 1000], need [1000 2000]
+			if (sv_fail[i] > 0 && fail) pwm_cmd = (float)sv_fail[i]; //use fail value if enabled and active
+			else if (sv_disarm[i] > 0 && !armed) pwm_cmd = (float)sv_disarm[i]; //use armed value if enabled and active
 
 			// take commanded value:
 			float norm_cmd = (pwm_cmd - assumed_min) / assumed_range; //[-1 1]
 			if (sv_rev_fl[i]) norm_cmd = -norm_cmd; //polarity
 
-			norm_cmd += ((float) sv_trim[i] - assumed_min) / assumed_range; //trim value offset
 			norm_cmd = norm_cmd * range_ratio;// range adjusted for true [min, max]
+			norm_cmd += ((float)sv_trim[i] - true_range / 2.f - (float)sv_min[i]) / true_range; //trim value offset
 
-			//check saturation
-			if (norm_cmd > sv_max[i]) norm_cmd = sv_max[i];
-			else if (norm_cmd < sv_min[i]) norm_cmd = sv_min[i];
+			//check final saturation
+			if (norm_cmd > range_ratio / 2.f) norm_cmd = range_ratio / 2.f;
+			else if (norm_cmd < -range_ratio / 2.f) norm_cmd = -range_ratio / 2.f;
 
 
 			cmd.command_value = norm_cmd;
@@ -188,7 +188,7 @@ UavcanServoController::update_params(void)
 			int32_t pwm_max = pwm_max_default;
 			// check if min is outside the bounds + check if max is outside the bounds + check if max is less than min
 			if ((param_get(param_find(str), &pwm_min) == PX4_OK) && (param_get(param_find(str_max), &pwm_max) == PX4_OK)) {
-				if ((pwm_min < pwm_max_default || pwm_min > pwm_min_default) || (pwm_max < pwm_max_default || pwm_max > pwm_min_default) || (pwm_max < pwm_min) )
+				if ((pwm_min < pwm_min_default || pwm_min > pwm_max_default) || (pwm_max > pwm_max_default || pwm_max < pwm_min_default) || (pwm_max < pwm_min) )
 				{
 					//reset to default:
 					pwm_min = pwm_min_default;
