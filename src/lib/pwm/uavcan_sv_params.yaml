@@ -113,19 +113,17 @@ parameters:
 
         UAVCAN_SV_TRIM${i}:
             description:
-                short: UAVCAN servo output ${i} trim value for interpolation
+                short: UAVCAN servo output ${i} trim value
                 long: |
-                    Must be within min/max bounds to be active.
-                    Used as the center point for linear interpolation.
-                    e.g [-1 1] command is always centered at trim value.
-                    Is ignored if set to < 0.
+                    This is an offset that is being applied to PWM value.
+                    If 0, always centers at midrange.
             type: int32
             unit: us
-            min: -1
-            max: 2150
+            min: -1000
+            max: 1000
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: -1
+            default: 0
 
         UAVCAN_SV_REV${i}:
             description:

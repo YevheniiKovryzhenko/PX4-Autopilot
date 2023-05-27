@@ -98,7 +98,7 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 {
 	// these are the settings assumed to be used on the other end:
 	const float assumed_min = 1000.f;
-	//const float assumed_trim = 1500.f;
+	const float assumed_trim = 1500.f;
 	const float assumed_max = 2000.f;
 	const float assumed_range = assumed_max - assumed_min;
 
@@ -114,21 +114,22 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 
 			float true_range = (float)(sv_max[i] - sv_min[i]);
 			float range_ratio = true_range / assumed_range;
+			float offset = true_range / 2.f + (float)sv_min[i] - assumed_trim; //this is how much the new center shifted from the old
 
-			float pwm_cmd = (float)outputs[i] + 1000.f; //input is [0 1000], need [1000 2000]
+			float pwm_cmd = (float)outputs[i] + 1000.f; //input is [0 1000] need [1000 2000]
 			if (sv_fail[i] > 0 && fail) pwm_cmd = (float)sv_fail[i]; //use fail value if enabled and active
 			else if (sv_disarm[i] > 0 && !armed) pwm_cmd = (float)sv_disarm[i]; //use armed value if enabled and active
 
 			// take commanded value:
-			float norm_cmd = (pwm_cmd - assumed_min) / assumed_range; //[-1 1]
+			float norm_cmd = 2.f * (pwm_cmd - assumed_min) / assumed_range - 1.f; //[-1 1]
 			if (sv_rev_fl[i]) norm_cmd = -norm_cmd; //polarity
 
 			norm_cmd = norm_cmd * range_ratio;// range adjusted for true [min, max]
-			norm_cmd += ((float)sv_trim[i] - true_range / 2.f - (float)sv_min[i]) / true_range; //trim value offset
+			norm_cmd += ((float)sv_trim[i] + offset) / assumed_range; //trim value offset
 
-			//check final saturation
-			if (norm_cmd > range_ratio / 2.f) norm_cmd = range_ratio / 2.f;
-			else if (norm_cmd < -range_ratio / 2.f) norm_cmd = -range_ratio / 2.f;
+			//check final saturation -> trim value can make it go outside the bounds
+			if (norm_cmd > 1.f) norm_cmd = 1.f;
+			else if (norm_cmd < -1.f) norm_cmd = -1.f;
 
 
 			cmd.command_value = norm_cmd;
@@ -245,13 +246,9 @@ UavcanServoController::update_params(void)
 		// PWM_MAIN_TRIMx
 		{
 			sprintf(str, "%s_TRIM%u", prefix, i + 1);
-			int32_t pwm_trim = -1;
+			int32_t pwm_trim = 0;
 
 			if (param_get(param_find(str), &pwm_trim) == PX4_OK) {
-				if (pwm_trim < sv_min[i] || pwm_trim > sv_max[i])
-				{
-					pwm_trim = sv_min[i] + (sv_max[i] - sv_min[i])/2;
-				}
 				sv_trim[i] = pwm_trim;
 			}
 		}
