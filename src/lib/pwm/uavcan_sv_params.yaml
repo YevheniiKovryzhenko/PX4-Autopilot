@@ -11,6 +11,13 @@ parameters:
                 short: UAVCAN global minimum value
                 long: |
                     Set to 1000 for industry default or 900 to increase servo travel.
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: 800
@@ -22,6 +29,13 @@ parameters:
                 short: UAVCAN servo output global maximum value
                 long: |
                     Set to 2000 for industry default or 2100 to increase servo travel.
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: 1600
@@ -36,6 +50,13 @@ parameters:
                     The main use of this parameter is to silence ESCs when they are disarmed.
                     If set to < 0, PWM always directly passes though without checking for state (no check if need to send DISARM VALUE).
                     THIS WON'T DISABLE OUTPUT, use EN flag for that.
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: -1
@@ -49,6 +70,13 @@ parameters:
                     This is the PWM pulse the autopilot is outputting if in failsafe mode.
                     If set to < 0, PWM always directly passes though without checking for state (no check if need to send FAIL VALUE).
                     THIS WON'T DISABLE OUTPUT, use EN flag for that.
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: -1
@@ -61,6 +89,13 @@ parameters:
                 long: |
                     This is the minimum PWM pulse the autopilot is allowed to output.
                     When set to -1 the value for UAVCAN_SV_MIN will be used
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: -1
@@ -75,6 +110,13 @@ parameters:
                 long: |
                     This is the maximum PWM pulse the autopilot is allowed to output.
                     When set to -1 the value for UAVCAN_SV_MAX will be used
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: -1
@@ -89,6 +131,13 @@ parameters:
                 long: |
                     This is the PWM pulse the autopilot is outputting if in failsafe mode.
                     Uses global values if set to < 0
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: -1
@@ -103,6 +152,13 @@ parameters:
                 long: |
                     This is the PWM pulse the autopilot is outputting if not armed.
                     Uses global values if set to < 0
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: -1
@@ -117,6 +173,13 @@ parameters:
                 long: |
                     This is an offset that is being applied to PWM value.
                     If 0, always centers at midrange.
+
+                    This will generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
             type: int32
             unit: us
             min: -1000
@@ -146,3 +209,40 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 0
+
+        UAVCAN_SV_ESC${i}:
+            description:
+                short: Mark UAVCAN output ${i} to be used for ECS logic
+                long: |
+                    This parameter controls if a servo id ${i} is used for one-shot ESC control.
+                    This ignore user-set DISARM and TRIM values, forces to use disarm logic
+                    and always sends -1 (or +1, according to polarity).
+                    DOES NOT IGNORE MIN/MAX VALUES, SO CHECK THOSE FIRST.
+
+                    This will STILL generate appropriate COMMAND_TYPE_UNITLESS for each
+                    uavcan.equipment.actuator.ArrayCommand.command_value
+                    This has to be always bounded to [-1 1] range and proper PWM signal
+                    is generated on the receving side (CAN->PWM board). Check settings
+                    of the receving end to make sure [-1 1] mapps to correct range.
+                    By default, it is assumed to have [1000 2000] range.
+
+            type: boolean
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 0
+
+        UAVCAN_SV_ID${i}:
+            description:
+                short: Mark UAVCAN output ${i} servo id
+                long: |
+                    This parameter sets the
+                    uavcan.equipment.actuator.ArrayCommand.actuator_id
+                    field for servo output ${i}. If you mess this up, I
+                    disable servo output alltogther (check EN flag to re-enable).
+
+            type: int32
+            num_instances: *max_num_config_instances
+            min: 0
+            max: 256
+            instance_start: 1
+            default: ${i}

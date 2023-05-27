@@ -83,6 +83,8 @@ private:
 
 	bool sv_en_fl[MAX_ACTUATORS];
 	bool sv_rev_fl[MAX_ACTUATORS];
+	bool sv_esc_fl[MAX_ACTUATORS];
+	int32_t sv_id[MAX_ACTUATORS];
 	int32_t sv_min[MAX_ACTUATORS];
 	int32_t sv_max[MAX_ACTUATORS];
 	int32_t sv_trim[MAX_ACTUATORS];

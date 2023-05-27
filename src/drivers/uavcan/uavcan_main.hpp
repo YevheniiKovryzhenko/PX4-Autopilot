@@ -54,7 +54,7 @@
 #include "allocator.hpp"
 #include "actuators/esc.hpp"
 #include "actuators/hardpoint.hpp"
-//#include "actuators/servo.hpp"
+#include "actuators/servo.hpp"
 #include "sensors/sensor_bridge.hpp"
 
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
@@ -76,69 +76,6 @@
 using namespace time_literals;
 
 class UavcanNode;
-
-/**
- * UAVCAN mixing class.
- * It is separate from UavcanNode to have 2 WorkItems and therefore allowing independent scheduling
- * (I.e. UavcanMixingInterface runs upon actuator_control updates, whereas UavcanNode runs at
- * a fixed rate or upon bus updates).
- * Both work items are expected to run on the same work queue.
- */
-/*
-class UavcanMixingInterface : public OutputModuleInterface
-{
-public:
-	UavcanMixingInterface(pthread_mutex_t &node_mutex, UavcanEscController &esc_controller)
-		: OutputModuleInterface(MODULE_NAME "-actuators", px4::wq_configurations::uavcan),
-		  _node_mutex(node_mutex),
-		  _esc_controller(esc_controller) {}
-
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
-
-	void mixerChanged() override;
-
-	MixingOutput &mixingOutput() { return _mixing_output; }
-
-protected:
-	void Run() override;
-private:
-	friend class UavcanNode;
-	pthread_mutex_t &_node_mutex;
-	UavcanEscController &_esc_controller;
-	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-};
-*/
-/**
- * UAVCAN mixing class.
- * It is separate from UavcanNode to have 2 WorkItems and therefore allowing independent scheduling
- * (I.e. UavcanMixingInterface runs upon actuator_control updates, whereas UavcanNode runs at
- * a fixed rate or upon bus updates).
- * Both work items are expected to run on the same work queue.
- */
-/*
-class UavcanMixingInterfaceServo : public OutputModuleInterface
-{
-public:
-	UavcanMixingInterfaceServo(pthread_mutex_t &node_mutex, UavcanServoController &servo_controller)
-		: OutputModuleInterface(MODULE_NAME "-actuators-servo", px4::wq_configurations::uavcan),
-		  _node_mutex(node_mutex),
-		  _servo_controller(servo_controller) {}
-
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
-
-	MixingOutput &mixingOutput() { return _mixing_output; }
-
-protected:
-	void Run() override;
-private:
-	friend class UavcanNode;
-	pthread_mutex_t &_node_mutex;
-	UavcanServoController &_servo_controller;
-	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-};
-*/
 
 /**
  * A UAVCAN node.
@@ -219,8 +156,6 @@ private:
 	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp) { _setget_response = resp; }
 	void		free_setget_response(void) { _setget_response = nullptr; }
 
-	//void enable_idle_throttle_when_armed(bool value);
-
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 	px4::atomic<int>	_fw_server_action{None};
 	int			 _fw_server_status{-1};
@@ -238,8 +173,6 @@ private:
 	px4_sem_t			_server_command_sem;
 	UavcanEscController		_esc_controller;
 	UavcanServoController		_servo_controller;
-	//UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
-	//UavcanMixingInterfaceServo 	_mixing_interface_servo{_node_mutex, _servo_controller};
 	UavcanHardpointController	_hardpoint_controller;
 	UavcanBeep			_beep_controller;
 	UavcanSafetyState         	_safety_state_controller;
@@ -251,9 +184,6 @@ private:
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
 	ITxQueueInjector		*_tx_injector{nullptr};
-
-	bool 				_idle_throttle_when_armed{false};
-	int32_t 			_idle_throttle_when_armed_param{0};
 
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

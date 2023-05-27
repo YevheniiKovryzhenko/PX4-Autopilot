@@ -669,22 +669,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
 
-	//_mixing_interface.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
-	//_mixing_interface.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
-
-	// Ensure we don't exceed maximum limits and assumptions. FIXME: these should be static assertions
-	//if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
-	//    || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
-	//	PX4_ERR("ESC max output value assertion failed");
-	//	return -EINVAL;
-	//}
-
-	//_mixing_interface.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
-	//_mixing_interface.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
-	//_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
-	//param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
-	//enable_idle_throttle_when_armed(true);
-
 	/*  Start the Node   */
 	return _node.start();
 }
@@ -789,10 +773,6 @@ UavcanNode::Run()
 
 	node_spin_once(); // expected to be non-blocking
 
-	// Check arming state
-	//const actuator_armed_s &armed = _mixing_interface.mixingOutput().armed();
-	//enable_idle_throttle_when_armed(!armed.soft_stop);
-
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -880,19 +860,6 @@ UavcanNode::Run()
 	_actuator_outputs_esc_pub.publish(actuator_outputs_sv);
 	*/
 }
-
-/*
-void
-UavcanNode::enable_idle_throttle_when_armed(bool value)
-{
-	value &= _idle_throttle_when_armed_param > 0;
-
-	if (value != _idle_throttle_when_armed) {
-		_mixing_interface.mixingOutput().setAllMinValues(value ? 1 : 0);
-		_idle_throttle_when_armed = value;
-	}
-}
-*/
 
 int
 UavcanNode::teardown()

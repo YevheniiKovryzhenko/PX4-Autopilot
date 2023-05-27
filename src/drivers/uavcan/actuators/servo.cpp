@@ -39,6 +39,15 @@
 
 using namespace time_literals;
 
+// these are the settings assumed to be used on the other end of CAN->PWM board:
+const float assumed_min = 1000.f;
+const float assumed_trim = 1500.f;
+const float assumed_max = 2000.f;
+const float assumed_range = assumed_max - assumed_min;
+
+const float esc_safety_cmd = 1000.f;
+const float assumed_trim_esc = 1000.f; //let's always send min output
+
 UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_array_cmd(node),
@@ -58,6 +67,8 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	{
 		sv_en_fl[i] = false;
 		sv_rev_fl[i] = false;
+		sv_esc_fl[i] = false;
+		sv_id[i] = i + 1;
 		sv_min[i] = PWM_DEFAULT_MIN;
 		sv_max[i] = PWM_DEFAULT_MAX;
 		sv_trim[i] = PWM_DEFAULT_MIN + (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN)/2;
@@ -96,13 +107,6 @@ UavcanServoController::update(const uavcan::TimerEvent &)
 void
 UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_ACTUATORS])
 {
-	// these are the settings assumed to be used on the other end:
-	const float assumed_min = 1000.f;
-	const float assumed_trim = 1500.f;
-	const float assumed_max = 2000.f;
-	const float assumed_range = assumed_max - assumed_min;
-
-
 	bool write_anything = false;
 	uavcan::equipment::actuator::ArrayCommand msg;
 	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
@@ -114,18 +118,25 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 
 			float true_range = (float)(sv_max[i] - sv_min[i]);
 			float range_ratio = true_range / assumed_range;
-			float offset = true_range / 2.f + (float)sv_min[i] - assumed_trim; //this is how much the new center shifted from the old
 
 			float pwm_cmd = (float)outputs[i] + 1000.f; //input is [0 1000] need [1000 2000]
-			if (sv_fail[i] > 0 && fail) pwm_cmd = (float)sv_fail[i]; //use fail value if enabled and active
-			else if (sv_disarm[i] > 0 && !armed) pwm_cmd = (float)sv_disarm[i]; //use armed value if enabled and active
+			if (sv_esc_fl[i]) //we are talking with an ESC with one-shot
+			{
+				if (fail || !armed) pwm_cmd = esc_safety_cmd; //always send minimum value if disarmed or in failsafe mode
+			}
+			else // we are talking with a servo
+			{
+				if (sv_fail[i] > 0 && fail) pwm_cmd = (float)sv_fail[i]; //use fail value if enabled and active
+				else if (sv_disarm[i] > 0 && !armed) pwm_cmd = (float)sv_disarm[i]; //use armed value if enabled and active
+			}
+
 
 			// take commanded value:
 			float norm_cmd = 2.f * (pwm_cmd - assumed_min) / assumed_range - 1.f; //[-1 1]
 			if (sv_rev_fl[i]) norm_cmd = -norm_cmd; //polarity
 
-			norm_cmd = norm_cmd * range_ratio;// range adjusted for true [min, max]
-			norm_cmd += ((float)sv_trim[i] + offset) / assumed_range; //trim value offset
+			norm_cmd = norm_cmd * range_ratio;// range adjusted for true [min, max], which within [-1 1]
+			norm_cmd += (float)sv_trim[i] / assumed_range; //trim value offset
 
 			//check final saturation -> trim value can make it go outside the bounds
 			if (norm_cmd > 1.f) norm_cmd = 1.f;
@@ -180,6 +191,34 @@ UavcanServoController::update_params(void)
 			}
 		}
 
+		{
+			sprintf(str, "%s_ESC%u", prefix, i + 1);
+			int32_t esc_fl = 0;
+			if (param_get(param_find(str), &esc_fl) == PX4_OK)
+			{
+				sv_esc_fl[i] = esc_fl >= 1;
+			}
+		}
+
+		{
+			sprintf(str, "%s_ID%u", prefix, i + 1);
+			int32_t tmp_sv_id = i + 1;
+			if (param_get(param_find(str), &tmp_sv_id) == PX4_OK)
+			{
+				if (tmp_sv_id < 0 || tmp_sv_id > 256) // don't send IDs outside of the bounds, something is wrong
+				{
+					sv_esc_fl[i] = false;
+					sprintf(str, "%s_EN%u", prefix, i + 1);
+					int32_t en_fl = false;
+					param_set(param_find(str),&en_fl);
+				}
+				else
+				{
+					sv_esc_fl[i] = tmp_sv_id;
+				}
+			}
+		}
+
 		// MINx and MAXx
 		{
 			char str_max[17];
@@ -194,8 +233,8 @@ UavcanServoController::update_params(void)
 					//reset to default:
 					pwm_min = pwm_min_default;
 					pwm_max = pwm_max_default;
-					//param_set(param_find(str), &pwm_min);
-					//param_set(param_find(str_max), &pwm_max);
+					param_set(param_find(str), &pwm_min);
+					param_set(param_find(str_max), &pwm_max);
 
 					//disable actuator output:
 					//sprintf(str, "%s_EN%u", prefix, i + 1);
@@ -244,13 +283,26 @@ UavcanServoController::update_params(void)
 		}
 
 		// PWM_MAIN_TRIMx
+		if (sv_esc_fl[i]) sv_trim[i] = 0.f; //let's just ignore trim value for ESCs
+		else
 		{
+
 			sprintf(str, "%s_TRIM%u", prefix, i + 1);
 			int32_t pwm_trim = 0;
+			param_get(param_find(str), &pwm_trim);
 
-			if (param_get(param_find(str), &pwm_trim) == PX4_OK) {
-				sv_trim[i] = pwm_trim;
+			if (sv_esc_fl[i]) //we are talking with an ESC with one-shot
+			{
+				if (sv_rev_fl[i]) pwm_trim += (int32_t)assumed_max - sv_max[i]; //this will shift the new output range to start from +1
+				else pwm_trim += (int32_t)assumed_min - sv_min[i]; //this will shift new output range to start from -1 (default, since cmd = -1 -> lowest PWM)
 			}
+			else // we are talking with a servo
+			{
+
+				pwm_trim += (sv_max[i] - sv_min[i]) / 2 + sv_min[i] - (int32_t)assumed_trim;
+			}
+
+			sv_trim[i] = pwm_trim;
 		}
 	}
 }

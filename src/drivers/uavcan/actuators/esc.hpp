@@ -53,7 +53,6 @@
 #include <uORB/topics/esc_status.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
-#include <drivers/uavcan/actuators/servo.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 
