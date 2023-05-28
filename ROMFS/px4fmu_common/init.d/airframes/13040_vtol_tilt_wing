@@ -42,3 +42,11 @@ set MIXER_AUX vtol_tilt_wing
 
 set PWM_OUT 1234
 #set PWM_AUX_OUT 1234567 #this will make aux channels be treated as ESCs
+
+
+set +e # Will not result in boot failure if optional_app is unknown or fails
+#
+# Start simulink modudes
+#
+sim_ctrl_mod start -f -p 42
+set -e
