@@ -57,6 +57,8 @@ public:
 	 */
 	int init();
 
+	void force_safety_flag(bool in); //if true, will always send SafetyState OFF signal
+
 private:
 	/*
 	 * Max update rate to avoid exessive bus traffic
@@ -79,5 +81,7 @@ private:
 	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+
+	bool force_safety_fl = false;
 
 };

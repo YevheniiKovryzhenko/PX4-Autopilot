@@ -106,6 +106,13 @@ inline float map2map(float in, float in_min, float in_max, float out_min, float 
 	return out_min + (out_max - out_min) / (in_max - in_min) * (in - in_min);
 }
 
+inline float check_saturation(float in, float min, float max)
+{
+	if (in > max) return max;
+	else if (in < min) return min;
+	else return in;
+}
+
 void
 UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_ACTUATORS])
 {
@@ -113,6 +120,7 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 	const float assumed_min = 1000.f;
 	//const float assumed_trim = 1500.f;
 	const float assumed_max = 2000.f;
+	const float assumed_min_esc = 900.f; //must have this on the other end to wake up most ESCs
 
 	bool write_anything = false;
 	uavcan::equipment::actuator::ArrayCommand msg;
@@ -123,52 +131,54 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 			cmd.actuator_id = sv_id[i];
 			cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
 
-			float pwm_cmd = static_cast<float>(outputs[i] + 1000); //input is [0 1000] -> [1000 2000]
+			float pwm_cmd = check_saturation(static_cast<float>(outputs[i] + 1000), 1000.f, 2000.f); //input is [0 1000] -> [1000 2000]
 
-			if (sv_rev_fl[i])
-			{
-				pwm_cmd = -(pwm_cmd - 1500.f) + 1500.f; //flip the polarity
-			}
-			/*
+			float pwm_min = assumed_min; //assume we are talking to servos, unless told otherwise
+
+
 			if (sv_esc_fl[i]) //we are talking with an ESC
 			{
-				if (fail || !armed)
+				if (!disable_safety_checks_fl)
 				{
-					if (sv_rev_fl[1]) cmd.command_value = 1.f;//assume everything is reversed
-					else cmd.command_value = -1.f;//always send minimum value if disarmed or in failsafe mode
-					msg.commands.push_back(cmd);
-					write_anything = true;
-					continue;
+					if (fail || !armed)
+					{
+						//if (sv_rev_fl[1]) cmd.command_value = 1.f;// this is kinda dumb
+						//else
+						cmd.command_value = -1.f;//always send minimum value if disarmed or in failsafe mode
+						msg.commands.push_back(cmd);
+						write_anything = true;
+						continue;
+					}
 				}
+
+				pwm_min = assumed_min_esc; //this should make regular command to be still within [1000, 2000] on [-1 1]. -1 in assumed_min_esc
+
 			}
 			else // we are talking with a servo
-			{*/
+			{
 				if (sv_fail[i] > 0 && fail) pwm_cmd = static_cast<float>(sv_fail[i]); //use fail value if enabled and active
 				else if (sv_disarm[i] > 0 && !armed) pwm_cmd = static_cast<float>(sv_disarm[i]); //use armed value if enabled and active
-			//}
+				else if (sv_rev_fl[i]) pwm_cmd = -(pwm_cmd - 1500.f) + 1500.f; //flip the polarity
+			}
 
 			float norm_cmd;
 
 			if (sv_min[i] == sv_max[i])
 			{
-				norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, assumed_min, assumed_max) + map2map(sv_trim[i], -500.f, 500.f, -1.f, 1.f);
+				norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, pwm_min, assumed_max);
 			}
 			else
 			{
-				float min_norm = map2map(sv_min[i], assumed_min, assumed_max, -1.f, 1.f);
-				float max_norm = map2map(sv_max[i], assumed_min, assumed_max, -1.f, 1.f);
+				float min_norm = map2map(sv_min[i], pwm_min, assumed_max, -1.f, 1.f);
+				float max_norm = map2map(sv_max[i], pwm_min, assumed_max, -1.f, 1.f);
 
-				norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, min_norm, max_norm) + map2map(sv_trim[i], -500.f, 500.f, -1.f, 1.f);
+				norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, min_norm, max_norm);
 			}
 
 
+			norm_cmd += map2map(sv_trim[i], -500.f, 500.f, -1.f, 1.f); //apply trim value
 
-			//check saturation:
-			if (norm_cmd > 1.f) norm_cmd = 1.f;
-			else if (norm_cmd < -1.f) norm_cmd = -1.f;
-
-
-			cmd.command_value = norm_cmd;
+			cmd.command_value = check_saturation(norm_cmd, -1.f, 1.f);
 
 			msg.commands.push_back(cmd);
 			write_anything = true;
@@ -202,6 +212,13 @@ UavcanServoController::update_params(void)
 
 	sprintf(str, "%s_FAIL", prefix);
 	param_get(param_find(str), &pwm_fail_default);
+
+	int32_t safety_checks = 0;
+	sprintf(str, "%s_CBRK", prefix);
+	if (param_get(param_find(str), &safety_checks) == PX4_OK)
+	{
+		disable_safety_checks_fl = safety_checks == 131313;
+	}
 
 
 

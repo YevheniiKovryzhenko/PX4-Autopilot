@@ -6,6 +6,19 @@ parameters:
     - group: UAVCAN Outputs
       definitions:
 
+        UAVCAN_SV_CBRK:
+            description:
+                short: This is UAVCAN safety circuit breaker for servo output
+                long: |
+                    Default is 0. If 131313, all safety checks and failsafes are enabled.
+                    You can use this to ignore these checks for ESCs that are sent
+                    over servo channels. To disable safety for servos, just set FAIL and
+                    DISARM values to -1.
+            type: int32
+            min: 0
+            max: 131313
+            default: 0
+
         UAVCAN_SV_MIN:
             description:
                 short: UAVCAN global minimum value

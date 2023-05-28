@@ -90,4 +90,6 @@ private:
 	int32_t sv_trim[MAX_ACTUATORS];
 	int32_t sv_disarm[MAX_ACTUATORS];
 	int32_t sv_fail[MAX_ACTUATORS];
+
+	bool disable_safety_checks_fl = false;
 };

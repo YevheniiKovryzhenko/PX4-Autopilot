@@ -411,6 +411,15 @@ void
 UavcanNode::update_params()
 {
 	updateParams();
+
+	int32_t overwrite_safety_state = 0;
+
+	if (param_get(param_find("UAVCAN_SFTY"), &overwrite_safety_state) == PX4_OK)
+	{
+		_safety_state_controller.force_safety_flag(overwrite_safety_state == 1);
+	}
+	else _safety_state_controller.force_safety_flag(false);
+
 	_servo_controller.update_params();
 	//_mixing_interface.updateParams();
 	//_mixing_interface_servo.updateParams();

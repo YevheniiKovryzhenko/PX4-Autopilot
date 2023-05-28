@@ -210,3 +210,18 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_BAT_MON, 0);
+
+
+/**
+ * UAVCAN Safety State
+ *
+ *  0 - UAVCAN sends safety state according to vehicle safety state.
+ *  1 - Overwrite safety state to always send ARMED or SAFETY OFF signal.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Disabled
+ * @value 1 SAFETY OFF
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SFTY, 0);

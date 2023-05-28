@@ -61,24 +61,31 @@ int UavcanSafetyState::init()
 void UavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
 {
 	ardupilot::indication::SafetyState cmd;
-	/*
-	actuator_armed_s actuator_armed;
-	if (_actuator_armed_sub.update(&actuator_armed)) {
-		ardupilot::indication::SafetyState cmd;
-
-		if (actuator_armed.armed || actuator_armed.prearmed) {
-			cmd.status = cmd.STATUS_SAFETY_OFF;
-
-		} else {
-			cmd.status = cmd.STATUS_SAFETY_ON;
-		}
-
+	if (force_safety_fl)
+	{
 		cmd.status = cmd.STATUS_SAFETY_OFF;
-
-		(void)_safety_state_pub.broadcast(cmd);
 	}
-	*/
-	cmd.status = cmd.STATUS_SAFETY_OFF;
+	else
+	{
+		actuator_armed_s actuator_armed;
+		if (_actuator_armed_sub.update(&actuator_armed))
+		{
+			if (actuator_armed.armed || actuator_armed.prearmed)
+			{
+				cmd.status = cmd.STATUS_SAFETY_OFF;
 
+			}
+			else
+			{
+				cmd.status = cmd.STATUS_SAFETY_ON;
+			}
+		}
+	}
 	(void)_safety_state_pub.broadcast(cmd);
+}
+
+
+void UavcanSafetyState::force_safety_flag(bool in)
+{
+	force_safety_fl = in;
 }
