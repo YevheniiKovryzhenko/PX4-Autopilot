@@ -93,8 +93,9 @@ UavcanServoController::update(const uavcan::TimerEvent &)
 {
 	actuator_outputs_s actuator_outputs_sv;
 	actuator_armed_s actuator_armed;
+	_actuator_armed_sub.update(&actuator_armed);
 
-	if (_actuator_outputs_sv_sub.update(&actuator_outputs_sv) || _actuator_armed_sub.update(&actuator_armed))
+	if (_actuator_outputs_sv_sub.update(&actuator_outputs_sv))
 	{
 		update_outputs(actuator_armed.armed, actuator_armed.force_failsafe, actuator_outputs_sv.output);
 	}
@@ -140,7 +141,7 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 			{
 				if (!disable_safety_checks_fl)
 				{
-					if (fail || !armed)
+					if (!armed)
 					{
 						//if (sv_rev_fl[1]) cmd.command_value = 1.f;// this is kinda dumb
 						//else

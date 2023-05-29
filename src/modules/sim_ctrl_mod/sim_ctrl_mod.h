@@ -62,7 +62,7 @@ extern "C" __EXPORT int sim_ctrl_mod_main(int argc, char *argv[]);
 class SIM_CTRL_MOD : public ModuleBase<SIM_CTRL_MOD>, public ModuleParams
 {
 public:
-	
+
 	SIM_CTRL_MOD(int example_param, bool example_flag);
 
 	virtual ~SIM_CTRL_MOD() = default;
@@ -84,7 +84,7 @@ public:
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
-	
+
 
 private:
 
@@ -94,40 +94,40 @@ private:
 	 * @param force for a parameter update
 	 */
 	void parameters_update(bool force = false);
-	
+
 	sm_full_state_s        _sm_full_state{};
-	uORB::Publication<sm_full_state_s>	_sm_full_state_pub{ORB_ID(sm_full_state)};	
-	
+	uORB::Publication<sm_full_state_s>	_sm_full_state_pub{ORB_ID(sm_full_state)};
+
 	// Subscriptions
 	uORB::Subscription 		_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription 		_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription		_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};	
+	uORB::Subscription		_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription		_airspeed_sub{ORB_ID(airspeed)};
 	uORB::Subscription		_battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription		_distance_sensor_sub{ORB_ID(distance_sensor)};
 	uORB::Subscription		_actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription		_vehicle_odometry_sub{ORB_ID(vehicle_odometry)};	
+	uORB::Subscription		_vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
 	uORB::Subscription		_adc_report_sub{ORB_ID(adc_report)};
 	//uORB::Subscription		_obstacle_distance_sub{ORB_ID(obstacle_distance)};
 	//uORB::Subscription		_rc_channels_sub{ORB_ID(rc_channels)};
 	//uORB::Subscription		_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
-	
 
-	/** 
+
+	/**
 	 * THIS IS WHERE YOU DEFINE NEW PARAMETRS
 	 * example:
 	 * DEFINE_PARAMETERS(
 	 *	(ParamFloat<px4::params::SM_LQI_LG_SAT>) _param_sm_lqi_lg_sat)
-	 *	
+	 *
 	 * where:
 	 *	DEFINE_PARAMETERS is macro (short function)
 	 * 	ParamFloat defines the data type of the parameter (float in this case)
 	 * 	SM_LQI_LG_SAT is the global name that other app will see (e.g. simulink or QGC). Make sure this is under 14 characters
-	 *	_param_sm_lqi_lg_sat is the local variable (used in this app only). 
+	 *	_param_sm_lqi_lg_sat is the local variable (used in this app only).
 	 *	They MUST BE UPPERCASE AND lowercase respectively (don't mix)
 	 */
 	DEFINE_PARAMETERS(
-	
+
 		(ParamFloat<px4::params::SM_AUX_MIX_1>) _param_sm_aux_mix_1,
 		(ParamFloat<px4::params::SM_AUX_MIX_2>) _param_sm_aux_mix_2,
 		(ParamFloat<px4::params::SM_AUX_MIX_3>) _param_sm_aux_mix_3,
@@ -136,13 +136,21 @@ private:
 		(ParamFloat<px4::params::SM_AUX_MIX_6>) _param_sm_aux_mix_6,
 		(ParamFloat<px4::params::SM_AUX_MIX_7>) _param_sm_aux_mix_7,
 		(ParamFloat<px4::params::SM_AUX_MIX_8>) _param_sm_aux_mix_8,
-		
-		(ParamFloat<px4::params::SM_IDLE_TH>) _param_sm_idle_th,		
-		(ParamFloat<px4::params::SM_GAIN_TH_T>) _param_sm_gain_th_t,		
+		(ParamFloat<px4::params::SM_AUX_MIX_9>) _param_sm_aux_mix_9,
+		(ParamFloat<px4::params::SM_AUX_MIX_10>) _param_sm_aux_mix_10,
+		(ParamFloat<px4::params::SM_AUX_MIX_11>) _param_sm_aux_mix_11,
+		(ParamFloat<px4::params::SM_AUX_MIX_12>) _param_sm_aux_mix_12,
+		(ParamFloat<px4::params::SM_AUX_MIX_13>) _param_sm_aux_mix_13,
+		(ParamFloat<px4::params::SM_AUX_MIX_14>) _param_sm_aux_mix_14,
+		(ParamFloat<px4::params::SM_AUX_MIX_15>) _param_sm_aux_mix_15,
+		(ParamFloat<px4::params::SM_AUX_MIX_16>) _param_sm_aux_mix_16,
+
+		(ParamFloat<px4::params::SM_IDLE_TH>) _param_sm_idle_th,
+		(ParamFloat<px4::params::SM_GAIN_TH_T>) _param_sm_gain_th_t,
 		(ParamInt<px4::params::SM_EN_CAL>) _param_sm_en_cal,
 		(ParamInt<px4::params::SM_OVERWRITE>) _param_sm_overwrite,
 		(ParamFloat<px4::params::SM_LATMPTYP>) _param_sm_latmptyp,
-		
+
 		(ParamFloat<px4::params::SM_TAU_LAT>) _param_sm_tau_lat,
 		(ParamFloat<px4::params::SM_LAT_DEADZ>) _param_sm_lat_deadz,
 		(ParamFloat<px4::params::SM_VLAT_MAX>) _param_sm_vlat_max,
@@ -181,7 +189,7 @@ private:
 		(ParamFloat<px4::params::SM_KH_P>) _param_sm_kh_p,
 		(ParamFloat<px4::params::SM_KH_I>) _param_sm_kh_i,
 		(ParamFloat<px4::params::SM_DTAU_ALT>) _param_sm_dtau_alt,
-		(ParamFloat<px4::params::SM_VVTHRSHEN>) _param_sm_vvthrshen,		
+		(ParamFloat<px4::params::SM_VVTHRSHEN>) _param_sm_vvthrshen,
 		(ParamFloat<px4::params::SM_VVTHRSHSC>) _param_sm_vvthrshsc,
 		(ParamFloat<px4::params::SM_HDGHLD_ON>) _param_sm_hdghld_on,
 		(ParamFloat<px4::params::SM_RTHRESH>) _param_sm_rthresh,
@@ -209,7 +217,7 @@ private:
 		(ParamFloat<px4::params::SM_AP_TO_AGL>) _param_sm_ap_to_agl,
 		(ParamFloat<px4::params::SM_AP_TO_K>) _param_sm_ap_to_k,
 		(ParamFloat<px4::params::SM_DXN_VCMD>) _param_sm_dxn_vcmd,
-		
+
 		(ParamFloat<px4::params::SM_KEI_0>) _param_sm_kei_0,
 		(ParamFloat<px4::params::SM_KEP_0>) _param_sm_kep_0,
 		(ParamFloat<px4::params::SM_KTI_0>) _param_sm_kti_0,
@@ -218,7 +226,7 @@ private:
 		(ParamFloat<px4::params::SM_KFFP_0>) _param_sm_kffp_0,
 		(ParamFloat<px4::params::SM_DAOADV_0>) _param_sm_daoadv_0,
 		(ParamFloat<px4::params::SM_KFFA_0>) _param_sm_kffa_0,
-		
+
 		(ParamFloat<px4::params::SM_KEI_1>) _param_sm_kei_1,
 		(ParamFloat<px4::params::SM_KEP_1>) _param_sm_kep_1,
 		(ParamFloat<px4::params::SM_KTI_1>) _param_sm_kti_1,
@@ -226,8 +234,8 @@ private:
 		(ParamFloat<px4::params::SM_KFFI_1>) _param_sm_kffi_1,
 		(ParamFloat<px4::params::SM_KFFP_1>) _param_sm_kffp_1,
 		(ParamFloat<px4::params::SM_DAOADV_1>) _param_sm_daoadv_1,
-		(ParamFloat<px4::params::SM_KFFA_1>) _param_sm_kffa_1,	
-		
+		(ParamFloat<px4::params::SM_KFFA_1>) _param_sm_kffa_1,
+
 		(ParamFloat<px4::params::SM_THMAX_0>) _param_sm_thmax_0,
 		(ParamFloat<px4::params::SM_THMIN_0>) _param_sm_thmin_0,
 		(ParamFloat<px4::params::SM_ACC2P_0>) _param_sm_acc2p_0,
@@ -235,7 +243,7 @@ private:
 		(ParamFloat<px4::params::SM_ACC2T_0>) _param_sm_acc2t_0,
 		(ParamFloat<px4::params::SM_VV2T_0>) _param_sm_vv2t_0,
 		(ParamFloat<px4::params::SM_DECKL_0>) _param_sm_deckl_0,
-		
+
 		(ParamFloat<px4::params::SM_THMAX_1>) _param_sm_thmax_1,
 		(ParamFloat<px4::params::SM_THMIN_1>) _param_sm_thmin_1,
 		(ParamFloat<px4::params::SM_ACC2P_1>) _param_sm_acc2p_1,
@@ -243,11 +251,11 @@ private:
 		(ParamFloat<px4::params::SM_ACC2T_1>) _param_sm_acc2t_1,
 		(ParamFloat<px4::params::SM_VV2T_1>) _param_sm_vv2t_1,
 		(ParamFloat<px4::params::SM_DECKL_1>) _param_sm_deckl_1,
-		
+
 		(ParamFloat<px4::params::SM_KQ_0>) _param_sm_kq_0,
 		(ParamFloat<px4::params::SM_KTH_0>) _param_sm_kth_0,
 		(ParamFloat<px4::params::SM_KI_TH_0>) _param_sm_ki_th_0,
-		
+
 		(ParamFloat<px4::params::SM_KQ_1>) _param_sm_kq_1,
 		(ParamFloat<px4::params::SM_KTH_1>) _param_sm_kth_1,
 		(ParamFloat<px4::params::SM_KI_TH_1>) _param_sm_ki_th_1,
@@ -261,7 +269,7 @@ private:
 		(ParamFloat<px4::params::SM_KPH_D_0>) _param_sm_kph_d_0,
 		(ParamFloat<px4::params::SM_KI_PHD_0>) _param_sm_ki_phd_0,
 		(ParamFloat<px4::params::SM_KI_RD_0>) _param_sm_ki_rd_0,
-		
+
 		(ParamFloat<px4::params::SM_KP_L_1>) _param_sm_kp_l_1,
 		(ParamFloat<px4::params::SM_KR_L_1>) _param_sm_kr_l_1,
 		(ParamFloat<px4::params::SM_KPH_L_1>) _param_sm_kph_l_1,
@@ -272,13 +280,13 @@ private:
 		(ParamFloat<px4::params::SM_KPH_D_1>) _param_sm_kph_d_1,
 		(ParamFloat<px4::params::SM_KI_PHD_1>) _param_sm_ki_phd_1,
 		(ParamFloat<px4::params::SM_KI_RD_1>) _param_sm_ki_rd_1,
-		
-		(ParamFloat<px4::params::SM_WING_R_LIM>) _param_sm_wing_r_lim	
+
+		(ParamFloat<px4::params::SM_WING_R_LIM>) _param_sm_wing_r_lim
 	)//MAKE SURE EVERY PARAMETER IS FOLLOWED BY "," AND LAST ONE DOES NOT HAVE ANYTHING
-	
+
 	// Subscriptions
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
-	
+
 	//uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 };
 
