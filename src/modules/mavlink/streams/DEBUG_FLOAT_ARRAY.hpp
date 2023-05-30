@@ -104,12 +104,14 @@ private:
 			{
 				char message_name[10] = "inbound";
 				memcpy(msg.name, message_name, sizeof(message_name));
+				msg.array_id = debug_array_s::SIMULINK_INBOUND_ID;
 				break;
 			}
 			case 2:
 			{
 				char message_name[10] = "outbound";
 				memcpy(msg.name, message_name, sizeof(message_name));
+				msg.array_id = debug_array_s::SIMULINK_OUTBOUND_ID;
 			}
 				break;
 

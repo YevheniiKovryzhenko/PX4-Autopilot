@@ -63,7 +63,8 @@ char sim_data_trafic::fill_buffer(float* in, uint size)
 {
 	for (uint i = 0; i < size; i++)
 	{
-		if (fill_buffer(in[i]) < 0) return -1;
+		fill_buffer(in[i]);
+		//if (fill_buffer(in[i]) < 0) return -1;
 	}
 	return 0;
 }
@@ -397,13 +398,12 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[6])
 		if(_rc_channels_sub.update(&rc_ch)) need_update = true;
 
 		//check every stick so we are sure rc is valid, otherwise quit
-		if (rc_map_stick(roll, rc_ch, rc_channels_s::FUNCTION_ROLL) == -1) return false;
-		if (rc_map_stick(pitch, rc_ch, rc_channels_s::FUNCTION_PITCH) == -1) return false;
-		if (rc_map_stick(yaw, rc_ch, rc_channels_s::FUNCTION_YAW) == -1) return false;
-		if (rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE) == -1) return false;
+		rc_map_stick(roll, rc_ch, rc_channels_s::FUNCTION_ROLL);
+		rc_map_stick(pitch, rc_ch, rc_channels_s::FUNCTION_PITCH);
+		rc_map_stick(yaw, rc_ch, rc_channels_s::FUNCTION_YAW);
+		rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE);
 		float tmp_wing = 0.f;
-		if (!update_man_wing_angle(tmp_wing) && rc_map_stick(manual_wing_ch, rc_ch, rc_channels_s::FUNCTION_AUX_6) == -1) return false;
-
+		if (!update_man_wing_angle(tmp_wing)) rc_map_stick(manual_wing_ch, rc_ch, rc_channels_s::FUNCTION_AUX_6);
 
 		if (en_calibration == 1)
 		{
