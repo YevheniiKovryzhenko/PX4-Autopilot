@@ -64,7 +64,6 @@ char sim_data_trafic::fill_buffer(float* in, uint size)
 	for (uint i = 0; i < size; i++)
 	{
 		fill_buffer(in[i]);
-		//if (fill_buffer(in[i]) < 0) return -1;
 	}
 	return 0;
 }

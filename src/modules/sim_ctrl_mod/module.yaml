@@ -64,6 +64,21 @@ parameters:
                 2: ALWAYS_DISARMED
             default: 0
 
+
+        SM_MAV_CONF:
+            description:
+                short: SIMULINK configuration option for mavlink streaming
+                long: |
+                    SIMULINK this is related to mavlink startup, please see
+                    options.
+
+            type: enum
+            values:
+                0: DEFAULT
+                1: SM_TRAFIC_ONLY
+            reboot_required: true
+            default: 0
+
         SM_WING_SRC:
             description:
                 short: SIMULINK source for wing angle command

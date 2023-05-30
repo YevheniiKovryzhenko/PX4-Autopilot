@@ -1521,6 +1521,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	param_get(param_find("SM_MAV_OUT_RATE"),&sm_mav_out_rate);
 	param_get(param_find("SM_MAV_IN_RATE"),&sm_mav_in_rate);
 
+
 	switch (sm_mav_stream)
 	{
 	case 1:
@@ -1544,6 +1545,18 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	float uavcan_sv_mavr = 0.f;
 	param_get(param_find("UAVCAN_SV_MAVR"),&uavcan_sv_mavr);
 	if (uavcan_sv_mav == 1) configure_stream_local("ACTUATOR_OUTPUT_STATUS_SV",uavcan_sv_mavr);
+
+
+	int32_t sm_mav_config = 0;
+	param_get(param_find("SM_MAV_CONF"),&sm_mav_config);
+	switch (sm_mav_config)
+	{
+	case 1: //ignore all other trafic
+		return ret;
+
+	default:
+		break;
+	}
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
