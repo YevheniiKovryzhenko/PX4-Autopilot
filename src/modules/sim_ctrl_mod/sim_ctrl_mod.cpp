@@ -39,6 +39,59 @@
 
 #include <uORB/topics/parameter_update.h>
 
+sim_data_trafic::sim_data_trafic()
+{
+	ind = 0;
+	for (uint i = 0; i < MAX_SIZE; i++)
+	{
+		data[i] = 0.f;
+	}
+}
+
+sim_data_trafic::~sim_data_trafic()
+{
+}
+
+void sim_data_trafic::send_vec(float out_vec[MAX_SIZE])
+{
+	for (uint i = 0; i < MAX_SIZE; i++) out_vec[i] = data[i];
+	clear_buffer();
+
+}
+
+char sim_data_trafic::fill_buffer(float* in, uint size)
+{
+	for (uint i = 0; i < size; i++)
+	{
+		if (fill_buffer(in[i]) < 0) return -1;
+	}
+	return 0;
+}
+
+char sim_data_trafic::fill_buffer(float in)
+{
+	if (ind < MAX_SIZE) {
+		data[ind] = in;
+		ind++;
+		return 0;
+	}
+	else
+	{
+		clear_buffer();
+#ifdef DEBUG
+PX4_INFO("ERROR: ran out of space in buffer, check data size\n");
+#endif
+		return -1;
+	}
+
+}
+void sim_data_trafic::clear_buffer(void)
+{
+	for (uint i = 0; i < MAX_SIZE; i++) data[i] = 0.f;
+	ind = 0;
+
+}
+
 int SIM_CTRL_MOD::print_status()
 {
 	PX4_INFO("Running");
@@ -133,232 +186,173 @@ SIM_CTRL_MOD::SIM_CTRL_MOD(int example_param, bool example_flag)
 {
 }
 
+#define DEBUG
+
 void SIM_CTRL_MOD::run()
 {
-	
-	//_sm_full_state_pub.advertise();
 	// initialize parameters
-	parameters_update(true);	
-	
+	parameters_update(true);
+
+
 	while (!should_exit()) {
-		//vehicle_local_position_s local_pos;
-		//vehicle_global_position_s global_pos;
-		vehicle_attitude_s att;
-		//airspeed_s air_sp;
-		//battery_status_s batt;
-		//distance_sensor_s dist;
-		actuator_armed_s act_armed;
-		vehicle_odometry_s odom;
-		//adc_report_s adc;
-		
-		//obstacle_distance_s obs;
-		
-		//rc_channels_s rc_ch;
-		//rc_parameter_map_s rc_map;
-		
-		//poll new data if available:
-		bool need_2_pub = false;
-		
-		/*
-		if (_obstacle_distance_sub.updated())
-		{
-			_obstacle_distance_sub.copy(&obs);
 
-			for (int i = 0; i < 72; i++)
-			{
-				_sm_full_state.obs_distances[i] = obs.distances[i];
-			}
-
-			need_2_pub = true;
-		}
-		*/
-		/*
-		if (_adc_report_sub.updated())
-		{
-			_adc_report_sub.copy(&adc);
-
-			_sm_full_state.adc_device_id = adc.device_id;
-			_sm_full_state.adc_resolution = adc.resolution;
-			_sm_full_state.adc_v_ref = adc.v_ref;
-			for (int i = 0; i < 12; i++)
-			{
-				_sm_full_state.adc_channel_id[i] = adc.channel_id[i];
-				_sm_full_state.adc_raw_data[i] = adc.raw_data[i];
-			}
-
-			need_2_pub = true;
-		}
-		*/
-		/*
-		if (_rc_channels_sub.updated())
-		{
-			_rc_channels_sub.copy(&rc_ch);
-
-
-			_sm_full_state.rc_timestamp_last_valid = rc_ch.timestamp_last_valid;
-			for (int i = 0; i < 18; i++)
-			{
-				_sm_full_state.rc_channels[i] = rc_ch.channels[i];
-			}
-			_sm_full_state.rc_channel_count = rc_ch.channel_count;
-			for (int i = 0; i < 26; i++)
-			{
-				_sm_full_state.rc_function[i] = rc_ch.function[i];
-			}
-			_sm_full_state.rc_rssi = rc_ch.rssi;
-			_sm_full_state.rc_signal_lost = rc_ch.signal_lost;
-			_sm_full_state.rc_frame_drop_count = rc_ch.frame_drop_count;
-
-			need_2_pub = true;
-		}
-		*/
-		/*
-		if (_vehicle_local_position_sub.updated())
-		{
-			_vehicle_local_position_sub.copy(&local_pos);
-
-			_sm_full_state.veh_loc_x = local_pos.x;
-			_sm_full_state.veh_loc_y = local_pos.y;
-			_sm_full_state.veh_loc_z = local_pos.z;
-
-			_sm_full_state.veh_loc_vx = local_pos.vx;
-			_sm_full_state.veh_loc_vy = local_pos.vy;
-			_sm_full_state.veh_loc_vz = local_pos.vz;
-
-			_sm_full_state.veh_loc_z_deriv = local_pos.z_deriv;
-
-			_sm_full_state.veh_loc_ax = local_pos.ax;
-			_sm_full_state.veh_loc_ay = local_pos.ay;
-			_sm_full_state.veh_loc_az = local_pos.az;
-
-			_sm_full_state.veh_loc_heading = local_pos.heading;
-
-			_sm_full_state.veh_loc_dist_bottom = local_pos.dist_bottom;
-			_sm_full_state.veh_loc_dist_bottom_valid = local_pos.dist_bottom_valid;
-
-
-			need_2_pub = true;
-		}
-		*/
-		if (_vehicle_odometry_sub.updated())
-		{
-			_vehicle_odometry_sub.copy(&odom);
-			for (int i = 0; i < 4; i++)
-			{
-				_sm_full_state.odo_q[i] = odom.q[i];
-				_sm_full_state.odo_q_offset[i] = odom.q_offset[i];
-			}
-
-			_sm_full_state.odo_rollspeed = odom.rollspeed;
-			_sm_full_state.odo_pitchspeed = odom.pitchspeed;
-			_sm_full_state.odo_yawspeed = odom.yawspeed;
-
-			need_2_pub = true;
-		}
-		/*
-		if (_vehicle_global_position_sub.updated())
-		{
-			_vehicle_global_position_sub.copy(&global_pos);
-
-			_sm_full_state.veh_glob_lat = global_pos.lat;
-			_sm_full_state.veh_glob_lon = global_pos.lon;
-			_sm_full_state.veh_glob_alt = global_pos.alt;
-			_sm_full_state.veh_glob_alt_ellipsoid = global_pos.alt_ellipsoid;
-
-			_sm_full_state.veh_glob_terrain_alt = global_pos.terrain_alt;
-			_sm_full_state.veh_glob_terrain_alt_valid = global_pos.terrain_alt_valid;
-			_sm_full_state.veh_glob_dead_reckoning = global_pos.dead_reckoning;
-
-			need_2_pub = true;
-		}
-		*/
-		if (_vehicle_attitude_sub.updated())
-		{
-			_vehicle_attitude_sub.copy(&att);
-
-			for (int i = 0; i < 4; i++)
-			{
-				_sm_full_state.veh_att_q[i] = att.q[i];
-			}
-
-			need_2_pub = true;
-
-		}
-		/*
-		if (_airspeed_sub.updated())
-		{
-			_airspeed_sub.copy(&air_sp);
-
-			_sm_full_state.air_indicated_airspeed_m_s = air_sp.indicated_airspeed_m_s;
-			_sm_full_state.air_true_airspeed_m_s = air_sp.true_airspeed_m_s;
-			_sm_full_state.air_temperature_celsius = air_sp.air_temperature_celsius;
-			_sm_full_state.air_confidence = air_sp.confidence;
-
-
-			need_2_pub = true;
-		}
-		*/
-		/*
-		if (_battery_status_sub.updated())
-		{
-			_battery_status_sub.copy(&batt);
-
-			_sm_full_state.bat_connected = batt.connected;
-			_sm_full_state.bat_voltage_v = batt.voltage_v;
-			_sm_full_state.bat_voltage_filtered_v = batt.voltage_filtered_v;
-			_sm_full_state.bat_current_a = batt.current_a;
-			_sm_full_state.bat_current_filtered_a = batt.current_filtered_a;
-			_sm_full_state.bat_current_average_a = batt.current_average_a;
-			_sm_full_state.bat_discharged_mah = batt.discharged_mah;
-			_sm_full_state.bat_remaining = batt.remaining;
-			_sm_full_state.bat_scale = batt.scale;
-			_sm_full_state.bat_temperature = batt.temperature;
-			_sm_full_state.bat_cell_count = batt.cell_count;
-
-			need_2_pub = true;
-		}
-		*/
-		/*
-		if (_distance_sensor_sub.updated())
-		{
-			_distance_sensor_sub.copy(&dist);
-
-			_sm_full_state.dist_current_distance = dist.current_distance;
-			_sm_full_state.dist_signal_quality = dist.signal_quality;
-
-
-			need_2_pub = true;
-		}
-		*/
-		
-		if (_actuator_armed_sub.updated())
-		{
-			_actuator_armed_sub.copy(&act_armed);
-
-			_sm_full_state.armed = act_armed.armed;
-			_sm_full_state.prearmed = act_armed.prearmed;
-			_sm_full_state.ready_to_arm = act_armed.ready_to_arm;
-			_sm_full_state.lockdown = act_armed.lockdown;
-			_sm_full_state.manual_lockdown = act_armed.manual_lockdown;
-			_sm_full_state.force_failsafe = act_armed.force_failsafe;
-			_sm_full_state.in_esc_calibration_mode = act_armed.in_esc_calibration_mode;
-			_sm_full_state.soft_stop = act_armed.soft_stop;
-
-			need_2_pub = true;
-		}
-		
-
-		//publish new data if needed:
-		if (need_2_pub)
-		{
-			_sm_full_state_pub.publish(_sm_full_state);
-		}
-		
+#ifdef DEBUG
+//PX4_INFO("run: start main loop\n");
+#endif
+		if (_param_en_hil.get() == 0) publish_inbound_sim_data(); //if HIL/SITL is enabled, assume this data was already published
 
 		parameters_update(); // update parameters
 
-		px4_usleep(100);// don't update too frequenty
+		px4_usleep(1000);// don't update too frequenty
 	}
+}
+
+bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the weird land-detector logic
+{
+	int32_t gc_case = _param_gc_opt.get();
+
+
+	static int64_t time_pressed_gc = hrt_absolute_time();
+	static bool was_pressed = false;
+
+	static bool old_value = static_cast<bool>(_param_gc_set.get());
+
+
+	switch (gc_case)
+	{
+		case 1:
+		{
+			int32_t use_lidar = 0;
+			param_get(param_find("SENS_EN_SF1XX"), &use_lidar);
+			if (use_lidar > 6) {
+				distance_sensor_s dist;
+				if (_distance_sensor_sub.update(&dist))
+				{
+					float ekf2_min_rng = 0.f;
+					param_get(param_find("EKF2_MIN_RNG"), &ekf2_min_rng);
+					old_value = dist.current_distance < ekf2_min_rng;
+				}
+			}
+			break;
+		}
+		case 2:
+		{
+			adc_report_s adc;
+			if (_adc_report_sub.update(&adc))
+			{
+				if (adc.resolution == 0) break;
+
+				static const int ADC_GC_INDEX = 4;
+				float val = static_cast<float>(adc.raw_data[ADC_GC_INDEX]) * static_cast<float>(adc.raw_data[ADC_GC_INDEX]) / static_cast<float> (adc.resolution);
+
+				if(val < 1.f)
+				{
+					if (!was_pressed)
+					{
+						time_pressed_gc = hrt_absolute_time();
+						old_value = false;
+					}
+					else
+					{
+						float landing_trig_time = 0.f;
+						param_get(param_find("LNDMC_TRIG_TIME"), &landing_trig_time);
+
+						float dt_sec = static_cast<float>(hrt_absolute_time() - time_pressed_gc) / 1000000.f;
+						old_value = dt_sec > landing_trig_time;
+					}
+
+				}
+			}
+			break;
+		}
+		default:
+			old_value = static_cast<bool>(_param_gc_set.get());
+			break;
+	}
+
+	was_pressed = false;
+	return old_value;
+
+}
+
+bool SIM_CTRL_MOD::check_armed(void)
+{
+	static bool armed = false;
+
+	if (_actuator_armed_sub.update(&act_armed))
+	{
+		if (act_armed.armed)
+		{
+			if (!armed)
+			{
+				armed = true;
+				return false; //let's confirm it on the next run
+			}
+		}
+		else
+		{
+			armed = false;
+		}
+	}
+	return armed;
+}
+
+void
+SIM_CTRL_MOD::publish_inbound_sim_data(void)
+{
+	//poll new data if available:
+	bool need_2_pub = false;
+
+	if (_vehicle_local_position_sub.update(&local_pos)) need_2_pub = true;
+	if (_vehicle_odometry_sub.update(&odom)) need_2_pub = true;
+	if (_vehicle_global_position_sub.update(&global_pos)) need_2_pub = true;
+	if (_vehicle_attitude_sub.update(&att)) need_2_pub = true;
+
+
+
+	//publish new data if needed:
+	if (need_2_pub)
+	{
+		simulink_inboud_data.fill_buffer(local_pos.vx);
+		simulink_inboud_data.fill_buffer(local_pos.vy);
+		simulink_inboud_data.fill_buffer(local_pos.vz);
+
+		simulink_inboud_data.fill_buffer(odom.rollspeed);
+		simulink_inboud_data.fill_buffer(odom.pitchspeed);
+		simulink_inboud_data.fill_buffer(odom.yawspeed);
+
+		simulink_inboud_data.fill_buffer(odom.q, 4);
+
+		simulink_inboud_data.fill_buffer(global_pos.lat);
+		simulink_inboud_data.fill_buffer(global_pos.lon);
+		simulink_inboud_data.fill_buffer(global_pos.alt);
+		simulink_inboud_data.fill_buffer(global_pos.terrain_alt);
+
+		simulink_inboud_data.fill_buffer(local_pos.ax);
+		simulink_inboud_data.fill_buffer(local_pos.ay);
+		simulink_inboud_data.fill_buffer(local_pos.az);
+
+		simulink_inboud_data.fill_buffer(local_pos.x);
+		simulink_inboud_data.fill_buffer(local_pos.y);
+		simulink_inboud_data.fill_buffer(local_pos.z);
+
+		simulink_inboud_data.fill_buffer(local_pos.z_deriv);
+
+		simulink_inboud_data.fill_buffer(static_cast<float> (check_ground_contact()));
+		simulink_inboud_data.fill_buffer(static_cast<float> (check_armed()));
+
+		debug_array_s debug_topic{};
+
+		debug_topic.timestamp = hrt_absolute_time();
+		debug_topic.id = debug_array_s::SIMULINK_INBOUND_ID;
+		char message_name[10] = "inbound";
+		memcpy(debug_topic.name, message_name, sizeof(message_name));
+		debug_topic.name[sizeof(debug_topic.name) - 1] = '\0'; // enforce null termination
+
+		simulink_inboud_data.send_vec(debug_topic.data);
+		_simulink_inbound_pub.publish(debug_topic);
+	}
+
 }
 
 

@@ -295,6 +295,8 @@ private:
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
+	uORB::Publication<debug_array_s>			_simulink_inbound_pub {ORB_ID(simulink_inbound)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_pub {ORB_ID(simulink_outbound)};
 	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
 	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};
 	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};

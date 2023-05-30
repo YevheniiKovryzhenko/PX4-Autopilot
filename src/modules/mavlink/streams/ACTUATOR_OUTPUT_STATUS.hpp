@@ -36,12 +36,25 @@
 
 #include <uORB/topics/actuator_outputs.h>
 
+template <int N>
 class MavlinkStreamActuatorOutputStatus : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamActuatorOutputStatus(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamActuatorOutputStatus<N>(mavlink); }
 
-	static constexpr const char *get_name_static() { return "ACTUATOR_OUTPUT_STATUS"; }
+	static constexpr const char *get_name_static()
+	{
+		switch (N)
+		{
+		case 1:
+			return "ACTUATOR_OUTPUT_STATUS_SV";
+		case 2:
+			return "ACTUATOR_OUTPUT_STATUS_ESC";
+		default:
+			return "ACTUATOR_OUTPUT_STATUS";
+		}
+
+	}
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS; }
 
 	const char *get_name() const override { return get_name_static(); }
@@ -49,19 +62,42 @@ public:
 
 	unsigned get_size() override
 	{
-		return _act_output_sub.advertised() ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _act_output_sub->advertised() ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _act_output_sub{ORB_ID(actuator_outputs)};
+	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		// XXX this can be removed once the multiplatform system remaps topics
+		switch (N) {
+		case 1:
+			_act_output_sub = new uORB::Subscription{ORB_ID(actuator_outputs_sv)};
+			break;
+
+		case 2:
+			_act_output_sub = new uORB::Subscription{ORB_ID(actuator_outputs_esc)};
+			break;
+
+		default:
+			_act_output_sub = new uORB::Subscription{ORB_ID(actuator_outputs)};
+			break;
+		}
+	}
+
+	~MavlinkStreamActuatorOutputStatus() override
+	{
+		delete _act_output_sub;
+	}
+
+	uORB::Subscription *_act_output_sub{nullptr};
+
 
 	bool send() override
 	{
 		actuator_outputs_s act;
 
-		if (_act_output_sub.update(&act)) {
+		if (_act_output_sub && _act_output_sub->update(&act)) {
 			mavlink_actuator_output_status_t msg{};
 
 			msg.time_usec = act.timestamp;

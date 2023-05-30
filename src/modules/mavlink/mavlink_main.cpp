@@ -1613,7 +1613,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 #if !defined(CONSTRAINED_FLASH)
 		configure_stream_local("DEBUG", 10.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 10.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 100.0f);
 		configure_stream_local("DEBUG_VECT", 10.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream_local("LINK_NODE_STATUS", 1.0f);
@@ -1835,6 +1835,26 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #endif // !CONSTRAINED_FLASH
 		break;
 
+	case MAVLINK_MODE_SIMULINK:
+	{
+		// Note: streams requiring low latency come first
+		configure_stream_local("TIMESYNC", 10.0f);
+		int sm_en_hil = 0;
+		param_get(param_find("SM_EN_HIL"),&sm_en_hil);
+		if (sm_en_hil == 0) configure_stream_local("SIMULINK_INBOUND", 100.0f);
+		configure_stream_local("SIMULINK_OUTBOUND", 100.0f);
+		configure_stream_local("ACTUATOR_OUTPUT_STATUS_SV",100.f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
+
+
+		configure_stream_local("PING", 0.1f);
+		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("SYS_STATUS", 5.0f);
+		configure_stream_local("VFR_HUD", 10.0f);
+		break;
+	}
+
+
 	default:
 		ret = -1;
 		break;
@@ -2047,6 +2067,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "onboard_low_bandwidth") == 0) {
 						_mode = MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH;
+
+					} else if (strcmp(myoptarg, "simulink") == 0) {
+						_mode = MAVLINK_MODE_SIMULINK;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -3098,7 +3121,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|simulink",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)

@@ -353,7 +353,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamScaledPressure3>(),
 #endif // SCALED_PRESSURE3
 #if defined(ACTUATOR_OUTPUT_STATUS_HPP)
-	create_stream_list_item<MavlinkStreamActuatorOutputStatus>(),
+	create_stream_list_item<MavlinkStreamActuatorOutputStatus<0> >(), 	//default
+	create_stream_list_item<MavlinkStreamActuatorOutputStatus<1> >(),	//uavcan servos
+	create_stream_list_item<MavlinkStreamActuatorOutputStatus<2> >(),	//uavcan esc
 #endif // ACTUATOR_OUTPUT_STATUS_HPP
 #if defined(ATTITUDE_HPP)
 	create_stream_list_item<MavlinkStreamAttitude>(),
@@ -457,7 +459,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamDebugVect>(),
 #endif // DEBUG_VECT_HPP
 #if defined(DEBUG_FLOAT_ARRAY_HPP)
-	create_stream_list_item<MavlinkStreamDebugFloatArray>(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<0> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<1> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<2> >(),
 #endif // DEBUG_FLOAT_ARRAY_HPP
 #if defined(NAV_CONTROLLER_OUTPUT_HPP)
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),

@@ -262,6 +262,11 @@ fi
 #user defined mavlink streams for instances can be in PATH
 . px4-rc.mavlink
 
+#
+# Start simulink modudes
+#
+sim_ctrl_mod start -f -p 42
+
 # execute autostart post script if any
 [ -e "$autostart_file".post ] && . "$autostart_file".post
 

@@ -2715,7 +2715,21 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 		debug_topic.data[i] = debug_msg.data[i];
 	}
 
-	_debug_array_pub.publish(debug_topic);
+	switch (debug_topic.id)
+	{
+	case debug_array_s::SIMULINK_INBOUND_ID:
+		_simulink_inbound_pub.publish(debug_topic);
+		return;
+
+	case debug_array_s::SIMULINK_OUTBOUND_ID:
+		_simulink_outbound_pub.publish(debug_topic);
+		return;
+
+	default:
+		_debug_array_pub.publish(debug_topic);
+		return;
+	}
+
 }
 #endif // !CONSTRAINED_FLASH
 

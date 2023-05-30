@@ -14,6 +14,7 @@ px4_add_board(
 		camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
+		distance_sensor/lightware_laser_i2c/
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
@@ -24,6 +25,7 @@ px4_add_board(
 		tone_alarm
 		#uavcan
 	MODULES
+		sim_ctrl_mod
 		airship_att_control
 		airspeed_selector
 		attitude_estimator_q

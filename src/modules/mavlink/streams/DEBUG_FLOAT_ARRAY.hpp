@@ -36,12 +36,24 @@
 
 #include <uORB/topics/debug_array.h>
 
+template <int N>
 class MavlinkStreamDebugFloatArray : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamDebugFloatArray(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamDebugFloatArray<N>(mavlink); }
 
-	static constexpr const char *get_name_static() { return "DEBUG_FLOAT_ARRAY"; }
+	static constexpr const char *get_name_static()
+	{
+		switch (N)
+		{
+		case 1:
+			return "SIMULINK_INBOUND";
+		case 2:
+			return "SIMULINK_OUTBOUND";
+		default:
+			return "DEBUG_FLOAT_ARRAY";
+		}
+	}
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY; }
 
 	const char *get_name() const override { return get_name_static(); }
@@ -49,19 +61,40 @@ public:
 
 	unsigned get_size() override
 	{
-		return _debug_array_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _debug_array_sub->advertised() ? MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	explicit MavlinkStreamDebugFloatArray(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamDebugFloatArray(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		// XXX this can be removed once the multiplatform system remaps topics
+		switch (N) {
+		case 1:
+			_debug_array_sub = new uORB::Subscription{ORB_ID(simulink_inbound)};
+			break;
 
-	uORB::Subscription _debug_array_sub{ORB_ID(debug_array)};
+		case 2:
+			_debug_array_sub = new uORB::Subscription{ORB_ID(simulink_outbound)};
+			break;
+
+		default:
+			_debug_array_sub = new uORB::Subscription{ORB_ID(debug_array)};
+			break;
+		}
+	}
+
+	~MavlinkStreamDebugFloatArray() override
+	{
+		delete _debug_array_sub;
+	}
+
+	uORB::Subscription *_debug_array_sub{nullptr};
 
 	bool send() override
 	{
 		debug_array_s debug;
 
-		if (_debug_array_sub.update(&debug)) {
+		if (_debug_array_sub && _debug_array_sub->update(&debug)) {
 			mavlink_debug_float_array_t msg{};
 
 			msg.time_usec = debug.timestamp;

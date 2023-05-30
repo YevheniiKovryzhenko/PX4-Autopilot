@@ -41,7 +41,7 @@
 //#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 
-#include <uORB/topics/sm_full_state.h>
+//#include <uORB/topics/sm_full_state.h>
 
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -56,7 +56,31 @@
 //#include <uORB/topics/rc_channels.h>
 //#include <uORB/topics/rc_parameter_map.h>
 
+#include <uORB/topics/debug_array.h>
+//#include <uORB/topics/simulink_inbound.h>
+//#include <uORB/topics/simulink_outbound.h>
+
 extern "C" __EXPORT int sim_ctrl_mod_main(int argc, char *argv[]);
+
+
+class sim_data_trafic
+{
+public:
+	sim_data_trafic();
+	~sim_data_trafic();
+
+	static const uint MAX_SIZE = debug_array_s::ARRAY_SIZE;
+
+	void send_vec(float out_vec[MAX_SIZE]);
+	char fill_buffer(float in);
+	char fill_buffer(float* in, uint size);
+	void clear_buffer(void);
+
+private:
+
+	uint ind;
+	float data[MAX_SIZE];
+};
 
 
 class SIM_CTRL_MOD : public ModuleBase<SIM_CTRL_MOD>, public ModuleParams
@@ -95,10 +119,14 @@ private:
 	 */
 	void parameters_update(bool force = false);
 
-	sm_full_state_s        _sm_full_state{};
-	uORB::Publication<sm_full_state_s>	_sm_full_state_pub{ORB_ID(sm_full_state)};
+	//sm_full_state_s        _sm_full_state{};
+	//uORB::Publication<sm_full_state_s>	_sm_full_state_pub{ORB_ID(sm_full_state)};
+	//uORB::Publication<debug_array_s> 	_debug_array_pub{ORB_ID(debug_array)};
+	uORB::Publication<debug_array_s>	_simulink_inbound_pub{ORB_ID(simulink_inbound)};
+
 
 	// Subscriptions
+	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription 		_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription 		_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription		_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -111,7 +139,29 @@ private:
 	//uORB::Subscription		_obstacle_distance_sub{ORB_ID(obstacle_distance)};
 	//uORB::Subscription		_rc_channels_sub{ORB_ID(rc_channels)};
 	//uORB::Subscription		_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
+	//uORB::Subscription		_simulink_outbound_sub{ORB_ID(simulink_outbound)};
 
+	vehicle_local_position_s local_pos;
+	vehicle_global_position_s global_pos;
+	vehicle_attitude_s att;
+	//airspeed_s air_sp;
+	//battery_status_s batt;
+	//distance_sensor_s dist;
+	actuator_armed_s act_armed;
+	vehicle_odometry_s odom;
+	//adc_report_s adc;
+
+	//obstacle_distance_s obs;
+
+	//rc_channels_s rc_ch;
+	//rc_parameter_map_s rc_map;
+
+
+	void publish_inbound_sim_data(void);
+	sim_data_trafic simulink_inboud_data{};
+
+	bool check_ground_contact(void);
+	bool check_armed(void);
 
 	/**
 	 * THIS IS WHERE YOU DEFINE NEW PARAMETRS
@@ -149,6 +199,10 @@ private:
 		(ParamFloat<px4::params::SM_GAIN_TH_T>) _param_sm_gain_th_t,
 		(ParamInt<px4::params::SM_EN_CAL>) _param_sm_en_cal,
 		(ParamInt<px4::params::SM_OVERWRITE>) _param_sm_overwrite,
+		(ParamInt<px4::params::SM_GC_OPT>) _param_gc_opt,
+		(ParamInt<px4::params::SM_GC_SET>) _param_gc_set,
+		(ParamInt<px4::params::SM_EN_HIL>) _param_en_hil,
+
 		(ParamFloat<px4::params::SM_LATMPTYP>) _param_sm_latmptyp,
 
 		(ParamFloat<px4::params::SM_TAU_LAT>) _param_sm_tau_lat,
@@ -281,12 +335,9 @@ private:
 		(ParamFloat<px4::params::SM_KI_PHD_1>) _param_sm_ki_phd_1,
 		(ParamFloat<px4::params::SM_KI_RD_1>) _param_sm_ki_rd_1,
 
+
+
 		(ParamFloat<px4::params::SM_WING_R_LIM>) _param_sm_wing_r_lim
 	)//MAKE SURE EVERY PARAMETER IS FOLLOWED BY "," AND LAST ONE DOES NOT HAVE ANYTHING
-
-	// Subscriptions
-	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
-
-	//uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 };
 
