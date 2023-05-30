@@ -1524,10 +1524,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	switch (sm_mav_stream)
 	{
 	case 1:
-		configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
+		configure_stream_local("SIMULINK_OUTBOUND", sm_mav_out_rate);
 		break;
 	case 2:
-		configure_stream_local("SIMULINK_OUTBOUND", sm_mav_out_rate);
+		configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
 		break;
 	case 3:
 		configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
