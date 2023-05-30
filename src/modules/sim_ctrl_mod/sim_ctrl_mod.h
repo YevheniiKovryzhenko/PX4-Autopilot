@@ -53,8 +53,10 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/adc_report.h>
 //#include <uORB/topics/obstacle_distance.h>
-//#include <uORB/topics/rc_channels.h>
-//#include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 
 #include <uORB/topics/debug_array.h>
 //#include <uORB/topics/simulink_inbound.h>
@@ -131,14 +133,16 @@ private:
 	uORB::Subscription 		_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription		_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription		_airspeed_sub{ORB_ID(airspeed)};
-	uORB::Subscription		_battery_status_sub{ORB_ID(battery_status)};
+	//uORB::Subscription		_battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription		_distance_sensor_sub{ORB_ID(distance_sensor)};
 	uORB::Subscription		_actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription		_vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
 	uORB::Subscription		_adc_report_sub{ORB_ID(adc_report)};
 	//uORB::Subscription		_obstacle_distance_sub{ORB_ID(obstacle_distance)};
-	//uORB::Subscription		_rc_channels_sub{ORB_ID(rc_channels)};
-	//uORB::Subscription		_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
+	uORB::Subscription		_rc_channels_sub{ORB_ID(rc_channels)};
+	uORB::Subscription		_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
+	uORB::Subscription		_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription		_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription		_simulink_outbound_sub{ORB_ID(simulink_outbound)};
 
 	vehicle_local_position_s local_pos;
@@ -153,8 +157,10 @@ private:
 
 	//obstacle_distance_s obs;
 
-	//rc_channels_s rc_ch;
-	//rc_parameter_map_s rc_map;
+	rc_channels_s rc_ch;
+	rc_parameter_map_s rc_map;
+	manual_control_setpoint_s man_setpoint;
+	manual_control_switches_s man_switches;
 
 
 	void publish_inbound_sim_data(void);
@@ -162,6 +168,11 @@ private:
 
 	bool check_ground_contact(void);
 	bool check_armed(void);
+
+	static const int CONTROL_VEC_SIZE = 6;
+	float control_vec[CONTROL_VEC_SIZE];
+	bool update_control_inputs(float in_vec[CONTROL_VEC_SIZE]);
+	bool update_man_wing_angle(float& wing_cmd);
 
 	/**
 	 * THIS IS WHERE YOU DEFINE NEW PARAMETRS
@@ -197,11 +208,14 @@ private:
 
 		(ParamFloat<px4::params::SM_IDLE_TH>) _param_sm_idle_th,
 		(ParamFloat<px4::params::SM_GAIN_TH_T>) _param_sm_gain_th_t,
+
 		(ParamInt<px4::params::SM_EN_CAL>) _param_sm_en_cal,
 		(ParamInt<px4::params::SM_OVERWRITE>) _param_sm_overwrite,
 		(ParamInt<px4::params::SM_GC_OPT>) _param_gc_opt,
-		(ParamInt<px4::params::SM_GC_SET>) _param_gc_set,
 		(ParamInt<px4::params::SM_EN_HIL>) _param_en_hil,
+		(ParamInt<px4::params::SM_MAV_STREAM>) _param_mav_stream,
+		(ParamInt<px4::params::SM_CMD_OPT>) _param_cmd_opt,
+		(ParamInt<px4::params::SM_WING_SRC>) _param_sm_wing_src,
 
 		(ParamFloat<px4::params::SM_LATMPTYP>) _param_sm_latmptyp,
 

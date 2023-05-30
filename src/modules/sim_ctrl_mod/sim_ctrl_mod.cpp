@@ -218,6 +218,26 @@ PX4_INFO("run: start main loop\n");
 	}
 }
 
+bool SIM_CTRL_MOD::update_man_wing_angle(float& wing_cmd)
+{
+	int32_t wing_opt = _param_sm_wing_src.get();
+
+	switch (wing_opt)
+	{
+	case 1: //always 1
+		wing_cmd = 1.f;
+		return true;
+
+	case 2: //use RC
+		return false;
+	case 3: //AUTO
+		return true; //simulink will ignore it anyways
+	default: //always 0
+		wing_cmd = 0.f;
+		return true;
+	}
+}
+
 bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the weird land-detector logic
 {
 	int32_t gc_case = _param_gc_opt.get();
@@ -226,12 +246,15 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 	static int64_t time_pressed_gc = hrt_absolute_time();
 	static bool was_pressed = false;
 
-	static bool old_value = static_cast<bool>(_param_gc_set.get());
+	static bool old_value = false;
 
 
 	switch (gc_case)
 	{
 		case 1:
+			old_value = true;
+			break;
+		case 2:
 		{
 			int32_t use_lidar = 0;
 			param_get(param_find("SENS_EN_SF1XX"), &use_lidar);
@@ -246,7 +269,7 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 			}
 			break;
 		}
-		case 2:
+		case 3:
 		{
 			adc_report_s adc;
 			if (_adc_report_sub.update(&adc))
@@ -277,7 +300,7 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 			break;
 		}
 		default:
-			old_value = static_cast<bool>(_param_gc_set.get());
+			old_value = false;
 			break;
 	}
 
@@ -290,22 +313,150 @@ bool SIM_CTRL_MOD::check_armed(void)
 {
 	static bool armed = false;
 
-	if (_actuator_armed_sub.update(&act_armed))
+	switch (_param_sm_overwrite.get())
 	{
-		if (act_armed.armed)
+	case 1:
+		armed = true;
+		break;
+
+	case 2:
+		armed = false;
+		break;
+
+	default:
+		if (_actuator_armed_sub.update(&act_armed))
 		{
-			if (!armed)
+			if (act_armed.armed)
 			{
-				armed = true;
-				return false; //let's confirm it on the next run
+				if (!armed)
+				{
+					armed = true;
+					return false; //let's confirm it on the next run
+				}
 			}
+			else
+			{
+				armed = false;
+			}
+		}
+		break;
+	}
+
+
+	return armed;
+}
+
+enum control_level
+{
+	CALIBRATION = 1,
+	INNER_LOOP_LQI = 2,
+	INNER_LOOP_TECS = 3,
+	OUTER_LOOP = 4
+};
+
+inline char rc_map_stick(float &out, rc_channels_s& rc_ch, uint8_t ch)
+{
+	if (ch > rc_channels_s::FUNCTION_MAN) {
+		out = 0.f;
+		return -1;
+		}
+
+	uint8_t ind = rc_ch.function[ch];
+	if (static_cast<size_t>(ind) > sizeof(rc_ch.channels)) {
+		out = 0.f;
+		return -1;
+	}
+	else {
+		out = rc_ch.channels[ind];
+		return 0;
+	}
+}
+
+bool SIM_CTRL_MOD::update_control_inputs(float in_vec[6])
+{
+	bool need_update = false;
+	int input_source_opt = _param_cmd_opt.get();
+
+	//Control vector elements:
+	float roll = 0.f;		//[-1 1]
+	float pitch = 0.f; 		//[-1 1]
+	float yaw = 0.f;		//[-1 1]
+	float throttle = 0.f;		//[0 1]
+	float manual_wing_ch = 0.f;	//[0 1]
+
+	control_level mode_ch = INNER_LOOP_LQI;		//[1 4]
+
+	int32_t en_calibration = _param_sm_en_cal.get();
+
+
+
+	switch (input_source_opt)
+	{
+	case 1: // RC_IN
+	{
+		if(_rc_channels_sub.update(&rc_ch)) need_update = true;
+
+		//check every stick so we are sure rc is valid, otherwise quit
+		if (rc_map_stick(roll, rc_ch, rc_channels_s::FUNCTION_ROLL) == -1) return false;
+		if (rc_map_stick(pitch, rc_ch, rc_channels_s::FUNCTION_PITCH) == -1) return false;
+		if (rc_map_stick(yaw, rc_ch, rc_channels_s::FUNCTION_YAW) == -1) return false;
+		if (rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE) == -1) return false;
+		float tmp_wing = 0.f;
+		if (!update_man_wing_angle(tmp_wing) && rc_map_stick(manual_wing_ch, rc_ch, rc_channels_s::FUNCTION_AUX_6) == -1) return false;
+
+
+		if (en_calibration == 1)
+		{
+			mode_ch = CALIBRATION;
+		}
+		else
+		{	//mode is does not have a valid channel for some reason, so can't check
+			float tmp_mode_ch = rc_ch.channels[rc_channels_s::FUNCTION_MODE];
+			if (tmp_mode_ch > 0.7f) mode_ch = OUTER_LOOP;
+			else if(tmp_mode_ch < -0.2f) mode_ch = INNER_LOOP_LQI;
+			else mode_ch = INNER_LOOP_TECS; //must always assign some default
+		}
+
+		break;
+	}
+
+
+	case 2: //INBOUND_MSG
+		return false;//assume everything was already sent correctly
+
+
+	default: //MANUAL_CONTROL_SETPOINT
+		if (_manual_control_setpoint_sub.update(&man_setpoint)) need_update = true;
+		if (_manual_control_switches_sub.update(&man_switches)) need_update = true;
+
+		roll = man_setpoint.y;
+		pitch = man_setpoint.x;
+		yaw = man_setpoint.r;
+		throttle = man_setpoint.z;
+
+		manual_wing_ch = man_setpoint.aux6;
+		update_man_wing_angle(manual_wing_ch);
+		if (en_calibration == 1)
+		{
+			mode_ch = CALIBRATION;
 		}
 		else
 		{
-			armed = false;
+			if (man_switches.mode_slot > 0.7f) mode_ch = OUTER_LOOP;
+			else if(man_switches.mode_slot < -0.2f) mode_ch = INNER_LOOP_LQI;
+			else mode_ch = INNER_LOOP_TECS; //must always assign some default
 		}
+
+		break;
 	}
-	return armed;
+
+	in_vec[0] = roll;
+	in_vec[1] = pitch;
+	in_vec[2] = yaw;
+	in_vec[3] = throttle;
+	in_vec[4] = manual_wing_ch;
+	in_vec[5] = static_cast<float>(mode_ch);
+	return need_update;
 }
 
 void
@@ -318,12 +469,17 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 	if (_vehicle_odometry_sub.update(&odom)) need_2_pub = true;
 	if (_vehicle_global_position_sub.update(&global_pos)) need_2_pub = true;
 	if (_vehicle_attitude_sub.update(&att)) need_2_pub = true;
+	if (update_control_inputs(control_vec)) need_2_pub = true;
 
 
 
 	//publish new data if needed:
 	if (need_2_pub)
 	{
+		//simulink_inboud_data.fill_buffer(static_cast<float> (check_armed()));
+
+		simulink_inboud_data.fill_buffer(control_vec, CONTROL_VEC_SIZE);
+
 		simulink_inboud_data.fill_buffer(local_pos.vx);
 		simulink_inboud_data.fill_buffer(local_pos.vy);
 		simulink_inboud_data.fill_buffer(local_pos.vz);
@@ -352,6 +508,8 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 		simulink_inboud_data.fill_buffer(static_cast<float> (check_ground_contact()));
 		simulink_inboud_data.fill_buffer(static_cast<float> (check_armed()));
 
+
+		//publish new data:
 		debug_array_s debug_topic{};
 
 		debug_topic.timestamp = hrt_absolute_time();

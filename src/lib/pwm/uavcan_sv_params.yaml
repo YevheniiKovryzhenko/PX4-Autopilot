@@ -6,6 +6,34 @@ parameters:
     - group: UAVCAN Outputs
       definitions:
 
+        UAVCAN_SV_MAV:
+            description:
+                short: UAVCAN enable servo mavlink stream
+                long: |
+                    UAVCAN parameter for enabling/disabling
+                    mavlink stream of servo states.
+            type: enum
+            values:
+                0: DISABLE
+                1: ENABLE
+            reboot_required: true
+            default: 0
+
+        UAVCAN_SV_MAVR:
+            description:
+                short: UAVCAN servo mavlink stream rate
+                long: |
+                    SIMULINK parameter for setting the streaming rate
+                    of actuator status message for servo output.
+
+            type: float
+            decimal: 1
+            unit: Hz
+            min: 0
+            max: 100
+            reboot_required: true
+            default: 100
+
         UAVCAN_SV_CBRK:
             description:
                 short: This is UAVCAN safety circuit breaker for servo output

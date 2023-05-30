@@ -1512,6 +1512,39 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	const float unlimited_rate = -1.0f;
 
+	/* These are all controlled using individual parameters, so let's enable them first for any option*/
+	int sm_mav_stream = 0;
+	param_get(param_find("SM_MAV_STREAM"),&sm_mav_stream);
+
+	float sm_mav_out_rate = 0.f;
+	float sm_mav_in_rate = 0.f;
+	param_get(param_find("SM_MAV_OUT_RATE"),&sm_mav_out_rate);
+	param_get(param_find("SM_MAV_IN_RATE"),&sm_mav_in_rate);
+
+	switch (sm_mav_stream)
+	{
+	case 1:
+		configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
+		break;
+	case 2:
+		configure_stream_local("SIMULINK_OUTBOUND", sm_mav_out_rate);
+		break;
+	case 3:
+		configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
+		configure_stream_local("SIMULINK_OUTBOUND", sm_mav_out_rate);
+		break;
+
+	default:
+		break;
+	}
+
+	int uavcan_sv_mav = 0;
+	param_get(param_find("UAVCAN_SV_MAV"),&uavcan_sv_mav);
+
+	float uavcan_sv_mavr = 0.f;
+	param_get(param_find("UAVCAN_SV_MAVR"),&uavcan_sv_mavr);
+	if (uavcan_sv_mav == 1) configure_stream_local("ACTUATOR_OUTPUT_STATUS_SV",uavcan_sv_mavr);
+
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
@@ -1838,19 +1871,16 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	case MAVLINK_MODE_SIMULINK:
 	{
 		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		int sm_en_hil = 0;
-		param_get(param_find("SM_EN_HIL"),&sm_en_hil);
-		if (sm_en_hil == 0) configure_stream_local("SIMULINK_INBOUND", 100.0f);
-		configure_stream_local("SIMULINK_OUTBOUND", 100.0f);
-		configure_stream_local("ACTUATOR_OUTPUT_STATUS_SV",100.f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
+		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("VFR_HUD", 10.0f);
+		configure_stream_local("ODOMETRY", 30.0f);
 
 
 		configure_stream_local("PING", 0.1f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("VFR_HUD", 10.0f);
+		configure_stream_local("TIMESYNC", 5.0f);
+
 		break;
 	}
 

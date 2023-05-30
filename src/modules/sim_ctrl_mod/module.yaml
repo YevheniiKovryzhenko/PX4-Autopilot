@@ -51,14 +51,33 @@ parameters:
 
         SM_OVERWRITE:
             description:
-                short: SIMULINK safety overwrite
+                short: SIMULINK safety overwrite for arm switch
                 long: |
                     SIMULINK parameter for overwriting safety logic.
-                    Setting this parameter to 1234 will make simulink
-                    independent from PX4 safety logic.
+                    By default, PX4's internal actuator armed state
+                    is used for simulink. Other options are available.
 
-            type: int32
-            default: -1
+            type: enum
+            values:
+                0: PX4
+                1: ALWAYS_ARMED
+                2: ALWAYS_DISARMED
+            default: 0
+
+        SM_WING_SRC:
+            description:
+                short: SIMULINK source for wing angle command
+                long: |
+                    SIMULINK parameter for manual or automated
+                    wing angle control.
+
+            type: enum
+            values:
+                0: ALWAYS_0
+                1: ALWAYS_1
+                2: USE_AUX6
+                3: AUTO
+            default: 0
 
         SM_GC_OPT:
             description:
@@ -66,25 +85,17 @@ parameters:
                 long: |
                     SIMULINK parameter for selecting the ground
                     contact source. Options:
-                    0 - default, uses  SM_GC_SET parameter
+                    0 - default to false
+                    1 - always in ground contact
                     1 - use LIDAR (set SENS_EN_SF1XX = 7)
                     2 - uses ADC for reading analog sensor input
 
-            type: int32
-            min: 0
-            max: 2
-            default: 0
-
-        SM_GC_SET:
-            description:
-                short: SIMULINK ground contact value
-                long: |
-                    SIMULINK parameter for manually setting GC flag.
-                    This is used only if SM_GC_CBRK is 1234
-
-            type: int32
-            min: 0
-            max: 1
+            type: enum
+            values:
+                0: ALWAYS_FALSE
+                1: ALWAYS_TRUE
+                2: LIDAR
+                3: ADC
             default: 0
 
         SM_EN_HIL:
@@ -95,9 +106,78 @@ parameters:
                     the incoming data should be taken from
                     the on-board sensors or externaly supplied.
 
-            type: int32
+            type: enum
+            values:
+                0: INTERNAL
+                1: EXTERNAL
+            default: 0
+
+        SM_MAV_STREAM:
+            description:
+                short: SIMULINK enable inbound/outbound mavlink stream
+                long: |
+                    SIMULINK parameter for enabling/disabling
+                    mavlink stream of inbound/outbound simulink states.
+
+            type: enum
+            values:
+                0: DISABLE_ALL
+                1: OUTBOUND_ONLY
+                2: INBOUND_ONLY
+                3: BOTH
+            reboot_required: true
+            default: 0
+
+        SM_MAV_OUT_RATE:
+            description:
+                short: SIMULINK Outbound mavlink stream rate
+                long: |
+                    SIMULINK parameter for setting the streaming rate
+                    of outbound simulink stream (if enabled).
+                    Note that the real streaming rate is limited
+                    by the update rate of the simulink model
+                    and will be throttled down based on the
+                    lowest of the two.
+
+            type: float
+            decimal: 1
+            unit: Hz
             min: 0
-            max: 1
+            max: 100
+            reboot_required: true
+            default: 100
+
+        SM_MAV_IN_RATE:
+            description:
+                short: SIMULINK Inbound mavlink stream rate
+                long: |
+                    SIMULINK parameter for setting the mavlink
+                    streaming rate of inbound simulink stream (if enabled).
+
+            type: float
+            decimal: 1
+            unit: Hz
+            min: 0
+            max: 100
+            reboot_required: true
+            default: 100
+
+        SM_CMD_OPT:
+            description:
+                short: SIMULINK pilot input source selector
+                long: |
+                    SIMULINK parameter for switching between
+                    different sources of control input to simulink
+                    model. Options:
+                    0 - (default) use manual control setpoint
+                    1 - use rc input message
+                    2 - use simulink inbound message
+
+            type: enum
+            values:
+                0: MANUAL_CONTROL_SETPOINT
+                1: RC_IN
+                2: INBOUND_MSG
             default: 0
 
         SM_LATMPTYP:
