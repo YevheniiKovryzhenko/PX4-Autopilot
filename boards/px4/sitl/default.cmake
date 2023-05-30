@@ -14,7 +14,7 @@ px4_add_board(
 		camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
-		distance_sensor/lightware_laser_i2c/
+		#distance_sensor/lightware_laser_i2c/
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
