@@ -98,8 +98,26 @@ private:
 			mavlink_debug_float_array_t msg{};
 
 			msg.time_usec = debug.timestamp;
-			msg.array_id = debug.id;
-			memcpy(msg.name, debug.name, sizeof(msg.name));
+
+			switch (N) {
+			case 1:
+			{
+				char message_name[10] = "inbound";
+				memcpy(msg.name, message_name, sizeof(message_name));
+				break;
+			}
+			case 2:
+			{
+				char message_name[10] = "outbound";
+				memcpy(msg.name, message_name, sizeof(message_name));
+			}
+				break;
+
+			default:
+				msg.array_id = debug.id;
+				memcpy(msg.name, debug.name, sizeof(msg.name));
+				break;
+			}
 			msg.name[sizeof(msg.name) - 1] = '\0'; // enforce null termination
 
 			for (size_t i = 0; i < debug_array_s::ARRAY_SIZE; i++) {

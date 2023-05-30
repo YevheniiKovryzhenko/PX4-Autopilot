@@ -121,7 +121,7 @@ private:
 
 	//sm_full_state_s        _sm_full_state{};
 	//uORB::Publication<sm_full_state_s>	_sm_full_state_pub{ORB_ID(sm_full_state)};
-	//uORB::Publication<debug_array_s> 	_debug_array_pub{ORB_ID(debug_array)};
+	uORB::Publication<debug_array_s> 	_simulink_outbound_pub{ORB_ID(simulink_inbound)};
 	uORB::Publication<debug_array_s>	_simulink_inbound_pub{ORB_ID(simulink_inbound)};
 
 
@@ -139,7 +139,7 @@ private:
 	//uORB::Subscription		_obstacle_distance_sub{ORB_ID(obstacle_distance)};
 	//uORB::Subscription		_rc_channels_sub{ORB_ID(rc_channels)};
 	//uORB::Subscription		_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
-	//uORB::Subscription		_simulink_outbound_sub{ORB_ID(simulink_outbound)};
+	uORB::Subscription		_simulink_outbound_sub{ORB_ID(simulink_outbound)};
 
 	vehicle_local_position_s local_pos;
 	vehicle_global_position_s global_pos;

@@ -186,7 +186,7 @@ SIM_CTRL_MOD::SIM_CTRL_MOD(int example_param, bool example_flag)
 {
 }
 
-#define DEBUG
+//#define DEBUG
 
 void SIM_CTRL_MOD::run()
 {
@@ -197,11 +197,22 @@ void SIM_CTRL_MOD::run()
 	while (!should_exit()) {
 
 #ifdef DEBUG
-//PX4_INFO("run: start main loop\n");
+PX4_INFO("run: start main loop\n");
 #endif
+//#define DEBUG
 		if (_param_en_hil.get() == 0) publish_inbound_sim_data(); //if HIL/SITL is enabled, assume this data was already published
 
 		parameters_update(); // update parameters
+
+		#ifdef DEBUG
+		debug_array_s outbound_data;
+
+		if (_simulink_outbound_sub.update(&outbound_data))
+		{
+			PX4_INFO("received outbound data\n");
+			//outbound_data.name =
+		}
+		#endif
 
 		px4_usleep(1000);// don't update too frequenty
 	}
@@ -351,6 +362,8 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 
 		simulink_inboud_data.send_vec(debug_topic.data);
 		_simulink_inbound_pub.publish(debug_topic);
+
+		//_simulink_outbound_pub.publish(debug_topic);
 	}
 
 }
