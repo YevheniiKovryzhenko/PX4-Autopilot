@@ -32,7 +32,7 @@ parameters:
             min: 0
             max: 100
             reboot_required: true
-            default: 100
+            default: 1
 
         UAVCAN_SV_CBRK:
             description:

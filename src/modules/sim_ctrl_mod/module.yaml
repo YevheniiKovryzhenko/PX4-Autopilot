@@ -160,7 +160,7 @@ parameters:
             min: 0
             max: 100
             reboot_required: true
-            default: 100
+            default: 1
 
         SM_MAV_IN_RATE:
             description:
@@ -175,7 +175,7 @@ parameters:
             min: 0
             max: 100
             reboot_required: true
-            default: 100
+            default: 1
 
         SM_CMD_OPT:
             description:
