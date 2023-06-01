@@ -41,25 +41,25 @@ parameters:
                 short: SIMULINK calibration mode
                 long: |
                     SIMULINK parameter for enabling
-                    calibration mode. Setting this parameter
-                    to 1234 will disable all control loops.
-                    Control inputs will be dirrectly fed into
-                    the mixing matrix.
+                    calibration mode.
 
-            type: int32
-            default: -1
+            type: enum
+            values:
+                0: DISABLE
+                1: ENABLE
+            default: 0
 
         SM_OVERWRITE:
             description:
                 short: SIMULINK safety overwrite for arm switch
                 long: |
                     SIMULINK parameter for overwriting safety logic.
-                    By default, PX4's internal actuator armed state
-                    is used for simulink. Other options are available.
+                    By default, actuator armed state source
+                    is controled by SM_CMD_OPT parameter.
 
             type: enum
             values:
-                0: PX4
+                0: SM_CMD_OPT
                 1: ALWAYS_ARMED
                 2: ALWAYS_DISARMED
             default: 0

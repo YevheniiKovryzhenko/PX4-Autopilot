@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include "sim_ctrl_mod.h"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
@@ -208,9 +207,9 @@ SIM_CTRL_MOD::SIM_CTRL_MOD(int example_param, bool example_flag)
 
 void SIM_CTRL_MOD::debug_loop(void)
 {
-	actuator_outputs_s act_out{};
+	//actuator_outputs_s act_out{};
 	//if (_simulink_inbound_sub.update(&sm_inbound)) printf_debug_array(sm_inbound);
-	if (_actuator_outputs_sv_sub.update(&act_out)) printf_actuator_output(act_out);
+	//if (_actuator_outputs_sv_sub.update(&act_out)) printf_actuator_output(act_out);
 	/*
 	if (_simulink_outbound_sub.updated())
 	{
@@ -226,18 +225,53 @@ void SIM_CTRL_MOD::run()
 	// initialize parameters
 	parameters_update(true);
 
-
+	_boot_timestamp = hrt_absolute_time();
 	while (!should_exit()) {
-		if (_param_en_hil.get() == 0) publish_inbound_sim_data(); //if HIL/SITL is enabled, assume this data was already published
-
 		parameters_update(); // update parameters
-
-		#ifdef DEBUG
-		debug_loop();
-		#endif
+		update_simulink_io(); //update everything related to simulink
 
 		px4_usleep(1000);// don't update too frequenty
 	}
+}
+
+void SIM_CTRL_MOD::update_simulink_io(void)
+{
+	update_simulink_inputs();
+
+	update_simulink_outputs();
+
+	#ifdef DEBUG
+	debug_loop();
+	#endif
+}
+
+void SIM_CTRL_MOD::update_simulink_inputs(void)
+{
+	// we will later do some extra parsing and safety in here before publishing any data
+
+	publish_inbound_sim_data();
+
+}
+
+void SIM_CTRL_MOD::update_simulink_outputs(void)
+{
+	bool need2update_actuators = false;
+	//if simulink has published new outputs, we have to grab those and distribute to proper places in PX4
+	if (_simulink_outbound_sub.update(&sm_outbound))
+	{
+		act_output.timestamp = hrt_absolute_time();
+		act_output.noutputs = ACTUATOR_MAX_SIZE;
+		for(int i = 0; i < ACTUATOR_MAX_SIZE; i++ )
+		{
+			act_output.output[i] = sm_outbound.data[ACTUATOR_START_IND + i];
+		}
+
+		need2update_actuators = true;
+	}
+
+	//we can do some safety checking here first, before publishing the values
+
+	if(need2update_actuators) _actuator_outputs_sv_pub.publish(act_output); //the rest of PX4 needs to know new actuator commands
 }
 
 bool SIM_CTRL_MOD::update_man_wing_angle(float& wing_cmd)
@@ -334,73 +368,76 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 bool SIM_CTRL_MOD::check_armed(int input_src_opt)
 {
 	static bool armed = false;
+	bool need2publish = true;
 
-	switch (_param_sm_overwrite.get())
+	if ((hrt_elapsed_time(&_boot_timestamp) > 5000000))
 	{
-	case 1:
-		armed = true;
-		break;
-
-	case 2:
-		armed = false;
-		break;
-
-	default:
-		switch (input_src_opt)
+		switch (_param_sm_overwrite.get())
 		{
-		case 1: //RC_IN
-		{
-			//assume rc_ch has been updated
-			float tmp_armed = static_cast<float>(armed);
-			rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
-			armed = tmp_armed > 0;
+		case 1:
+			_actuator_armed_sub.update(&act_armed);
+			if (act_armed.armed) need2publish = false;
+			armed = true;
 			break;
-		}
 
-		case 2: //INBOUND_MSG
-		{
-
-			if(_simulink_inbound_sub.update(&sm_inbound))
-			{
-				if(sm_inbound.data[ARMED_IND] > 0.f)
-				{
-					if (!armed)
-					{
-						armed = true;
-						return false;
-					}
-				}
-				else
-				{
-					armed = false;
-				}
-			}
+		case 2:
+			_actuator_armed_sub.update(&act_armed);
+			if (!act_armed.armed) need2publish = false;
+			armed = false;
 			break;
-		}
 
 		default:
-			if (_actuator_armed_sub.update(&act_armed))
+			switch (input_src_opt)
 			{
-				if (act_armed.armed)
+			case 1: //RC_IN
+			{
+				//assume rc_ch has been updated
+				float tmp_armed = static_cast<float>(armed);
+				rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
+
+				_actuator_armed_sub.update(&act_armed);
+				bool tmp_arm = tmp_armed > 0;
+				if (act_armed.armed == tmp_arm) need2publish = false;
+				armed = tmp_arm;
+				break;
+			}
+
+			case 2: //INBOUND_MSG
+			{
+				_simulink_inbound_sub.update(&sm_inbound);
+				_actuator_armed_sub.update(&act_armed);
+				if(sm_inbound.data[CONTROL_VEC_START_ID + ARMED_IND] > 0.f)
 				{
-					if (!armed)
-					{
-						armed = true;
-						return false; //let's confirm it on the next run
-					}
+					if(armed) need2publish = false;
+					armed = true;
 				}
 				else
 				{
+					if(!armed) need2publish = false;
 					armed = false;
 				}
+				break;
+			}
+
+			default:
+				_actuator_armed_sub.update(&act_armed);
+				armed = act_armed.armed;
+
+				need2publish = false;
+				break;
 			}
 			break;
+
 		}
-		break;
-
+		if (need2publish)
+		{
+			act_armed.timestamp = hrt_absolute_time();
+			act_armed.ready_to_arm = armed;
+			act_armed.prearmed = armed;
+			act_armed.armed = armed;
+			_actuator_armed_pub.publish(act_armed);
+		}
 	}
-
-
 	return armed;
 }
 
@@ -498,13 +535,18 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 			else if(tmp_mode_ch < -0.2f) mode_ch = INNER_LOOP_LQI;
 			else mode_ch = INNER_LOOP_TECS; //must always assign some default
 		}
-
 		break;
 	}
 
 
 	case 2: //INBOUND_MSG
-		return false;//assume everything was already sent correctly
+		roll 		= sm_inbound.data[CONTROL_VEC_START_ID + ROLL_IND];
+		pitch 		= sm_inbound.data[CONTROL_VEC_START_ID + PITCH_IND];
+		yaw 		= sm_inbound.data[CONTROL_VEC_START_ID + YAW_IND];
+		throttle 	= sm_inbound.data[CONTROL_VEC_START_ID + THROTTLE_IND];
+		manual_wing_ch 	= sm_inbound.data[CONTROL_VEC_START_ID + WING_IND];
+		mode_ch 	= static_cast<control_level>(sm_inbound.data[CONTROL_VEC_START_ID + MODE_IND]);
+		break;//assume everything was already sent correctly
 
 
 	default: //MANUAL_CONTROL_SETPOINT
@@ -528,7 +570,6 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 			else if(man_switches.mode_slot < -0.2f) mode_ch = INNER_LOOP_LQI;
 			else mode_ch = INNER_LOOP_TECS; //must always assign some default
 		}
-
 		break;
 	}
 
@@ -599,7 +640,8 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 		debug_topic.name[sizeof(debug_topic.name) - 1] = '\0'; // enforce null termination
 
 		simulink_inboud_data.send_vec(debug_topic.data);
-		_simulink_inbound_pub.publish(debug_topic);
+
+		if (_param_en_hil.get() == 0) _simulink_inbound_pub.publish(debug_topic); //if HIL/SITL is enabled, assume this data was already published
 
 		//_simulink_outbound_pub.publish(debug_topic);
 	}

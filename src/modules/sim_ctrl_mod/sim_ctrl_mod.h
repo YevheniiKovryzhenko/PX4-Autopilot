@@ -123,15 +123,20 @@ private:
 	void parameters_update(bool force = false);
 
 	debug_array_s sm_inbound{};
-	debug_array_s sm_outbound{};
+	debug_array_s sm_outbound{}; //new actuator data comes from simulink and is published here
+	actuator_outputs_s act_output{}; //this is where actuator data has to be published
 
 	void printf_debug_array(debug_array_s &array);
 	void printf_actuator_output(actuator_outputs_s &array);
 
-	//uORB::Publication<sm_full_state_s>	_sm_full_state_pub{ORB_ID(sm_full_state)};
-	uORB::Publication<debug_array_s> 	_simulink_outbound_pub{ORB_ID(simulink_inbound)};
+	void update_simulink_io(void);
+	void update_simulink_inputs(void);
+	void update_simulink_outputs(void);
+
+	uORB::Publication<debug_array_s> 	_simulink_outbound_pub{ORB_ID(simulink_outbound)};
 	uORB::Publication<debug_array_s>	_simulink_inbound_pub{ORB_ID(simulink_inbound)};
 	uORB::Publication<actuator_outputs_s>	_actuator_outputs_sv_pub{ORB_ID(actuator_outputs_sv)};
+	uORB::Publication<actuator_armed_s> 	_actuator_armed_pub{ORB_ID(actuator_armed)};
 
 
 
@@ -165,6 +170,8 @@ private:
 	vehicle_odometry_s odom;
 	//adc_report_s adc;
 
+	hrt_abstime	_boot_timestamp{0};
+
 	//obstacle_distance_s obs;
 
 	rc_channels_s rc_ch;
@@ -178,19 +185,26 @@ private:
 
 	bool check_ground_contact(void);
 
+	//All actuators are packed together and sent by the simulink model.
+	static const int ACTUATOR_START_IND = 0; //this is the start index of actuator data in OUTBOUND data array
+	static const int ACTUATOR_MAX_SIZE = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; //maximum number of actuators (always send all)
 
-	static const int CONTROL_VEC_SIZE = 6;
-	static const int ROLL_IND = 1;
-	static const int PITCH_IND = 2;
-	static const int YAW_IND = 3;
-	static const int THROTTLE_IND = 4;
-	static const int WING_IND = 5;
-	static const int ARMED_IND = 6;
+
+	static const int CONTROL_VEC_START_ID = 0; //this is the start index of the control vector inside INBOUND data array
+	static const int CONTROL_VEC_SIZE = 7; //control vector size
+	// Order of control vector relative to start index:
+	static const int ROLL_IND = 0;
+	static const int PITCH_IND = 1;
+	static const int YAW_IND = 2;
+	static const int THROTTLE_IND = 3;
+	static const int WING_IND = 4;
+	static const int ARMED_IND = 5;
 	static const int MODE_IND = 6;
 	float control_vec[CONTROL_VEC_SIZE];
 
 	bool update_control_inputs(float in_vec[CONTROL_VEC_SIZE]);
 	bool check_armed(int input_src_opt);
+	void force_new_armed_state(bool armed_state);
 	bool update_man_wing_angle(float& wing_cmd);
 
 	void debug_loop(void);

@@ -426,6 +426,8 @@ private:
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<rtl_flight_time_s>		_rtl_flight_time_sub{ORB_ID(rtl_flight_time)};
 
+	uORB::Subscription					_armed_sub{ORB_ID(actuator_armed)};
+
 	// Publications
 	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};

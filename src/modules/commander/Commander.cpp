@@ -1983,7 +1983,13 @@ Commander::run()
 		estimator_check();
 
 		// Auto disarm when landed or kill switch engaged
-		if (_armed.armed) {
+
+		int32_t sm_arm_overwrite = 0;
+		int32_t sm_input_src = 0;
+		param_get(param_find("SM_OVERWRITE"), &sm_arm_overwrite);
+		param_get(param_find("SM_CMD_OPT"), &sm_input_src);
+		if (_armed.armed && sm_arm_overwrite == 0 && sm_input_src == 0) //only if not controlled by SIM_CONTROL_MOD
+		{
 
 			// Check for auto-disarm on landing or pre-flight
 			if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
@@ -2635,7 +2641,25 @@ Commander::run()
 			}
 
 			_armed.timestamp = hrt_absolute_time();
-			_armed_pub.publish(_armed);
+
+
+			//int32_t sm_arm_overwrite = 0;
+			//int32_t sm_input_src = 0;
+			//param_get(param_find("SM_OVERWRITE"), &sm_arm_overwrite);
+			//param_get(param_find("SM_CMD_OPT"), &sm_input_src);
+			if (sm_arm_overwrite == 0 && sm_input_src == 0) _armed_pub.publish(_armed);
+			else
+			{
+				bool armed_old = _armed.armed;
+				_armed_sub.update(&_armed);
+
+				if (_armed.armed) {
+					if (!armed_old) arm(arm_disarm_reason_t::COMMAND_EXTERNAL, false);
+
+				} else {
+					if (armed_old) disarm(arm_disarm_reason_t::COMMAND_EXTERNAL);
+				}
+			}
 
 			/* publish internal state for logging purposes */
 			_internal_state.timestamp = hrt_absolute_time();
