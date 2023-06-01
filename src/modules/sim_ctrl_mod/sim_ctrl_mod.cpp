@@ -39,6 +39,24 @@
 
 #include <uORB/topics/parameter_update.h>
 
+inline char rc_map_stick(float &out, rc_channels_s& rc_ch, uint8_t ch)
+{
+	if (ch > rc_channels_s::FUNCTION_MAN) {
+		out = 0.f;
+		return -1;
+		}
+
+	uint8_t ind = rc_ch.function[ch];
+	if (static_cast<size_t>(ind) > sizeof(rc_ch.channels)) {
+		out = 0.f;
+		return -1;
+	}
+	else {
+		out = rc_ch.channels[ind];
+		return 0;
+	}
+}
+
 sim_data_trafic::sim_data_trafic()
 {
 	ind = 0;
@@ -188,6 +206,21 @@ SIM_CTRL_MOD::SIM_CTRL_MOD(int example_param, bool example_flag)
 
 //#define DEBUG
 
+void SIM_CTRL_MOD::debug_loop(void)
+{
+	actuator_outputs_s act_out{};
+	//if (_simulink_inbound_sub.update(&sm_inbound)) printf_debug_array(sm_inbound);
+	if (_actuator_outputs_sv_sub.update(&act_out)) printf_actuator_output(act_out);
+	/*
+	if (_simulink_outbound_sub.updated())
+	{
+		PX4_INFO("received outbound data\n");
+	}
+	*/
+
+	//test_fake_atuator_data();
+}
+
 void SIM_CTRL_MOD::run()
 {
 	// initialize parameters
@@ -195,23 +228,12 @@ void SIM_CTRL_MOD::run()
 
 
 	while (!should_exit()) {
-
-#ifdef DEBUG
-PX4_INFO("run: start main loop\n");
-#endif
-//#define DEBUG
 		if (_param_en_hil.get() == 0) publish_inbound_sim_data(); //if HIL/SITL is enabled, assume this data was already published
 
 		parameters_update(); // update parameters
 
 		#ifdef DEBUG
-		debug_array_s outbound_data;
-
-		if (_simulink_outbound_sub.update(&outbound_data))
-		{
-			PX4_INFO("received outbound data\n");
-			//outbound_data.name =
-		}
+		debug_loop();
 		#endif
 
 		px4_usleep(1000);// don't update too frequenty
@@ -232,8 +254,8 @@ bool SIM_CTRL_MOD::update_man_wing_angle(float& wing_cmd)
 		return false;
 	case 3: //AUTO
 		return true; //simulink will ignore it anyways
-	default: //always 0
-		wing_cmd = 0.f;
+	default: //always -1
+		wing_cmd = -1.f;
 		return true;
 	}
 }
@@ -309,7 +331,7 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 
 }
 
-bool SIM_CTRL_MOD::check_armed(void)
+bool SIM_CTRL_MOD::check_armed(int input_src_opt)
 {
 	static bool armed = false;
 
@@ -324,22 +346,58 @@ bool SIM_CTRL_MOD::check_armed(void)
 		break;
 
 	default:
-		if (_actuator_armed_sub.update(&act_armed))
+		switch (input_src_opt)
 		{
-			if (act_armed.armed)
+		case 1: //RC_IN
+		{
+			//assume rc_ch has been updated
+			float tmp_armed = static_cast<float>(armed);
+			rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
+			armed = tmp_armed > 0;
+			break;
+		}
+
+		case 2: //INBOUND_MSG
+		{
+
+			if(_simulink_inbound_sub.update(&sm_inbound))
 			{
-				if (!armed)
+				if(sm_inbound.data[ARMED_IND] > 0.f)
 				{
-					armed = true;
-					return false; //let's confirm it on the next run
+					if (!armed)
+					{
+						armed = true;
+						return false;
+					}
+				}
+				else
+				{
+					armed = false;
 				}
 			}
-			else
+			break;
+		}
+
+		default:
+			if (_actuator_armed_sub.update(&act_armed))
 			{
-				armed = false;
+				if (act_armed.armed)
+				{
+					if (!armed)
+					{
+						armed = true;
+						return false; //let's confirm it on the next run
+					}
+				}
+				else
+				{
+					armed = false;
+				}
 			}
+			break;
 		}
 		break;
+
 	}
 
 
@@ -354,25 +412,50 @@ enum control_level
 	OUTER_LOOP = 4
 };
 
-inline char rc_map_stick(float &out, rc_channels_s& rc_ch, uint8_t ch)
+void SIM_CTRL_MOD::printf_debug_array(debug_array_s &array)
 {
-	if (ch > rc_channels_s::FUNCTION_MAN) {
-		out = 0.f;
-		return -1;
-		}
-
-	uint8_t ind = rc_ch.function[ch];
-	if (static_cast<size_t>(ind) > sizeof(rc_ch.channels)) {
-		out = 0.f;
-		return -1;
+	static uint64_t old_time = array.timestamp;
+	double update_rate_Hz = 1000000.0 / (static_cast<double>(array.timestamp - old_time));
+	printf("UpdateRate: %3.1f; HEADER: Name: %10s, ID: %5i, Timestamp %" PRIu64 , update_rate_Hz, array.name, array.id, array.timestamp);
+	for (int i = 0; i < 58; i++)
+	{
+		printf(", %3.1f",static_cast<double>(array.data[i]));
 	}
-	else {
-		out = rc_ch.channels[ind];
-		return 0;
-	}
+	printf("\33[2K\r");
+	old_time = array.timestamp;
 }
 
-bool SIM_CTRL_MOD::update_control_inputs(float in_vec[6])
+void SIM_CTRL_MOD::printf_actuator_output(actuator_outputs_s &outputs)
+{
+	static uint64_t old_time = outputs.timestamp;
+	double update_rate_Hz = 1000000.0 / (static_cast<double>(outputs.timestamp - old_time));
+	printf("UpdateRate: %3.1f; HEADER: N: %5i, Timestamp %" PRIu64 , update_rate_Hz, outputs.noutputs, outputs.timestamp);
+	for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++)
+	{
+		printf(", %3.1f",static_cast<double>(outputs.output[i]));
+	}
+	printf("\33[2K\r");
+	old_time = outputs.timestamp;
+	return;
+}
+
+void SIM_CTRL_MOD::test_fake_atuator_data(void)
+{
+	actuator_outputs_s sv_out{};
+
+	//sv_out.noutputs = 16;
+	sv_out.timestamp = hrt_absolute_time();
+	for (int i = 0; i < 16; i++)
+	{
+		sv_out.output[i] = static_cast<float>(i) * 50.f;
+	}
+
+	_actuator_outputs_sv_pub.publish(sv_out);
+}
+
+
+
+bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 {
 	bool need_update = false;
 	int input_source_opt = _param_cmd_opt.get();
@@ -382,7 +465,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[6])
 	float pitch = 0.f; 		//[-1 1]
 	float yaw = 0.f;		//[-1 1]
 	float throttle = 0.f;		//[0 1]
-	float manual_wing_ch = 0.f;	//[0 1]
+	float manual_wing_ch = 0.f;	//[-1 1]
 
 	control_level mode_ch = INNER_LOOP_LQI;		//[1 4]
 
@@ -449,12 +532,13 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[6])
 		break;
 	}
 
-	in_vec[0] = roll;
-	in_vec[1] = pitch;
-	in_vec[2] = yaw;
-	in_vec[3] = throttle;
-	in_vec[4] = manual_wing_ch;
-	in_vec[5] = static_cast<float>(mode_ch);
+	in_vec[ROLL_IND] = roll;
+	in_vec[PITCH_IND] = pitch;
+	in_vec[YAW_IND] = yaw;
+	in_vec[THROTTLE_IND] = throttle;
+	in_vec[WING_IND] = manual_wing_ch;
+	in_vec[ARMED_IND] = static_cast<float>(check_armed(input_source_opt));
+	in_vec[MODE_IND] = static_cast<float>(mode_ch);
 	return need_update;
 }
 
@@ -475,8 +559,6 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 	//publish new data if needed:
 	if (need_2_pub)
 	{
-		//simulink_inboud_data.fill_buffer(static_cast<float> (check_armed()));
-
 		simulink_inboud_data.fill_buffer(control_vec, CONTROL_VEC_SIZE);
 
 		simulink_inboud_data.fill_buffer(local_pos.vx);
@@ -505,7 +587,6 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 		simulink_inboud_data.fill_buffer(local_pos.z_deriv);
 
 		simulink_inboud_data.fill_buffer(static_cast<float> (check_ground_contact()));
-		simulink_inboud_data.fill_buffer(static_cast<float> (check_armed()));
 
 
 		//publish new data:

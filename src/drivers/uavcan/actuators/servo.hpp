@@ -42,7 +42,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
 class UavcanServoController

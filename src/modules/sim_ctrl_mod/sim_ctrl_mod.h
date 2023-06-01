@@ -61,6 +61,7 @@
 #include <uORB/topics/debug_array.h>
 //#include <uORB/topics/simulink_inbound.h>
 //#include <uORB/topics/simulink_outbound.h>
+#include <uORB/topics/actuator_outputs.h>
 
 extern "C" __EXPORT int sim_ctrl_mod_main(int argc, char *argv[]);
 
@@ -121,10 +122,17 @@ private:
 	 */
 	void parameters_update(bool force = false);
 
-	//sm_full_state_s        _sm_full_state{};
+	debug_array_s sm_inbound{};
+	debug_array_s sm_outbound{};
+
+	void printf_debug_array(debug_array_s &array);
+	void printf_actuator_output(actuator_outputs_s &array);
+
 	//uORB::Publication<sm_full_state_s>	_sm_full_state_pub{ORB_ID(sm_full_state)};
 	uORB::Publication<debug_array_s> 	_simulink_outbound_pub{ORB_ID(simulink_inbound)};
 	uORB::Publication<debug_array_s>	_simulink_inbound_pub{ORB_ID(simulink_inbound)};
+	uORB::Publication<actuator_outputs_s>	_actuator_outputs_sv_pub{ORB_ID(actuator_outputs_sv)};
+
 
 
 	// Subscriptions
@@ -144,6 +152,8 @@ private:
 	uORB::Subscription		_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription		_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription		_simulink_outbound_sub{ORB_ID(simulink_outbound)};
+	uORB::Subscription		_simulink_inbound_sub{ORB_ID(simulink_inbound)};
+	uORB::Subscription 		_actuator_outputs_sv_sub{ORB_ID(actuator_outputs_sv)};
 
 	vehicle_local_position_s local_pos;
 	vehicle_global_position_s global_pos;
@@ -167,12 +177,25 @@ private:
 	sim_data_trafic simulink_inboud_data{};
 
 	bool check_ground_contact(void);
-	bool check_armed(void);
+
 
 	static const int CONTROL_VEC_SIZE = 6;
+	static const int ROLL_IND = 1;
+	static const int PITCH_IND = 2;
+	static const int YAW_IND = 3;
+	static const int THROTTLE_IND = 4;
+	static const int WING_IND = 5;
+	static const int ARMED_IND = 6;
+	static const int MODE_IND = 6;
 	float control_vec[CONTROL_VEC_SIZE];
+
 	bool update_control_inputs(float in_vec[CONTROL_VEC_SIZE]);
+	bool check_armed(int input_src_opt);
 	bool update_man_wing_angle(float& wing_cmd);
+
+	void debug_loop(void);
+
+	void test_fake_atuator_data(void);
 
 	/**
 	 * THIS IS WHERE YOU DEFINE NEW PARAMETRS
