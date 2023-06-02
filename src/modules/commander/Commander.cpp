@@ -2643,10 +2643,6 @@ Commander::run()
 			_armed.timestamp = hrt_absolute_time();
 
 
-			//int32_t sm_arm_overwrite = 0;
-			//int32_t sm_input_src = 0;
-			//param_get(param_find("SM_OVERWRITE"), &sm_arm_overwrite);
-			//param_get(param_find("SM_CMD_OPT"), &sm_input_src);
 			if (sm_arm_overwrite == 0 && sm_input_src == 0) _armed_pub.publish(_armed);
 			else
 			{

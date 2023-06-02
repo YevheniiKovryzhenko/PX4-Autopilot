@@ -62,6 +62,7 @@
 //#include <uORB/topics/simulink_inbound.h>
 //#include <uORB/topics/simulink_outbound.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/input_rc.h>
 
 extern "C" __EXPORT int sim_ctrl_mod_main(int argc, char *argv[]);
 
@@ -133,10 +134,13 @@ private:
 	void update_simulink_inputs(void);
 	void update_simulink_outputs(void);
 
-	uORB::Publication<debug_array_s> 	_simulink_outbound_pub{ORB_ID(simulink_outbound)};
-	uORB::Publication<debug_array_s>	_simulink_inbound_pub{ORB_ID(simulink_inbound)};
-	uORB::Publication<actuator_outputs_s>	_actuator_outputs_sv_pub{ORB_ID(actuator_outputs_sv)};
-	uORB::Publication<actuator_armed_s> 	_actuator_armed_pub{ORB_ID(actuator_armed)};
+	uORB::Publication<debug_array_s> 		_simulink_outbound_pub{ORB_ID(simulink_outbound)};
+	uORB::Publication<debug_array_s>		_simulink_inbound_pub{ORB_ID(simulink_inbound)};
+	uORB::Publication<actuator_outputs_s>		_actuator_outputs_sv_pub{ORB_ID(actuator_outputs_sv)};
+	uORB::Publication<actuator_armed_s> 		_actuator_armed_pub{ORB_ID(actuator_armed)};
+	uORB::Publication<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
+	uORB::Publication<manual_control_switches_s>	_manual_control_switches_pub{ORB_ID(manual_control_switches)};
+	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 
 
 

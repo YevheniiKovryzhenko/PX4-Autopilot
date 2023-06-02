@@ -42,7 +42,10 @@ parameters:
                     You can use this to ignore these checks for ESCs that are sent
                     over servo channels. To disable safety for servos, just set FAIL and
                     DISARM values to -1.
-            type: int32
+            type: enum
+            values:
+                0: DEFAULT
+                131313: DISABLE_ALL_SAFETY_CHECKS
             min: 0
             max: 131313
             default: 0
@@ -236,7 +239,12 @@ parameters:
                     Enable to invert the channel.
                     Warning: Use this parameter when connected to a servo only.
                     For a brushless motor, invert manually two phases to reverse the direction.
-            type: boolean
+            type: enum
+            values:
+                0: DEFAULT
+                1: REVERSE
+            min: 0
+            max: 1
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 0
@@ -246,7 +254,12 @@ parameters:
                 short: Enable UAVCAN output ${i}
                 long: |
                     This parameter controls if a servo id ${i} is sent at all
-            type: boolean
+            type: enum
+            values:
+                0: DISABLE_OUTPUT
+                1: ENABLED
+            min: 0
+            max: 1
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 0
@@ -255,9 +268,9 @@ parameters:
             description:
                 short: Mark UAVCAN output ${i} to be used for ECS logic
                 long: |
-                    This parameter controls if a servo id ${i} is used for one-shot ESC control.
+                    This parameter controls if a servo id ${i} is used ESC control.
                     This ignore user-set DISARM and TRIM values, forces to use disarm logic
-                    and always sends -1 (or +1, according to polarity).
+                    and always sends -1.
                     DOES NOT IGNORE MIN/MAX VALUES, SO CHECK THOSE FIRST.
 
                     This will STILL generate appropriate COMMAND_TYPE_UNITLESS for each
@@ -267,7 +280,12 @@ parameters:
                     of the receving end to make sure [-1 1] mapps to correct range.
                     By default, it is assumed to have [1000 2000] range.
 
-            type: boolean
+            type: enum
+            values:
+                0: IS_SERVO
+                1: IS_ESC
+            min: 0
+            max: 1
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 0

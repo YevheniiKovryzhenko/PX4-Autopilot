@@ -46,6 +46,8 @@
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
 #include <float.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
@@ -415,17 +417,31 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
  */
 void enable_failsafe(vehicle_status_s &status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason)
 {
-	if (!old_failsafe && status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		// make sure intermittent failsafes don't lead to infinite delay by not constantly reseting the timestamp
-		if (status.failsafe_timestamp == 0 ||
-		    hrt_elapsed_time(&status.failsafe_timestamp) > 30_s) {
-			status.failsafe_timestamp = hrt_absolute_time();
-		}
 
-		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
+	int32_t sm_arm_overwrite = 0;
+	int32_t sm_input_src = 0;
+	param_get(param_find("SM_OVERWRITE"), &sm_arm_overwrite);
+	param_get(param_find("SM_CMD_OPT"), &sm_input_src);
+
+	if (sm_arm_overwrite == 0 && sm_input_src == 0) //only if not controlled by SIM_CONTROL_MOD
+	{
+		if (!old_failsafe && status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		{
+			// make sure intermittent failsafes don't lead to infinite delay by not constantly reseting the timestamp
+			if (status.failsafe_timestamp == 0 ||
+			hrt_elapsed_time(&status.failsafe_timestamp) > 30_s) {
+				status.failsafe_timestamp = hrt_absolute_time();
+			}
+
+			mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
+		}
+		status.failsafe = true;
+	}
+	else
+	{
+		status.failsafe = false;
 	}
 
-	status.failsafe = true;
 }
 
 /**

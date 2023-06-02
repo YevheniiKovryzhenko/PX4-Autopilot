@@ -36,7 +36,9 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 
+#include <math.h>
 #include <uORB/topics/parameter_update.h>
+#include <drivers/drv_rc_input.h>
 
 inline char rc_map_stick(float &out, rc_channels_s& rc_ch, uint8_t ch)
 {
@@ -404,7 +406,6 @@ bool SIM_CTRL_MOD::check_armed(int input_src_opt)
 
 			case 2: //INBOUND_MSG
 			{
-				_simulink_inbound_sub.update(&sm_inbound);
 				_actuator_armed_sub.update(&act_armed);
 				if(sm_inbound.data[CONTROL_VEC_START_ID + ARMED_IND] > 0.f)
 				{
@@ -495,6 +496,7 @@ void SIM_CTRL_MOD::test_fake_atuator_data(void)
 bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 {
 	bool need_update = false;
+	bool publish_new_manual_control_setpoint = false;
 	int input_source_opt = _param_cmd_opt.get();
 
 	//Control vector elements:
@@ -504,7 +506,8 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	float throttle = 0.f;		//[0 1]
 	float manual_wing_ch = 0.f;	//[-1 1]
 
-	control_level mode_ch = INNER_LOOP_LQI;		//[1 4]
+	float mode_stick = -1.f; 			//[-1 1] actual stick position
+	control_level mode_ch = INNER_LOOP_LQI;		//[1 4] mode that corresponds to the stick position
 
 	int32_t en_calibration = _param_sm_en_cal.get();
 
@@ -523,29 +526,22 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 		rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE);
 		float tmp_wing = 0.f;
 		if (!update_man_wing_angle(tmp_wing)) rc_map_stick(manual_wing_ch, rc_ch, rc_channels_s::FUNCTION_AUX_6);
+		mode_stick = rc_ch.channels[rc_channels_s::FUNCTION_MODE];
 
-		if (en_calibration == 1)
-		{
-			mode_ch = CALIBRATION;
-		}
-		else
-		{	//mode is does not have a valid channel for some reason, so can't check
-			float tmp_mode_ch = rc_ch.channels[rc_channels_s::FUNCTION_MODE];
-			if (tmp_mode_ch > 0.7f) mode_ch = OUTER_LOOP;
-			else if(tmp_mode_ch < -0.2f) mode_ch = INNER_LOOP_LQI;
-			else mode_ch = INNER_LOOP_TECS; //must always assign some default
-		}
 		break;
 	}
 
 
 	case 2: //INBOUND_MSG
+		if (_simulink_inbound_sub.update(&sm_inbound)) publish_new_manual_control_setpoint = true;
 		roll 		= sm_inbound.data[CONTROL_VEC_START_ID + ROLL_IND];
 		pitch 		= sm_inbound.data[CONTROL_VEC_START_ID + PITCH_IND];
 		yaw 		= sm_inbound.data[CONTROL_VEC_START_ID + YAW_IND];
 		throttle 	= sm_inbound.data[CONTROL_VEC_START_ID + THROTTLE_IND];
 		manual_wing_ch 	= sm_inbound.data[CONTROL_VEC_START_ID + WING_IND];
-		mode_ch 	= static_cast<control_level>(sm_inbound.data[CONTROL_VEC_START_ID + MODE_IND]);
+		mode_stick 	= static_cast<control_level>(sm_inbound.data[CONTROL_VEC_START_ID + MODE_IND]);
+
+
 		break;//assume everything was already sent correctly
 
 
@@ -560,17 +556,21 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 
 		manual_wing_ch = man_setpoint.aux6;
 		update_man_wing_angle(manual_wing_ch);
-		if (en_calibration == 1)
-		{
-			mode_ch = CALIBRATION;
-		}
-		else
-		{
-			if (man_switches.mode_slot > 0.7f) mode_ch = OUTER_LOOP;
-			else if(man_switches.mode_slot < -0.2f) mode_ch = INNER_LOOP_LQI;
-			else mode_ch = INNER_LOOP_TECS; //must always assign some default
-		}
+		mode_stick = man_switches.mode_slot;
+
 		break;
+	}
+	bool armed_switch = check_armed(input_source_opt);
+
+	if (en_calibration == 1)
+	{
+		mode_ch = CALIBRATION;
+	}
+	else
+	{
+		if (mode_stick > 0.7f) mode_ch = OUTER_LOOP;
+		else if(mode_stick < -0.2f) mode_ch = INNER_LOOP_LQI;
+		else mode_ch = INNER_LOOP_TECS; //must always assign some default
 	}
 
 	in_vec[ROLL_IND] = roll;
@@ -578,8 +578,91 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	in_vec[YAW_IND] = yaw;
 	in_vec[THROTTLE_IND] = throttle;
 	in_vec[WING_IND] = manual_wing_ch;
-	in_vec[ARMED_IND] = static_cast<float>(check_armed(input_source_opt));
+	in_vec[ARMED_IND] = static_cast<float>(armed_switch);
 	in_vec[MODE_IND] = static_cast<float>(mode_ch);
+
+
+	if (publish_new_manual_control_setpoint) //let the rest of PX4 know we have control input
+	{
+
+		PX4_INFO("Updating manual control from INBOUND");
+		/**
+		 * RC control input mode
+		 *
+		 * The default value of 0 requires a valid RC transmitter setup.
+		 * Setting this to 1 allows joystick control and disables RC input handling and the associated checks. A value of
+		 * 2 will generate RC control data from manual input received via MAVLink instead
+		 * of directly forwarding the manual input data.
+		 *
+		 * @group Commander
+		 * @min 0
+		 * @max 2
+		 * @value 0 RC Transmitter
+		 * @value 1 Joystick/No RC Checks
+		 * @value 2 Virtual RC by Joystick
+		 */
+		//PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
+
+		int32_t com_rc_in_mode = 0;
+		param_get(param_find("COM_RC_IN_MODE"), &com_rc_in_mode);
+
+
+		if (com_rc_in_mode == 1)
+		{
+			PX4_INFO("Updating manual control setpoint directly from INBOUND");
+			man_setpoint.timestamp = hrt_absolute_time();
+			man_setpoint.y = roll;
+			man_setpoint.x = pitch;
+			man_setpoint.r = yaw;
+			man_setpoint.z = throttle;
+			man_setpoint.aux6 = manual_wing_ch;
+			man_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+
+			_manual_control_setpoint_pub.publish(man_setpoint);
+
+			man_switches.timestamp = hrt_absolute_time();
+			man_switches.arm_switch = armed_switch;
+			man_switches.kill_switch = !armed_switch;
+			man_switches.mode_switch = mode_stick;
+
+			_manual_control_switches_pub.publish(man_switches);
+		}
+		else
+		{
+			PX4_INFO("Updating virtual rc_input from INBOUND");
+			input_rc_s rc{};
+			rc.timestamp = hrt_absolute_time();
+			rc.timestamp_last_signal = rc.timestamp;
+
+			rc.channel_count = 8;
+			rc.rc_failsafe = false;
+			rc.rc_lost = false;
+			rc.rc_lost_frame_count = 0;
+			rc.rc_total_frame_count = 1;
+			rc.rc_ppm_frame_length = 0;
+			rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+			rc.rssi = RC_INPUT_RSSI_MAX;
+
+			rc.values[0] = static_cast<uint16_t>(roll * 500.f) + 1500;	// roll
+			rc.values[1] = static_cast<uint16_t>(pitch * 500.f) + 1500;	// pitch
+			rc.values[2] = static_cast<uint16_t>(yaw * 500.f) + 1500;	// yaw
+			rc.values[3] = static_cast<uint16_t>(throttle * 1000.f) + 1000;	// throttle
+
+			/* decode all switches which fit into the channel mask */
+			unsigned max_switch = 8;
+			unsigned max_channels = (sizeof(rc.values) / sizeof(rc.values[0]));
+
+			if (max_switch > (max_channels - 4)) {
+				max_switch = (max_channels - 4);
+			}
+			rc.values[4] = static_cast<uint16_t>(manual_wing_ch * 500.f) + 1500;
+			rc.values[5] = static_cast<uint16_t>(armed_switch)*1000 + 1000;
+			rc.values[6] = static_cast<uint16_t>(mode_stick)*1000 + 1000;
+
+			_input_rc_pub.publish(rc);
+		}
+	}
+
 	return need_update;
 }
 
