@@ -38,16 +38,14 @@ parameters:
             description:
                 short: This is UAVCAN safety circuit breaker for servo output
                 long: |
-                    Default is 0. If 131313, all safety checks and failsafes are enabled.
+                    Default is 0. If 0, all safety checks and failsafes are enabled.
                     You can use this to ignore these checks for ESCs that are sent
                     over servo channels. To disable safety for servos, just set FAIL and
                     DISARM values to -1.
             type: enum
             values:
                 0: DEFAULT
-                131313: DISABLE_ALL_SAFETY_CHECKS
-            min: 0
-            max: 131313
+                1: NO_SAFETY_CHECKS
             default: 0
 
         UAVCAN_SV_MIN:

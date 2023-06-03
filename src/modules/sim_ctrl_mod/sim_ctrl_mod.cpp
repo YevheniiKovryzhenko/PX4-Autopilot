@@ -496,7 +496,7 @@ void SIM_CTRL_MOD::test_fake_atuator_data(void)
 bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 {
 	bool need_update = false;
-	bool publish_new_manual_control_setpoint = false;
+	//bool publish_new_manual_control_setpoint = false;
 	int input_source_opt = _param_cmd_opt.get();
 
 	//Control vector elements:
@@ -533,7 +533,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 
 
 	case 2: //INBOUND_MSG
-		if (_simulink_inbound_sub.update(&sm_inbound)) publish_new_manual_control_setpoint = true;
+		//if (_simulink_inbound_sub.update(&sm_inbound)) publish_new_manual_control_setpoint = true;
 		roll 		= sm_inbound.data[CONTROL_VEC_START_ID + ROLL_IND];
 		pitch 		= sm_inbound.data[CONTROL_VEC_START_ID + PITCH_IND];
 		yaw 		= sm_inbound.data[CONTROL_VEC_START_ID + YAW_IND];
@@ -581,26 +581,11 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	in_vec[ARMED_IND] = static_cast<float>(armed_switch);
 	in_vec[MODE_IND] = static_cast<float>(mode_ch);
 
-
+	/*
 	if (publish_new_manual_control_setpoint) //let the rest of PX4 know we have control input
 	{
 
 		//PX4_INFO("Updating manual control from INBOUND");
-		/**
-		 * RC control input mode
-		 *
-		 * The default value of 0 requires a valid RC transmitter setup.
-		 * Setting this to 1 allows joystick control and disables RC input handling and the associated checks. A value of
-		 * 2 will generate RC control data from manual input received via MAVLink instead
-		 * of directly forwarding the manual input data.
-		 *
-		 * @group Commander
-		 * @min 0
-		 * @max 2
-		 * @value 0 RC Transmitter
-		 * @value 1 Joystick/No RC Checks
-		 * @value 2 Virtual RC by Joystick
-		 */
 		//PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 
 		int32_t com_rc_in_mode = 0;
@@ -609,7 +594,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 
 		if (com_rc_in_mode == 1)
 		{
-			PX4_INFO("Updating manual control setpoint directly from INBOUND");
+			//PX4_INFO("Updating manual control setpoint directly from INBOUND");
 			man_setpoint.timestamp = hrt_absolute_time();
 			man_setpoint.y = roll;
 			man_setpoint.x = pitch;
@@ -629,7 +614,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 		}
 		else
 		{
-			PX4_INFO("Updating virtual rc_input from INBOUND");
+			//PX4_INFO("Updating virtual rc_input from INBOUND");
 			input_rc_s rc{};
 			rc.timestamp = hrt_absolute_time();
 			rc.timestamp_last_signal = rc.timestamp;
@@ -648,7 +633,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 			rc.values[2] = static_cast<uint16_t>(yaw * 500.f) + 1500;	// yaw
 			rc.values[3] = static_cast<uint16_t>(throttle * 1000.f) + 1000;	// throttle
 
-			/* decode all switches which fit into the channel mask */
+			// decode all switches which fit into the channel mask
 			unsigned max_switch = 8;
 			unsigned max_channels = (sizeof(rc.values) / sizeof(rc.values[0]));
 
@@ -662,6 +647,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 			_input_rc_pub.publish(rc);
 		}
 	}
+	*/
 
 	return need_update;
 }
