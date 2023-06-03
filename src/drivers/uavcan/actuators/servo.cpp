@@ -218,7 +218,7 @@ UavcanServoController::update_params(void)
 	sprintf(str, "%s_CBRK", prefix);
 	if (param_get(param_find(str), &safety_checks) == PX4_OK)
 	{
-		disable_safety_checks_fl = safety_checks == 131313;
+		disable_safety_checks_fl = safety_checks == 1;
 	}
 
 
