@@ -585,7 +585,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	if (publish_new_manual_control_setpoint) //let the rest of PX4 know we have control input
 	{
 
-		PX4_INFO("Updating manual control from INBOUND");
+		//PX4_INFO("Updating manual control from INBOUND");
 		/**
 		 * RC control input mode
 		 *
