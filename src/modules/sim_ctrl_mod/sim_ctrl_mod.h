@@ -195,21 +195,32 @@ private:
 
 
 	static const int CONTROL_VEC_START_ID = 0; //this is the start index of the control vector inside INBOUND data array
-	static const int CONTROL_VEC_SIZE = 7; //control vector size
+	static const int CONTROL_VEC_SIZE = 18; //control vector size
+
 	// Order of control vector relative to start index:
 	static const int ROLL_IND = 0;
 	static const int PITCH_IND = 1;
 	static const int YAW_IND = 2;
 	static const int THROTTLE_IND = 3;
-	static const int WING_IND = 4;
-	static const int ARMED_IND = 5;
-	static const int MODE_IND = 6;
+	static const int ARMED_IND = 4;
+	static const int MODE_IND = 5;
+	static const int AUX1_IND = 6;
+	static const int AUX2_IND = 7;
+	static const int AUX3_IND = 8;
+	static const int AUX4_IND = 9;
+	static const int AUX5_IND = 10;
+	static const int AUX6_IND = 11; //reserved for wing angle control
+	static const int EXTR1_IND = 12;
+	static const int EXTR2_IND = 13;
+	static const int EXTR3_IND = 14;
+	static const int EXTR4_IND = 15;
+	static const int EXTR5_IND = 16;
+	static const int EXTR6_IND = 17;
 	float control_vec[CONTROL_VEC_SIZE];
 
 	bool update_control_inputs(float in_vec[CONTROL_VEC_SIZE]);
-	bool check_armed(int input_src_opt);
-	void force_new_armed_state(bool armed_state);
-	bool update_man_wing_angle(float& wing_cmd);
+	bool check_armed(bool &armed, int input_src_opt);
+	bool update_man_wing_angle(int input_source_opt, float& wing_cmd);
 
 	void debug_loop(void);
 

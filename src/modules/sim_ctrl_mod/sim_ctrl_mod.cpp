@@ -276,24 +276,53 @@ void SIM_CTRL_MOD::update_simulink_outputs(void)
 	if(need2update_actuators) _actuator_outputs_sv_pub.publish(act_output); //the rest of PX4 needs to know new actuator commands
 }
 
-bool SIM_CTRL_MOD::update_man_wing_angle(float& wing_cmd)
+bool SIM_CTRL_MOD::update_man_wing_angle(int input_source_opt, float& wing_cmd)
 {
 	int32_t wing_opt = _param_sm_wing_src.get();
+	bool need2update = false;
+	static float cmd = -1.f;
 
 	switch (wing_opt)
 	{
 	case 1: //always 1
 		wing_cmd = 1.f;
-		return true;
+		break;
 
-	case 2: //use RC
+	case 2: //MANUAL use CMD_SRC
+		switch (input_source_opt)
+			{
+			case 1: // RC_IN
+			{
+				if(_rc_channels_sub.update(&rc_ch)) need2update = true;
+
+				//check every stick so we are sure rc is valid, otherwise quit
+				rc_map_stick(wing_cmd, rc_ch, rc_channels_s::FUNCTION_AUX_6);
+				break;
+			}
+
+
+			case 2: //INBOUND_MSG
+				if (_simulink_inbound_sub.update(&sm_inbound)) need2update = true;
+				wing_cmd = sm_inbound.data[CONTROL_VEC_START_ID + AUX6_IND];
+				break;//assume everything was already sent correctly
+
+
+			default: //MANUAL_CONTROL_SETPOINT
+				if (_manual_control_setpoint_sub.update(&man_setpoint)) need2update = true;
+				wing_cmd = man_setpoint.aux6;
+				break;
+			}
 		return false;
 	case 3: //AUTO
-		return true; //simulink will ignore it anyways
+		wing_cmd = sm_inbound.data[CONTROL_VEC_START_ID + AUX6_IND]; //simulink will ignore it anyways
+		break;
 	default: //always -1
 		wing_cmd = -1.f;
-		return true;
+		break;
 	}
+	need2update = (need2update || fabsf(wing_cmd - cmd) > 1.f / 1000000.f);
+	cmd = wing_cmd; //keep track of the old command
+	return need2update;
 }
 
 bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the weird land-detector logic
@@ -367,24 +396,24 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 
 }
 
-bool SIM_CTRL_MOD::check_armed(int input_src_opt)
+bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 {
-	static bool armed = false;
+	static bool armed_old = false;
 	bool need2publish = true;
+	bool need2update = false;
+	_actuator_armed_sub.update(&act_armed);
+
+	int32_t arm_src_opt = _param_sm_overwrite.get();
 
 	if ((hrt_elapsed_time(&_boot_timestamp) > 5000000))
 	{
-		switch (_param_sm_overwrite.get())
+		switch (arm_src_opt)
 		{
 		case 1:
-			_actuator_armed_sub.update(&act_armed);
-			if (act_armed.armed) need2publish = false;
 			armed = true;
 			break;
 
 		case 2:
-			_actuator_armed_sub.update(&act_armed);
-			if (!act_armed.armed) need2publish = false;
 			armed = false;
 			break;
 
@@ -393,35 +422,22 @@ bool SIM_CTRL_MOD::check_armed(int input_src_opt)
 			{
 			case 1: //RC_IN
 			{
-				//assume rc_ch has been updated
+				if(_rc_channels_sub.update(&rc_ch)) need2update = true;
 				float tmp_armed = static_cast<float>(armed);
 				rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
-
-				_actuator_armed_sub.update(&act_armed);
-				bool tmp_arm = tmp_armed > 0;
-				if (act_armed.armed == tmp_arm) need2publish = false;
-				armed = tmp_arm;
+				armed = tmp_armed > 0.1f;
 				break;
 			}
 
 			case 2: //INBOUND_MSG
 			{
-				_actuator_armed_sub.update(&act_armed);
-				if(sm_inbound.data[CONTROL_VEC_START_ID + ARMED_IND] > 0.f)
-				{
-					if(armed) need2publish = false;
-					armed = true;
-				}
-				else
-				{
-					if(!armed) need2publish = false;
-					armed = false;
-				}
+				if (_simulink_inbound_sub.update(&act_armed)) need2update = true;
+				armed = sm_inbound.data[CONTROL_VEC_START_ID + ARMED_IND] > 0.1f;
 				break;
 			}
 
 			default:
-				_actuator_armed_sub.update(&act_armed);
+				if (_actuator_armed_sub.update(&act_armed)) need2update = true;
 				armed = act_armed.armed;
 
 				need2publish = false;
@@ -430,7 +446,9 @@ bool SIM_CTRL_MOD::check_armed(int input_src_opt)
 			break;
 
 		}
-		if (need2publish)
+		need2update = (need2update || armed != armed_old);
+		armed_old = armed;
+		if (need2publish && need2update)
 		{
 			act_armed.timestamp = hrt_absolute_time();
 			act_armed.ready_to_arm = armed;
@@ -439,7 +457,7 @@ bool SIM_CTRL_MOD::check_armed(int input_src_opt)
 			_actuator_armed_pub.publish(act_armed);
 		}
 	}
-	return armed;
+	return need2publish;
 }
 
 enum control_level
@@ -524,8 +542,6 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 		rc_map_stick(pitch, rc_ch, rc_channels_s::FUNCTION_PITCH);
 		rc_map_stick(yaw, rc_ch, rc_channels_s::FUNCTION_YAW);
 		rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE);
-		float tmp_wing = 0.f;
-		if (!update_man_wing_angle(tmp_wing)) rc_map_stick(manual_wing_ch, rc_ch, rc_channels_s::FUNCTION_AUX_6);
 		mode_stick = rc_ch.channels[rc_channels_s::FUNCTION_MODE];
 
 		break;
@@ -538,7 +554,6 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 		pitch 		= sm_inbound.data[CONTROL_VEC_START_ID + PITCH_IND];
 		yaw 		= sm_inbound.data[CONTROL_VEC_START_ID + YAW_IND];
 		throttle 	= sm_inbound.data[CONTROL_VEC_START_ID + THROTTLE_IND];
-		manual_wing_ch 	= sm_inbound.data[CONTROL_VEC_START_ID + WING_IND];
 		mode_stick 	= static_cast<control_level>(sm_inbound.data[CONTROL_VEC_START_ID + MODE_IND]);
 
 
@@ -553,14 +568,13 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 		pitch = man_setpoint.x;
 		yaw = man_setpoint.r;
 		throttle = man_setpoint.z;
-
-		manual_wing_ch = man_setpoint.aux6;
-		update_man_wing_angle(manual_wing_ch);
 		mode_stick = man_switches.mode_slot;
 
 		break;
 	}
-	bool armed_switch = check_armed(input_source_opt);
+	bool armed_switch = false;
+	if (check_armed(armed_switch, input_source_opt)) need_update = true;
+	if (update_man_wing_angle(input_source_opt, manual_wing_ch)) need_update = true;
 
 	if (en_calibration == 1)
 	{
@@ -569,7 +583,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	else
 	{
 		if (mode_stick > 0.7f) mode_ch = OUTER_LOOP;
-		else if(mode_stick < -0.2f) mode_ch = INNER_LOOP_LQI;
+		else if(mode_stick < -0.7f) mode_ch = INNER_LOOP_LQI;
 		else mode_ch = INNER_LOOP_TECS; //must always assign some default
 	}
 
@@ -577,7 +591,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	in_vec[PITCH_IND] = pitch;
 	in_vec[YAW_IND] = yaw;
 	in_vec[THROTTLE_IND] = throttle;
-	in_vec[WING_IND] = manual_wing_ch;
+	in_vec[AUX6_IND] = manual_wing_ch;
 	in_vec[ARMED_IND] = static_cast<float>(armed_switch);
 	in_vec[MODE_IND] = static_cast<float>(mode_ch);
 

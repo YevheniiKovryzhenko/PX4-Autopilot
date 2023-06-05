@@ -90,7 +90,7 @@ parameters:
             values:
                 0: ALWAYS_0
                 1: ALWAYS_1
-                2: USE_AUX6
+                2: MANUAL:SM_CMD_OPT:USE_AUX6
                 3: AUTO
             default: 0
 
