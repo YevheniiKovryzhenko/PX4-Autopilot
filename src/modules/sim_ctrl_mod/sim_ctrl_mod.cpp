@@ -398,7 +398,7 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 
 bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 {
-	static bool armed_old = false;
+	//static bool armed_old = false;
 	bool need2publish = true;
 	bool need2update = false;
 	_actuator_armed_sub.update(&act_armed);
@@ -413,11 +413,12 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 			armed = true;
 			break;
 
-		case 2:
+		default:
 			armed = false;
 			break;
 
-		default:
+		//default:
+		/*
 			switch (input_src_opt)
 			{
 			case 1: //RC_IN
@@ -444,16 +445,20 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 				break;
 			}
 			break;
+		*/
 
 		}
-		need2update = (need2update || armed != armed_old);
-		armed_old = armed;
+		need2update = (need2update || armed != act_armed.armed);
+		act_armed.armed = armed;
 		if (need2publish && need2update)
 		{
 			act_armed.timestamp = hrt_absolute_time();
 			act_armed.ready_to_arm = armed;
 			act_armed.prearmed = armed;
 			act_armed.armed = armed;
+			act_armed.force_failsafe = false;
+			act_armed.lockdown =false;
+			act_armed.manual_lockdown = false;
 			_actuator_armed_pub.publish(act_armed);
 		}
 	}

@@ -92,13 +92,36 @@ void
 UavcanServoController::update(const uavcan::TimerEvent &)
 {
 	actuator_outputs_s actuator_outputs_sv;
-	actuator_armed_s actuator_armed;
-	_actuator_armed_sub.update(&actuator_armed);
+	//actuator_armed_s actuator_armed;
+	//_actuator_armed_sub.update(&actuator_armed);
 
-	if (_actuator_outputs_sv_sub.update(&actuator_outputs_sv))
+
+	int32_t param_safety = 2;
+	param_get(param_find("SM_OVERWRITE"), &param_safety);
+
+
+
+	switch (param_safety)
 	{
-		update_outputs(actuator_armed.armed, actuator_armed.force_failsafe, actuator_outputs_sv.output);
+	case 1:
+		if (_actuator_outputs_sv_sub.update(&actuator_outputs_sv)) update_outputs(true, false, actuator_outputs_sv.output);
+
+		break;
+
+	default:
+		_actuator_outputs_sv_sub.update(&actuator_outputs_sv);
+		update_outputs(false, false, actuator_outputs_sv.output);
+		break;
 	}
+
+
+
+
+
+	//if (_actuator_outputs_sv_sub.update(&actuator_outputs_sv))
+	//{
+	//	update_outputs(actuator_armed.armed, actuator_armed.force_failsafe, actuator_outputs_sv.output);
+	//}
 }
 
 //this function applies linear maping for transforming anything in [in_min, in_max] into [out_min, out, max] range
@@ -139,8 +162,8 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 
 			if (sv_esc_fl[i]) //we are talking with an ESC
 			{
-				if (!disable_safety_checks_fl)
-				{
+				//if (!disable_safety_checks_fl)
+				//{
 					if (!armed)
 					{
 						//if (sv_rev_fl[1]) cmd.command_value = 1.f;// this is kinda dumb
@@ -150,15 +173,25 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 						write_anything = true;
 						continue;
 					}
-				}
+				//}
 
 				pwm_min = assumed_min_esc; //this should make regular command to be still within [1000, 2000] on [-1 1]. -1 in assumed_min_esc
 
 			}
 			else // we are talking with a servo
 			{
-				if (sv_fail[i] > 0 && fail) pwm_cmd = static_cast<float>(sv_fail[i]); //use fail value if enabled and active
-				else if (sv_disarm[i] > 0 && !armed) pwm_cmd = static_cast<float>(sv_disarm[i]); //use armed value if enabled and active
+
+				if (!armed)
+				{
+					//if (sv_rev_fl[1]) cmd.command_value = 1.f;// this is kinda dumb
+					//else
+					cmd.command_value = 0.0f;//always send minimum value if disarmed or in failsafe mode
+					msg.commands.push_back(cmd);
+					write_anything = true;
+					continue;
+				}
+				//if (sv_fail[i] > 0 && fail) pwm_cmd = static_cast<float>(sv_fail[i]); //use fail value if enabled and active
+				//else if (sv_disarm[i] > 0 && !armed) pwm_cmd = static_cast<float>(1500); //use armed value if enabled and active
 				else if (sv_rev_fl[i]) pwm_cmd = -(pwm_cmd - 1500.f) + 1500.f; //flip the polarity
 			}
 
