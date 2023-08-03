@@ -402,7 +402,7 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 
 }
 
-bool SIM_CTRL_MOD::check_armed(bool armed, int input_src_opt)
+bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 {
 	actuator_armed_s act_armed_px4;
 	bool commander_updated_armed_state = _actuator_armed_sub.update(&act_armed_px4);

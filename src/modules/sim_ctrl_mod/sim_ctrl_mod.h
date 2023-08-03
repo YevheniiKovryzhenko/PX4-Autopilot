@@ -219,7 +219,7 @@ private:
 	float control_vec[CONTROL_VEC_SIZE];
 
 	bool update_control_inputs(float in_vec[CONTROL_VEC_SIZE]);
-	bool check_armed(bool armed, int input_src_opt);
+	bool check_armed(bool &armed, int input_src_opt);
 	bool update_man_wing_angle(int input_source_opt, float& wing_cmd);
 
 	void debug_loop(void);
