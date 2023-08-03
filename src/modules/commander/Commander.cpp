@@ -2642,7 +2642,6 @@ Commander::run()
 
 			_armed.timestamp = hrt_absolute_time();
 
-
 			if (sm_arm_overwrite == 0 && sm_input_src == 0) _armed_pub.publish(_armed);
 			else
 			{

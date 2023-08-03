@@ -249,8 +249,14 @@ void SIM_CTRL_MOD::update_simulink_io(void)
 
 void SIM_CTRL_MOD::update_simulink_inputs(void)
 {
-	// we will later do some extra parsing and safety in here before publishing any data
+	/*
+	float SM_IDLE_TH_val = 0;
+	param_get(param_find("SM_MASS"),&SM_IDLE_TH_val);
+	printf("updating main loop:\t");
+	printf("SM_MASS = %f\n",(double)SM_IDLE_TH_val);
+	*/
 
+	// we will later do some extra parsing and safety in here before publishing any data
 	publish_inbound_sim_data();
 
 }
@@ -396,12 +402,12 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 
 }
 
-bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
+bool SIM_CTRL_MOD::check_armed(bool armed, int input_src_opt)
 {
-	//static bool armed_old = false;
-	bool need2publish = true;
-	bool need2update = false;
-	_actuator_armed_sub.update(&act_armed);
+	actuator_armed_s act_armed_px4;
+	bool commander_updated_armed_state = _actuator_armed_sub.update(&act_armed_px4);
+
+	//if (commander_updated_armed_state) printf("%4d, %4d, %4d\n", act_armed_px4.armed, act_armed_px4.prearmed, act_armed_px4.ready_to_arm);
 
 	int32_t arm_src_opt = _param_sm_overwrite.get();
 
@@ -413,56 +419,65 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 			armed = true;
 			break;
 
-		default:
+		case 2:
 			armed = false;
 			break;
 
-		//default:
-		/*
+		default:
+			armed = act_armed.armed;
 			switch (input_src_opt)
 			{
 			case 1: //RC_IN
 			{
-				if(_rc_channels_sub.update(&rc_ch)) need2update = true;
-				float tmp_armed = static_cast<float>(armed);
-				rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
-				armed = tmp_armed > 0.1f;
+				if(_rc_channels_sub.update(&rc_ch))
+				{
+					float tmp_armed = static_cast<float>(armed);
+					rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
+					armed = tmp_armed > 0.1f;
+				}
 				break;
 			}
 
 			case 2: //INBOUND_MSG
 			{
-				if (_simulink_inbound_sub.update(&act_armed)) need2update = true;
-				armed = sm_inbound.data[CONTROL_VEC_START_ID + ARMED_IND] > 0.1f;
+				if (_simulink_inbound_sub.update(&sm_inbound))
+				{
+					armed = sm_inbound.data[CONTROL_VEC_START_ID + ARMED_IND] > 0.1f;
+				}
 				break;
 			}
 
 			default:
-				if (_actuator_armed_sub.update(&act_armed)) need2update = true;
-				armed = act_armed.armed;
+				if (commander_updated_armed_state || act_armed.armed != act_armed_px4.armed)
+				{
+					act_armed = act_armed_px4;
+					return true;
+				}
+				else
+				{
+					return false;
+				}
 
-				need2publish = false;
-				break;
 			}
 			break;
-		*/
+
 
 		}
-		need2update = (need2update || armed != act_armed.armed);
-		act_armed.armed = armed;
-		if (need2publish && need2update)
+		if (armed != act_armed.armed || (commander_updated_armed_state && act_armed_px4.armed != armed))
 		{
 			act_armed.timestamp = hrt_absolute_time();
-			act_armed.ready_to_arm = armed;
-			act_armed.prearmed = armed;
+			act_armed.ready_to_arm = true;
+			act_armed.prearmed = true;
 			act_armed.armed = armed;
 			act_armed.force_failsafe = false;
 			act_armed.lockdown =false;
 			act_armed.manual_lockdown = false;
 			_actuator_armed_pub.publish(act_armed);
+			return true;
 		}
+		else return false;
 	}
-	return need2publish;
+	return false;
 }
 
 enum control_level

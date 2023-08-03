@@ -38,5 +38,7 @@ px4_add_module(
 		sim_ctrl_mod.cpp
 	MODULE_CONFIG
 		module.yaml
+		module_tilt_wing.yaml
+		module_quadcopter.yaml
 	)
 
