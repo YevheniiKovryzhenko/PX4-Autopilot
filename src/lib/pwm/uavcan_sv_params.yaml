@@ -251,24 +251,11 @@ parameters:
             description:
                 short: Enable UAVCAN output ${i}
                 long: |
-                    This parameter controls if a servo id ${i} is sent at all
-            type: enum
-            values:
-                0: DISABLE_OUTPUT
-                1: ENABLED
-            min: 0
-            max: 1
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: 0
+                    This parameter controls if a servo id ${i} is sent at all (DISABLED).
 
-        UAVCAN_SV_ESC${i}:
-            description:
-                short: Mark UAVCAN output ${i} to be used for ECS logic
-                long: |
-                    This parameter controls if a servo id ${i} is used ESC control.
-                    This ignore user-set DISARM and TRIM values, forces to use disarm logic
-                    and always sends -1.
+                    Also, when enabled, this parameter controls if a servo id ${i} is using servo or
+                    ESC control mapping logic. If set to ESC, it will ignore all user-set DISARM and TRIM values,
+                    and forces to use disarm logic for ESC, such that it always sends -1.
                     DOES NOT IGNORE MIN/MAX VALUES, SO CHECK THOSE FIRST.
 
                     This will STILL generate appropriate COMMAND_TYPE_UNITLESS for each
@@ -277,13 +264,13 @@ parameters:
                     is generated on the receving side (CAN->PWM board). Check settings
                     of the receving end to make sure [-1 1] mapps to correct range.
                     By default, it is assumed to have [1000 2000] range.
-
             type: enum
             values:
-                0: IS_SERVO
-                1: IS_ESC
+                0: DISABLE_OUTPUT
+                1: ENABLE_SERVO
+                2: ENABLE_ESC
             min: 0
-            max: 1
+            max: 2
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 0

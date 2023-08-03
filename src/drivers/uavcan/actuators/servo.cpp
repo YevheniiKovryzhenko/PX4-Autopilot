@@ -263,16 +263,21 @@ UavcanServoController::update_params(void)
 			int32_t en_fl = 0;
 			if (param_get(param_find(str), &en_fl) == PX4_OK)
 			{
+				switch (en_fl)
+				{
+				case 1:
+					sv_en_fl[i] = true;
+					sv_esc_fl[i] = false;
+					break;
+				case 2:
+					sv_en_fl[i] = true;
+					sv_esc_fl[i] = true;
+					break;
+				default:
+					sv_en_fl[i] = false;
+					break;
+				}
 				sv_en_fl[i] = en_fl >= 1;
-			}
-		}
-
-		{
-			sprintf(str, "%s_ESC%u", prefix, i + 1);
-			int32_t esc_fl = 0;
-			if (param_get(param_find(str), &esc_fl) == PX4_OK)
-			{
-				sv_esc_fl[i] = esc_fl >= 1;
 			}
 		}
 
