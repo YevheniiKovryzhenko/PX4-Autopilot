@@ -424,17 +424,14 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 			break;
 
 		default:
-			armed = act_armed.armed;
 			switch (input_src_opt)
 			{
 			case 1: //RC_IN
 			{
-				if(_rc_channels_sub.update(&rc_ch))
-				{
-					float tmp_armed = static_cast<float>(armed);
-					rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
-					armed = tmp_armed > 0.1f;
-				}
+				_rc_channels_sub.update(&rc_ch);
+				float tmp_armed = static_cast<float>(armed);
+				rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
+				armed = tmp_armed > 0.1f;
 				break;
 			}
 
@@ -448,13 +445,23 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 			}
 
 			default:
-				if (commander_updated_armed_state || act_armed.armed != act_armed_px4.armed)
+				if (commander_updated_armed_state)
 				{
-					act_armed = act_armed_px4;
+					act_armed.timestamp = act_armed_px4.timestamp;
+					act_armed.armed = act_armed_px4.armed;
+					act_armed.force_failsafe = act_armed_px4.force_failsafe;
+					act_armed.in_esc_calibration_mode = act_armed_px4.in_esc_calibration_mode;
+					act_armed.lockdown = act_armed_px4.lockdown;
+					act_armed.manual_lockdown = act_armed_px4.manual_lockdown;
+					act_armed.prearmed = act_armed_px4.prearmed;
+					act_armed.ready_to_arm = act_armed_px4.ready_to_arm;
+					act_armed.soft_stop = act_armed_px4.soft_stop;
+					armed = act_armed_px4.armed;
 					return true;
 				}
 				else
 				{
+					armed = act_armed.armed;
 					return false;
 				}
 
@@ -541,7 +548,7 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	float roll = 0.f;		//[-1 1]
 	float pitch = 0.f; 		//[-1 1]
 	float yaw = 0.f;		//[-1 1]
-	float throttle = 0.f;		//[0 1]
+	float throttle = 0.f;		//[-1 1]
 	float manual_wing_ch = 0.f;	//[-1 1]
 
 	float mode_stick = -1.f; 			//[-1 1] actual stick position
@@ -561,7 +568,8 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 		rc_map_stick(roll, rc_ch, rc_channels_s::FUNCTION_ROLL);
 		rc_map_stick(pitch, rc_ch, rc_channels_s::FUNCTION_PITCH);
 		rc_map_stick(yaw, rc_ch, rc_channels_s::FUNCTION_YAW);
-		rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE);
+		rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE); //is [0 1]
+		throttle = throttle * 2.f - 1.f; // [0 1] -> [-1 1]
 		mode_stick = rc_ch.channels[rc_channels_s::FUNCTION_MODE];
 
 		break;
@@ -587,7 +595,8 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 		roll = man_setpoint.y;
 		pitch = man_setpoint.x;
 		yaw = man_setpoint.r;
-		throttle = man_setpoint.z;
+		throttle = man_setpoint.z; //is [0 1]
+		throttle = throttle * 2.f - 1.f; // [0 1] -> [-1 1]
 		mode_stick = man_switches.mode_slot;
 
 		break;

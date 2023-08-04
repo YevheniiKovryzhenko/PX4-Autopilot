@@ -1944,7 +1944,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.values[0] = man.x / 2 + 1500;	// roll
 		rc.values[1] = man.y / 2 + 1500;	// pitch
 		rc.values[2] = man.r / 2 + 1500;	// yaw
-		rc.values[3] = math::constrain(man.z / 0.9f + 800.0f, 1000.0f, 2000.0f);	// throttle
+		rc.values[3] = man.z + 1000;//%math::constrain(man.z / 0.9f + 800.0f, 1000.0f, 2000.0f);	// throttle
 
 		/* decode all switches which fit into the channel mask */
 		unsigned max_switch = (sizeof(man.buttons) * 8);
