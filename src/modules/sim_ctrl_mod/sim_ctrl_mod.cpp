@@ -331,6 +331,21 @@ bool SIM_CTRL_MOD::update_man_wing_angle(int input_source_opt, float& wing_cmd)
 	return need2update;
 }
 
+bool SIM_CTRL_MOD::update_distance_sensor(void)
+{
+	return _distance_sensor_sub.update(&dist);
+}
+
+bool SIM_CTRL_MOD::update_airspeed(void)
+{
+	return _airspeed_sub.update(&airspeed);
+}
+
+bool SIM_CTRL_MOD::update_adc(void)
+{
+	return _adc_report_sub.update(&adc);
+}
+
 bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the weird land-detector logic
 {
 	int32_t gc_case = _param_gc_opt.get();
@@ -346,26 +361,25 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 	{
 		case 1:
 			old_value = true;
+			was_pressed = false;
 			break;
 		case 2:
 		{
 			int32_t use_lidar = 0;
 			param_get(param_find("SENS_EN_SF1XX"), &use_lidar);
 			if (use_lidar > 6) {
-				distance_sensor_s dist;
-				if (_distance_sensor_sub.update(&dist))
-				{
-					float ekf2_min_rng = 0.f;
-					param_get(param_find("EKF2_MIN_RNG"), &ekf2_min_rng);
-					old_value = dist.current_distance < ekf2_min_rng;
-				}
+				update_distance_sensor();
+				float ekf2_min_rng = 0.f;
+				param_get(param_find("EKF2_MIN_RNG"), &ekf2_min_rng);
+				old_value = dist.current_distance < ekf2_min_rng;
 			}
+			was_pressed = false;
 			break;
 		}
 		case 3:
 		{
-			adc_report_s adc;
-			if (_adc_report_sub.update(&adc))
+			//adc_report_s adc;
+			if (update_adc())
 			{
 				if (adc.resolution == 0) break;
 
@@ -378,6 +392,7 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 					{
 						time_pressed_gc = hrt_absolute_time();
 						old_value = false;
+						was_pressed = true;
 					}
 					else
 					{
@@ -389,15 +404,15 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 					}
 
 				}
+				else was_pressed = false;
 			}
 			break;
 		}
 		default:
 			old_value = false;
+			was_pressed = false;
 			break;
 	}
-
-	was_pressed = false;
 	return old_value;
 
 }
@@ -706,6 +721,8 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 	if (_vehicle_global_position_sub.update(&global_pos)) need_2_pub = true;
 	if (_vehicle_attitude_sub.update(&att)) need_2_pub = true;
 	if (update_control_inputs(control_vec)) need_2_pub = true;
+	if (update_distance_sensor()) need_2_pub = true;
+	if (update_airspeed()) need_2_pub = true;
 
 
 
@@ -741,6 +758,9 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 
 		simulink_inboud_data.fill_buffer(static_cast<float> (check_ground_contact()));
 
+		simulink_inboud_data.fill_buffer(airspeed.true_airspeed_m_s);
+		simulink_inboud_data.fill_buffer(airspeed.indicated_airspeed_m_s);
+		simulink_inboud_data.fill_buffer(dist.current_distance);
 
 		//publish new data:
 		debug_array_s debug_topic{};

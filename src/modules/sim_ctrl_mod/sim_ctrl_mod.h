@@ -164,30 +164,33 @@ private:
 	uORB::Subscription		_simulink_inbound_sub{ORB_ID(simulink_inbound)};
 	uORB::Subscription 		_actuator_outputs_sv_sub{ORB_ID(actuator_outputs_sv)};
 
-	vehicle_local_position_s local_pos;
-	vehicle_global_position_s global_pos;
-	vehicle_attitude_s att;
-	//airspeed_s air_sp;
+	vehicle_local_position_s local_pos{};
+	vehicle_global_position_s global_pos{};
+	vehicle_attitude_s att{};
+	airspeed_s airspeed{};
 	//battery_status_s batt;
-	//distance_sensor_s dist;
-	actuator_armed_s act_armed;
-	vehicle_odometry_s odom;
-	//adc_report_s adc;
+	distance_sensor_s dist{};
+	actuator_armed_s act_armed{};
+	vehicle_odometry_s odom{};
+	adc_report_s adc{};
 
 	hrt_abstime	_boot_timestamp{0};
 
 	//obstacle_distance_s obs;
 
-	rc_channels_s rc_ch;
-	rc_parameter_map_s rc_map;
-	manual_control_setpoint_s man_setpoint;
-	manual_control_switches_s man_switches;
+	rc_channels_s rc_ch{};
+	rc_parameter_map_s rc_map{};
+	manual_control_setpoint_s man_setpoint{};
+	manual_control_switches_s man_switches{};
 
 
 	void publish_inbound_sim_data(void);
 	sim_data_trafic simulink_inboud_data{};
 
 	bool check_ground_contact(void);
+	bool update_distance_sensor(void);
+	bool update_airspeed(void);
+	bool update_adc(void);
 
 	//All actuators are packed together and sent by the simulink model.
 	static const int ACTUATOR_START_IND = 0; //this is the start index of actuator data in OUTBOUND data array
