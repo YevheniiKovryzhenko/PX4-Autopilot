@@ -22,7 +22,7 @@ parameters:
 
             type: float
             unit: kg
-            decimal: 4
+            decimal: 12
             default: 0.0182
             min: 0.0
 
@@ -55,7 +55,7 @@ parameters:
                     SIMULINK pitch moment to thrust conversion.
 
             type: float
-            decimal: 4
+            decimal: 12
             default: 0.00000625
             min: 0.0
 
@@ -66,11 +66,11 @@ parameters:
                     SIMULINK yaw moment to thrust conversion.
 
             type: float
-            decimal: 4
+            decimal: 12
             default: 56.4009
             min: 0.0
 
-        SM_MAX_THRUST_N:
+        SM_MAX_THRUST:
             description:
                 short: SIMULINK max thrust
                 long: |
@@ -78,11 +78,11 @@ parameters:
 
             type: float
             unit: N
-            decimal: 8
+            decimal: 12
             default: 9.94577371
             min: 0.0
 
-        SM_MAX_MROLL_N:
+        SM_MAX_MROLL:
             description:
                 short: SIMULINK max roll moment
                 long: |
@@ -94,7 +94,7 @@ parameters:
             default: 6.216108573029708E-5
             min: 0.0
 
-        SM_MAX_MPITCH_N:
+        SM_MAX_MPITCH:
             description:
                 short: SIMULINK max pitch moment
                 long: |
@@ -106,7 +106,7 @@ parameters:
             default: 6.216108573029708e-05
             min: 0.0
 
-        SM_MAX_MYAW_N:
+        SM_MAX_MYAW:
             description:
                 short: SIMULINK max yaw moment
                 long: |
@@ -300,8 +300,8 @@ parameters:
                     SIMULINK manual control roll stick gain
 
             type: float
-            decimal: 4
-            default: 0.6
+            decimal: 6
+            default: 0.785398
             min: 0.0
 
         SM_PITCH_SGAIN:
@@ -311,8 +311,8 @@ parameters:
                     SIMULINK manual control pitch stick gain
 
             type: float
-            decimal: 4
-            default: 0.6
+            decimal: 6
+            default: 0.785398
             min: 0.0
 
         SM_YAWR_SGAIN:
@@ -322,8 +322,8 @@ parameters:
                     SIMULINK manual control yaw rate stick gain
 
             type: float
-            decimal: 4
-            default: 0.6
+            decimal: 6
+            default: 1.570796
             min: 0.0
 
         SM_THRUST_SGAIN:
@@ -334,7 +334,7 @@ parameters:
 
             type: float
             decimal: 4
-            default: 0.6
+            default: 3.0
             min: 0.0
 
         SM_VXY_SGAIN:
@@ -345,7 +345,7 @@ parameters:
 
             type: float
             decimal: 4
-            default: 0.6
+            default: 0.8
             min: 0.0
 
         SM_VZ_SGAIN:
@@ -356,7 +356,7 @@ parameters:
 
             type: float
             decimal: 4
-            default: 0.6
+            default: 1.0
             min: 0.0
 
         SM_AUTO_DELAY_S:
