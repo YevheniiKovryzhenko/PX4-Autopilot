@@ -44,8 +44,8 @@ parameters:
                     SIMULINK roll moment to thrust conversion.
 
             type: float
-            decimal: 12
-            default: 0.00000625
+            decimal: 4
+            default: 6.25
             min: 0.0
 
         SM_MY2T:
@@ -55,8 +55,8 @@ parameters:
                     SIMULINK pitch moment to thrust conversion.
 
             type: float
-            decimal: 12
-            default: 0.00000625
+            decimal: 4
+            default: 6.25
             min: 0.0
 
         SM_MZ2T:
@@ -66,7 +66,7 @@ parameters:
                     SIMULINK yaw moment to thrust conversion.
 
             type: float
-            decimal: 12
+            decimal: 4
             default: 56.4009
             min: 0.0
 
@@ -90,8 +90,8 @@ parameters:
 
             type: float
             unit: Nm
-            decimal: 12
-            default: 6.216108573029708E-5
+            decimal: 4
+            default: 62.16108
             min: 0.0
 
         SM_MAX_MPITCH:
@@ -102,8 +102,8 @@ parameters:
 
             type: float
             unit: Nm
-            decimal: 12
-            default: 6.216108573029708e-05
+            decimal: 4
+            default: 62.16108
             min: 0.0
 
         SM_MAX_MYAW:
@@ -114,7 +114,7 @@ parameters:
 
             type: float
             unit: Nm
-            decimal: 12
+            decimal: 4
             default: 0.176340679093612
             min: 0.0
 
