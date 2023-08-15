@@ -36,6 +36,7 @@ px4_add_module(
 	MAIN sim_ctrl_mod
 	SRCS
 		sim_ctrl_mod.cpp
+		sticks.cpp
 	MODULE_CONFIG
 		module.yaml
 		module_tilt_wing.yaml

@@ -160,3 +160,80 @@ parameters:
                 1: RC_IN
                 2: INBOUND_MSG
             default: 0
+
+        SM_EN_DIRECT:
+            description:
+                short: SIMULINK OUTBOUND message overwrite
+                long: |
+                    This flag controls if outbound message is overwritten internally,
+                    directly from control inputs. If enabled, simulink output is ignored
+                    and all outputs are assigned according to SM_OUT_MAP
+            type: enum
+            values:
+                0: DISABLE
+                1: ENABLE
+            default: 0
+
+        SM_IN_MAP_${i}:
+            description:
+                short: SIMULINK INBOUND message order for entry ${i}
+                long: |
+                    This flag controls the order of elements in a
+                    control part of the inbound message. This parameter
+                    sets how the ${i}-th entry is interpreted.
+            type: enum
+            values:
+                0: ROLL
+                1: PITCH
+                2: YAW
+                3: THROTTLE
+                4: ARMED
+                5: MODE
+                6: AUX1
+                7: AUX2
+                8: AUX3
+                9: AUX4
+                10: AUX5
+                11: AUX6
+                12: EXTR1
+                13: EXTR2
+                14: EXTR3
+                15: EXTR4
+                16: EXTR5
+                17: EXTR6
+            num_instances: 18
+            instance_start: 1
+            min: 0
+            max: 17
+            default: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+
+        SM_OUT_MAP_${i}:
+            description:
+                short: SIMULINK INBOUND to OUTBOUND message bridge for entry ${i}
+                long: |
+                    This flag controls if outbound message is overwritten internally,
+                    directly from control inputs as given by SM_IN_MAP_${i}.
+                    This will only work if SM_EN_DIRECT is enabled.
+            type: enum
+            values:
+                0: ROLL
+                1: PITCH
+                2: YAW
+                3: THROTTLE
+                6: AUX1
+                7: AUX2
+                8: AUX3
+                9: AUX4
+                10: AUX5
+                11: AUX6
+                12: EXTR1
+                13: EXTR2
+                14: EXTR3
+                15: EXTR4
+                16: EXTR5
+                17: EXTR6
+            num_instances: 16
+            instance_start: 1
+            min: 0
+            max: 17
+            default: 3

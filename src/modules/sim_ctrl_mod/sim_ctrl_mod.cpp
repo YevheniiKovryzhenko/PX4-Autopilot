@@ -40,24 +40,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_rc_input.h>
 
-inline char rc_map_stick(float &out, rc_channels_s& rc_ch, uint8_t ch)
-{
-	if (ch > rc_channels_s::FUNCTION_MAN) {
-		out = 0.f;
-		return -1;
-		}
-
-	uint8_t ind = rc_ch.function[ch];
-	if (static_cast<size_t>(ind) > sizeof(rc_ch.channels)) {
-		out = 0.f;
-		return -1;
-	}
-	else {
-		out = rc_ch.channels[ind];
-		return 0;
-	}
-}
-
 sim_data_trafic::sim_data_trafic()
 {
 	ind = 0;
@@ -268,29 +250,100 @@ void SIM_CTRL_MOD::update_simulink_inputs(void)
 void SIM_CTRL_MOD::update_simulink_outputs(void)
 {
 	bool need2update_actuators = false;
-	//if simulink has published new outputs, we have to grab those and distribute to proper places in PX4
-	if (_simulink_outbound_sub.update(&sm_outbound))
+	int32_t SM_EN_DIRECT = 0;
+	param_get(param_find("SM_EN_DIRECT"), &SM_EN_DIRECT);
+
+	if (SM_EN_DIRECT == 1) //use user-set manual map
 	{
+		debug_array_s inbound_data;
+		int input_source_opt = _param_cmd_opt.get();
+		if (input_source_opt == 2) inbound_data = sm_inbound;
+		else inbound_data = debug_topic;
+
 		act_output.timestamp = hrt_absolute_time();
 		act_output.noutputs = ACTUATOR_MAX_SIZE;
-		for(int i = 0; i < ACTUATOR_MAX_SIZE; i++ )
+		for(uint8_t i = 0; i < ACTUATOR_MAX_SIZE; i++ )
 		{
-			act_output.output[i] = sm_outbound.data[ACTUATOR_START_IND + i];
+			act_output.output[i] = 1000.f * (inbound_data.data[get_output_ind(i)] + 1.f) / 2.f; //[-1 1] -> [0 1000]
 		}
 
 		need2update_actuators = true;
+
 	}
+	else //use simulink output
+	{
+		//if simulink has published new outputs, we have to grab those and distribute to proper places in PX4
+		if (_simulink_outbound_sub.update(&sm_outbound))
+		{
+			act_output.timestamp = hrt_absolute_time();
+			act_output.noutputs = ACTUATOR_MAX_SIZE;
+			for(int i = 0; i < ACTUATOR_MAX_SIZE; i++ )
+			{
+				act_output.output[i] = sm_outbound.data[i];
+			}
+
+			need2update_actuators = true;
+		}
+	}
+
+
 
 	//we can do some safety checking here first, before publishing the values
 
 	if(need2update_actuators) _actuator_outputs_sv_pub.publish(act_output); //the rest of PX4 needs to know new actuator commands
 }
 
+bool SIM_CTRL_MOD::update_sticks(int input_source_opt, sticks_ind stick, float& stick_val)
+{
+	switch (input_source_opt)
+		{
+		case 1: // RC_IN
+		{
+			_rc_channels_sub.update(&rc_ch);
+
+			//check every stick so we are sure rc is valid, otherwise quit
+			if (sticks_ind2rc_channels(stick, rc_ch, stick_val) == 0)
+			{
+				return true;
+			}
+			else return false;
+		}
+
+		case 2: //INBOUND_MSG
+		{
+			_simulink_inbound_sub.update(&sm_inbound);
+			stick_val = sm_inbound.data[get_input_ind(stick)];
+			return true;//assume everything was already sent correctly
+		}
+
+		default: //MANUAL_CONTROL_SETPOINT
+		{
+			_manual_control_setpoint_sub.update(&man_setpoint);
+			_manual_control_switches_sub.update(&man_switches);
+
+			switch (stick)
+			{
+			case MODE:
+				stick_val = man_switches.mode_slot; //special case
+				return true;
+
+			default:
+				if (sticks_ind2manual_control(stick, man_setpoint, stick_val) == 0)
+				{
+					return true;
+				}
+				else return false;
+			}
+		}
+		}
+	return false;
+}
+
 bool SIM_CTRL_MOD::update_man_wing_angle(int input_source_opt, float& wing_cmd)
 {
 	int32_t wing_opt = _param_sm_wing_src.get();
 	bool need2update = false;
-	static float cmd = -1.f;
+	static float wing_cmd_old = -1.f;
 
 	switch (wing_opt)
 	{
@@ -299,41 +352,33 @@ bool SIM_CTRL_MOD::update_man_wing_angle(int input_source_opt, float& wing_cmd)
 		break;
 
 	case 2: //MANUAL use CMD_SRC
-		switch (input_source_opt)
-			{
-			case 1: // RC_IN
-			{
-				if(_rc_channels_sub.update(&rc_ch)) need2update = true;
-
-				//check every stick so we are sure rc is valid, otherwise quit
-				rc_map_stick(wing_cmd, rc_ch, rc_channels_s::FUNCTION_AUX_6);
-				break;
-			}
-
-			case 2: //INBOUND_MSG
-			{
-				if (_simulink_inbound_sub.update(&sm_inbound)) need2update = true;
-				wing_cmd = sm_inbound.data[CONTROL_VEC_START_ID + AUX6_IND];
-				break;//assume everything was already sent correctly
-			}
-
-			default: //MANUAL_CONTROL_SETPOINT
-			{
-				if (_manual_control_setpoint_sub.update(&man_setpoint)) need2update = true;
-				wing_cmd = man_setpoint.aux6;
-				break;
-			}
-			}
-		return false;
+		if (update_sticks(input_source_opt, sticks_ind::AUX6, wing_cmd))
+		{
+			wing_cmd_old = wing_cmd;
+			return true;
+		}
+		else
+		{
+			wing_cmd = wing_cmd_old;
+			return false;
+		}
 	case 3: //AUTO
-		wing_cmd = sm_inbound.data[CONTROL_VEC_START_ID + AUX6_IND]; //simulink will ignore it anyways
-		break;
+		if (update_sticks(input_source_opt, sticks_ind::AUX6, wing_cmd))
+		{
+			wing_cmd_old = wing_cmd;
+			return true;
+		}
+		else
+		{
+			wing_cmd = wing_cmd_old;
+			return false;
+		}
 	default: //always -1
 		wing_cmd = -1.f;
 		break;
 	}
-	need2update = (need2update || fabsf(wing_cmd - cmd) > 1.f / 1000000.f);
-	cmd = wing_cmd; //keep track of the old command
+	need2update = (need2update || fabsf(wing_cmd - wing_cmd_old) > 1.f / 1000000.f);
+	wing_cmd_old = wing_cmd; //keep track of the old command
 	return need2update;
 }
 
@@ -451,7 +496,8 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 			{
 				_rc_channels_sub.update(&rc_ch);
 				float tmp_armed = static_cast<float>(armed);
-				rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
+				//rc_map_stick(tmp_armed, rc_ch, rc_channels_s::FUNCTION_ARMSWITCH);
+				sticks_ind2rc_channels(sticks_ind::ARMED, rc_ch, tmp_armed);
 				armed = tmp_armed > 0.1f;
 				break;
 			}
@@ -460,7 +506,7 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 			{
 				if (_simulink_inbound_sub.update(&sm_inbound))
 				{
-					armed = sm_inbound.data[CONTROL_VEC_START_ID + ARMED_IND] > 0.1f;
+					armed = sm_inbound.data[get_input_ind(sticks_ind::ARMED)] > 0.1f;
 				}
 				break;
 			}
@@ -511,9 +557,9 @@ bool SIM_CTRL_MOD::check_armed(bool &armed, int input_src_opt)
 enum control_level
 {
 	CALIBRATION = 1,
-	INNER_LOOP_LQI = 2,
-	INNER_LOOP_TECS = 3,
-	OUTER_LOOP = 4
+	MODE1 = 2,
+	MODE2 = 3,
+	MODE3 = 4
 };
 
 void SIM_CTRL_MOD::printf_debug_array(debug_array_s &array)
@@ -562,69 +608,50 @@ void SIM_CTRL_MOD::test_fake_atuator_data(void)
 bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 {
 	bool need_update = false;
-	//bool publish_new_manual_control_setpoint = false;
 	int input_source_opt = _param_cmd_opt.get();
 
 	//Control vector elements:
-	float roll = 0.f;		//[-1 1]
-	float pitch = 0.f; 		//[-1 1]
-	float yaw = 0.f;		//[-1 1]
-	float throttle = 0.f;		//[-1 1]
-	float manual_wing_ch = 0.f;	//[-1 1]
+	static float roll = 0.f;		//[-1 1]
+	static float pitch = 0.f; 		//[-1 1]
+	static float yaw = 0.f;			//[-1 1]
+	static float throttle = -1.f;		//[-1 1]
+	static float mode_stick = -1.f; 	//[-1 1] actual mode stick position
+	static float aux1 = -1.f;		//[-1 1]
+	static float aux2 = -1.f;		//[-1 1]
+	static float aux3 = -1.f;		//[-1 1]
+	static float aux4 = -1.f;		//[-1 1]
+	static float aux5 = -1.f;		//[-1 1]
+	static float aux6 = -1.f;		//[-1 1]
+	static float extr1 = -1.f;		//[-1 1]
+	static float extr2 = -1.f;		//[-1 1]
+	static float extr3 = -1.f;		//[-1 1]
+	static float extr4 = -1.f;		//[-1 1]
+	static float extr5 = -1.f;		//[-1 1]
+	static float extr6 = -1.f;		//[-1 1]
 
-	float mode_stick = -1.f; 			//[-1 1] actual stick position
-	control_level mode_ch = INNER_LOOP_LQI;		//[1 4] mode that corresponds to the stick position
+
+	static control_level mode_ch = MODE1;		//[1 4] mode that corresponds to the stick position
 
 	int32_t en_calibration = _param_sm_en_cal.get();
 
-
-
-	switch (input_source_opt)
+	if (update_sticks(input_source_opt, sticks_ind::ROLL, roll)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::PITCH, pitch)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::YAW, yaw)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::THROTTLE, throttle)) need_update = true;
 	{
-	case 1: // RC_IN
-	{
-		if(_rc_channels_sub.update(&rc_ch)) need_update = true;
-
-		//check every stick so we are sure rc is valid, otherwise quit
-		rc_map_stick(roll, rc_ch, rc_channels_s::FUNCTION_ROLL);
-		rc_map_stick(pitch, rc_ch, rc_channels_s::FUNCTION_PITCH);
-		rc_map_stick(yaw, rc_ch, rc_channels_s::FUNCTION_YAW);
-		rc_map_stick(throttle, rc_ch, rc_channels_s::FUNCTION_THROTTLE); //is [0 1]
-		throttle = throttle * 2.f - 1.f; // [0 1] -> [-1 1]
-		mode_stick = rc_ch.channels[rc_channels_s::FUNCTION_MODE];
-
-		break;
+		if (input_source_opt != 2) throttle = throttle * 2.f - 1.f; // [0 1] -> [-1 1]
+		need_update = true;
 	}
+	if (update_sticks(input_source_opt, sticks_ind::AUX1, aux1)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::AUX2, aux2)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::AUX3, aux3)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::AUX4, aux4)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::AUX5, aux5)) need_update = true;
+	if (update_man_wing_angle(input_source_opt, aux6)) need_update = true;
 
-
-	case 2: //INBOUND_MSG
-		//if (_simulink_inbound_sub.update(&sm_inbound)) publish_new_manual_control_setpoint = true;
-		roll 		= sm_inbound.data[CONTROL_VEC_START_ID + ROLL_IND];
-		pitch 		= sm_inbound.data[CONTROL_VEC_START_ID + PITCH_IND];
-		yaw 		= sm_inbound.data[CONTROL_VEC_START_ID + YAW_IND];
-		throttle 	= sm_inbound.data[CONTROL_VEC_START_ID + THROTTLE_IND];
-		mode_stick 	= static_cast<control_level>(sm_inbound.data[CONTROL_VEC_START_ID + MODE_IND]);
-
-
-		break;//assume everything was already sent correctly
-
-
-	default: //MANUAL_CONTROL_SETPOINT
-		if (_manual_control_setpoint_sub.update(&man_setpoint)) need_update = true;
-		if (_manual_control_switches_sub.update(&man_switches)) need_update = true;
-
-		roll = man_setpoint.y;
-		pitch = man_setpoint.x;
-		yaw = man_setpoint.r;
-		throttle = man_setpoint.z; //is [0 1]
-		throttle = throttle * 2.f - 1.f; // [0 1] -> [-1 1]
-		mode_stick = man_switches.mode_slot;
-
-		break;
-	}
+	if (update_sticks(input_source_opt, sticks_ind::MODE, mode_stick)) need_update = true;
 	bool armed_switch = false;
 	if (check_armed(armed_switch, input_source_opt)) need_update = true;
-	if (update_man_wing_angle(input_source_opt, manual_wing_ch)) need_update = true;
 
 	if (en_calibration == 1)
 	{
@@ -632,18 +659,30 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	}
 	else
 	{
-		if (mode_stick > 0.7f) mode_ch = OUTER_LOOP;
-		else if(mode_stick < -0.7f) mode_ch = INNER_LOOP_LQI;
-		else mode_ch = INNER_LOOP_TECS; //must always assign some default
+		if (mode_stick > 0.7f) mode_ch = MODE3;
+		else if(mode_stick < -0.7f) mode_ch = MODE1;
+		else mode_ch = MODE2; //must always assign some default
 	}
 
-	in_vec[ROLL_IND] = roll;
-	in_vec[PITCH_IND] = pitch;
-	in_vec[YAW_IND] = yaw;
-	in_vec[THROTTLE_IND] = throttle;
-	in_vec[AUX6_IND] = manual_wing_ch;
-	in_vec[ARMED_IND] = static_cast<float>(armed_switch);
-	in_vec[MODE_IND] = static_cast<float>(mode_ch);
+	in_vec[get_input_ind(sticks_ind::ROLL)] = roll;
+	in_vec[get_input_ind(sticks_ind::PITCH)] = pitch;
+	in_vec[get_input_ind(sticks_ind::YAW)] = yaw;
+	in_vec[get_input_ind(sticks_ind::THROTTLE)] = throttle;
+	in_vec[get_input_ind(sticks_ind::ARMED)] = static_cast<float>(armed_switch);
+	in_vec[get_input_ind(sticks_ind::MODE)] = static_cast<float>(mode_ch);
+	in_vec[get_input_ind(sticks_ind::AUX1)] = aux1;
+	in_vec[get_input_ind(sticks_ind::AUX2)] = aux2;
+	in_vec[get_input_ind(sticks_ind::AUX3)] = aux3;
+	in_vec[get_input_ind(sticks_ind::AUX4)] = aux4;
+	in_vec[get_input_ind(sticks_ind::AUX5)] = aux5;
+	in_vec[get_input_ind(sticks_ind::AUX6)] = aux6;
+	in_vec[get_input_ind(sticks_ind::EXTR1)] = extr1;
+	in_vec[get_input_ind(sticks_ind::EXTR2)] = extr2;
+	in_vec[get_input_ind(sticks_ind::EXTR3)] = extr3;
+	in_vec[get_input_ind(sticks_ind::EXTR4)] = extr4;
+	in_vec[get_input_ind(sticks_ind::EXTR5)] = extr5;
+	in_vec[get_input_ind(sticks_ind::EXTR6)] = extr6;
+
 
 	/*
 	if (publish_new_manual_control_setpoint) //let the rest of PX4 know we have control input
@@ -769,8 +808,6 @@ SIM_CTRL_MOD::publish_inbound_sim_data(void)
 		simulink_inboud_data.fill_buffer(dist.current_distance);
 
 		//publish new data:
-		debug_array_s debug_topic{};
-
 		debug_topic.timestamp = hrt_absolute_time();
 		debug_topic.id = debug_array_s::SIMULINK_INBOUND_ID;
 		char message_name[10] = "inbound";
