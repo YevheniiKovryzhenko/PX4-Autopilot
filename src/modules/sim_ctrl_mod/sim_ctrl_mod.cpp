@@ -132,7 +132,7 @@ int SIM_CTRL_MOD::custom_command(int argc, char *argv[])
 		get_instance()->do_something();
 		return 0;
 	}
-	 */
+	*/
 
 	return print_usage("unknown command");
 }
@@ -203,6 +203,10 @@ SIM_CTRL_MOD *SIM_CTRL_MOD::instantiate(int argc, char *argv[])
 SIM_CTRL_MOD::SIM_CTRL_MOD(int example_param, bool example_flag)
 	: ModuleParams(nullptr)
 {
+	for (int i = 0; i < CONTROL_VEC_SIZE; i++)
+	{
+		control_vec[i] = 0.0;
+	}
 }
 
 //#define DEBUG
@@ -306,17 +310,19 @@ bool SIM_CTRL_MOD::update_man_wing_angle(int input_source_opt, float& wing_cmd)
 				break;
 			}
 
-
 			case 2: //INBOUND_MSG
+			{
 				if (_simulink_inbound_sub.update(&sm_inbound)) need2update = true;
 				wing_cmd = sm_inbound.data[CONTROL_VEC_START_ID + AUX6_IND];
 				break;//assume everything was already sent correctly
-
+			}
 
 			default: //MANUAL_CONTROL_SETPOINT
+			{
 				if (_manual_control_setpoint_sub.update(&man_setpoint)) need2update = true;
 				wing_cmd = man_setpoint.aux6;
 				break;
+			}
 			}
 		return false;
 	case 3: //AUTO
