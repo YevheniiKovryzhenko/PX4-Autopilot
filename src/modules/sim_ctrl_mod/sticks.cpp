@@ -58,6 +58,24 @@ char sticks_ind2rc_channels(sticks_ind sticks, rc_channels_s& rc_ch, float& val)
 	case AUX6:
 		rc_ch_ind = rc_channels_s::FUNCTION_AUX_6;
 		break;
+	case EXTR1:
+		val = get_extr(1);
+		return 0;
+	case EXTR2:
+		val = get_extr(2);
+		return 0;
+	case EXTR3:
+		val = get_extr(3);
+		return 0;
+	case EXTR4:
+		val = get_extr(4);
+		return 0;
+	case EXTR5:
+		val = get_extr(5);
+		return 0;
+	case EXTR6:
+		val = get_extr(6);
+		return 0;
 
 	default:
 		return -1;
@@ -100,7 +118,24 @@ char sticks_ind2manual_control(sticks_ind sticks, manual_control_setpoint_s& man
 	case AUX6:
 		val = man_control.aux6;
 		break;
-
+	case EXTR1:
+		val = get_extr(1);
+		break;
+	case EXTR2:
+		val = get_extr(2);
+		break;
+	case EXTR3:
+		val = get_extr(3);
+		break;
+	case EXTR4:
+		val = get_extr(4);
+		break;
+	case EXTR5:
+		val = get_extr(5);
+		break;
+	case EXTR6:
+		val = get_extr(6);
+		break;
 	default:
 		return -1;
 	}
@@ -134,4 +169,17 @@ uint8_t get_output_ind(uint8_t out_ind)
 	param_get(param_find(str), &ind);
 
 	return static_cast<uint8_t>(ind);
+}
+
+float get_extr(uint8_t i)
+{
+	char str[17];
+	const char *prefix;
+
+	prefix = "SM_EXTR";
+	sprintf(str, "%s%u", prefix, i);
+	float val = 0;
+	param_get(param_find(str), &val);
+
+	return val;
 }

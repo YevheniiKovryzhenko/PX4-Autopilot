@@ -622,12 +622,12 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	static float aux4 = -1.f;		//[-1 1]
 	static float aux5 = -1.f;		//[-1 1]
 	static float aux6 = -1.f;		//[-1 1]
-	static float extr1 = -1.f;		//[-1 1]
-	static float extr2 = -1.f;		//[-1 1]
-	static float extr3 = -1.f;		//[-1 1]
-	static float extr4 = -1.f;		//[-1 1]
-	static float extr5 = -1.f;		//[-1 1]
-	static float extr6 = -1.f;		//[-1 1]
+	static float extr1 = 0.f;
+	static float extr2 = 0.f;
+	static float extr3 = 0.f;
+	static float extr4 = 0.f;
+	static float extr5 = 0.f;
+	static float extr6 = 0.f;
 
 
 	static control_level mode_ch = MODE1;		//[1 4] mode that corresponds to the stick position
@@ -648,6 +648,12 @@ bool SIM_CTRL_MOD::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 	if (update_sticks(input_source_opt, sticks_ind::AUX4, aux4)) need_update = true;
 	if (update_sticks(input_source_opt, sticks_ind::AUX5, aux5)) need_update = true;
 	if (update_man_wing_angle(input_source_opt, aux6)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::EXTR1, extr1)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::EXTR2, extr2)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::EXTR3, extr3)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::EXTR4, extr4)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::EXTR5, extr5)) need_update = true;
+	if (update_sticks(input_source_opt, sticks_ind::EXTR6, extr6)) need_update = true;
 
 	if (update_sticks(input_source_opt, sticks_ind::MODE, mode_stick)) need_update = true;
 	bool armed_switch = false;

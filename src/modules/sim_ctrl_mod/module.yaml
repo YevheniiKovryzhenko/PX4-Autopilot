@@ -237,3 +237,15 @@ parameters:
             min: 0
             max: 17
             default: 3
+
+        SM_EXTR${i}:
+            description:
+                short: SIMULINK EXRT${i} parameter
+                long: |
+                    This is an extra control input that can be used
+                    for anything.
+            type: float
+            decimal: 4
+            num_instances: 6
+            instance_start: 1
+            default: 0.0
