@@ -14,6 +14,26 @@ parameters:
             instance_start: 1
             default: [-0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
 
+        SM_TECS_KT2RPM:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            default: 0.0
+
+        SM_FF_THR:
+            description:
+                short: SIMULINK some usefull discription
+                long: |
+                    SIMULINK some usefull discription
+
+            type: float
+            decimal: 4
+            default: 0.0
+
         SM_IDLE_TH:
             description:
                 short: SIMULINK minimum (IDLE) throttle value
