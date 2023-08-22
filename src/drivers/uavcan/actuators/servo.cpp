@@ -164,7 +164,7 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 			float pwm_cmd = check_saturation(static_cast<float>(outputs[i] + 1000), 1000.f, 2000.f); //input is [0 1000] -> [1000 2000]
 
 			float pwm_min = assumed_min; //assume we are talking to servos, unless told otherwise
-
+			float norm_cmd;
 
 			if (sv_esc_fl[i]) //we are talking with an ESC
 			{
@@ -181,47 +181,51 @@ UavcanServoController::update_outputs(bool armed, bool fail, float outputs[MAX_A
 					}
 				//}
 
-				pwm_min = assumed_min_esc; //this should make regular command to be still within [1000, 2000] on [-1 1]. -1 in assumed_min_esc
+				pwm_cmd = check_saturation(pwm_cmd, sv_min[i], sv_max[i]); //saturate input PWM between the user-set bounds
+
+				//pwm_min = assumed_min_esc; //this should make regular command to be still within [1000, 2000] on [-1 1]. -1 in assumed_min_esc
+
+				const float min_norm = map2map(assumed_min, assumed_min_esc, assumed_max, -1.f, 1.f);
+
+				norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, min_norm, 1.f);
 
 			}
 			else // we are talking with a servo
 			{
-				if (sv_fail[i] > 0 && fail) pwm_cmd = static_cast<float>(sv_fail[i]); //use fail value if enabled and active
-				else if (!armed)
+				if (!disable_safety_checks_fl)
 				{
-					//if (sv_rev_fl[1]) cmd.command_value = 1.f;// this is kinda dumb
-
-					if (sv_disarm[i] > 0) pwm_cmd = static_cast<float>(sv_disarm[i]); //use armed value if enabled and active
-					else
+					if (sv_fail[i] > 0 && fail) pwm_cmd = static_cast<float>(sv_fail[i]); //use fail value if enabled and active
+					else if (!armed)
 					{
-						cmd.command_value = 0.0f;//always send minimum value if disarmed or in failsafe mode
-						msg.commands.push_back(cmd);
-						write_anything = true;
-						continue;
+						//if (sv_rev_fl[1]) cmd.command_value = 1.f;// this is kinda dumb
+
+						if (sv_disarm[i] > 0) pwm_cmd = static_cast<float>(sv_disarm[i]); //use armed value if enabled and active
+						else
+						{
+							cmd.command_value = 0.0f;//always send minimum value if disarmed or in failsafe mode
+							msg.commands.push_back(cmd);
+							write_anything = true;
+							continue;
+						}
 					}
+					else if (sv_rev_fl[i]) pwm_cmd = -(pwm_cmd - 1500.f) + 1500.f; //flip the polarity
 				}
-				else if (sv_rev_fl[i]) pwm_cmd = -(pwm_cmd - 1500.f) + 1500.f; //flip the polarity
+				else if(sv_rev_fl[i]) pwm_cmd = -(pwm_cmd - 1500.f) + 1500.f; //flip the polarity
 
-				//else if (sv_disarm[i] > 0 && !armed) pwm_cmd = static_cast<float>(1500); //use armed value if enabled and active
-				//else if (sv_rev_fl[i]) pwm_cmd = -(pwm_cmd - 1500.f) + 1500.f; //flip the polarity
+				if (sv_min[i] == sv_max[i])
+				{
+					norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, pwm_min, assumed_max);
+				}
+				else
+				{
+					float min_norm = map2map(sv_min[i], pwm_min, assumed_max, -1.f, 1.f);
+					float max_norm = map2map(sv_max[i], pwm_min, assumed_max, -1.f, 1.f);
+
+					norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, min_norm, max_norm);
+				}
+
+				norm_cmd += map2map(sv_trim[i], -500.f, 500.f, -1.f, 1.f); //apply trim value
 			}
-
-			float norm_cmd;
-
-			if (sv_min[i] == sv_max[i])
-			{
-				norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, pwm_min, assumed_max);
-			}
-			else
-			{
-				float min_norm = map2map(sv_min[i], pwm_min, assumed_max, -1.f, 1.f);
-				float max_norm = map2map(sv_max[i], pwm_min, assumed_max, -1.f, 1.f);
-
-				norm_cmd = map2map(pwm_cmd, 1000.f, 2000.f, min_norm, max_norm);
-			}
-
-
-			norm_cmd += map2map(sv_trim[i], -500.f, 500.f, -1.f, 1.f); //apply trim value
 
 			cmd.command_value = check_saturation(norm_cmd, -1.f, 1.f);
 
