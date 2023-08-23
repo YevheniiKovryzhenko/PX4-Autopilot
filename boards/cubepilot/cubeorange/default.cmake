@@ -27,8 +27,8 @@ px4_add_board(
 		#camera_capture
 		#camera_trigger
 		differential_pressure # all available differential pressure drivers
-		#distance_sensor # all available distance sensor drivers
-		distance_sensor/lightware_laser_i2c/
+		distance_sensor # all available distance sensor drivers
+		#distance_sensor/lightware_laser_i2c/
 		dshot
 		gps
 		#heater

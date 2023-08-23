@@ -416,14 +416,14 @@ bool SIM_CTRL_MOD::check_ground_contact(void) // this is a quick work-around the
 			break;
 		case 2:
 		{
-			int32_t use_lidar = 0;
-			param_get(param_find("SENS_EN_SF1XX"), &use_lidar);
-			if (use_lidar > 6) {
+			//int32_t use_lidar = 0;
+			//param_get(param_find("SENS_EN_SF1XX"), &use_lidar);
+			//if (use_lidar > 6) { //this is not needed anymore
 				update_distance_sensor();
 				float ekf2_min_rng = 0.f;
 				param_get(param_find("EKF2_MIN_RNG"), &ekf2_min_rng);
 				old_value = dist.current_distance < ekf2_min_rng;
-			}
+			//}
 			was_pressed = false;
 			break;
 		}
