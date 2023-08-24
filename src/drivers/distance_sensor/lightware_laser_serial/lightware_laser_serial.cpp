@@ -127,6 +127,14 @@ LightwareLaserSerial::init()
 		_simple_serial = true;
 		break;
 
+	case 8:
+		/* SF30/d (200m 156Hz) */
+		_px4_rangefinder.set_min_distance(0.2f);
+		_px4_rangefinder.set_max_distance(200.0f);
+		_interval = 1e6 / 156;
+		_simple_serial = true;
+		break;
+
 	default:
 		PX4_ERR("invalid HW model %" PRIi32 ".", hw_model);
 		return -1;
