@@ -7,6 +7,13 @@ double get_dt_s_hrt(hrt_abstime &time_stamp)
 	return static_cast<double>(hrt_elapsed_time(&time_stamp))*1.0E-6;
 }
 
+template <typename Type, size_t M>
+void assign_1Darray2Vector(matrix::Vector<Type, M> *output_Vec, Type input_1Darray[M])
+{
+	for (int i = 0; i < M; i++) output_Vec(i) = input_1Darray[i];
+	return;
+}
+
 template <typename Type, size_t n_coefs>
 Type poly_val(matrix::Vector<Type, n_coefs> coefs, Type time_int_s, Type tof_int_s, uint8_t deriv_order)
 {
