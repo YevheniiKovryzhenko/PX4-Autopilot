@@ -134,7 +134,7 @@ SIM_GUIDANCE::SIM_GUIDANCE(int example_param, bool example_flag)
 {
 }
 
-#define DEBUG
+//#define DEBUG
 
 
 
@@ -159,68 +159,20 @@ void assign_1Darray2Vector(matrix::Vector<Type, M> *output_Vec, Type input_1Darr
 	return;
 }
 
-int test_traj(void)
-{
-	const size_t n_coefs = 10;
-	const size_t n_segments = 2;
-	const size_t n_dofs = 3;
-	double x0_coefs_raw[n_coefs] = {10.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	double y0_coefs_raw[n_coefs] = {20.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	double z0_coefs_raw[n_coefs] = {30.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	double yaw0_coefs_raw[n_coefs] = {20.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-
-	double x1_coefs_raw[n_coefs] = {20.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	double y1_coefs_raw[n_coefs] = {20.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	double z1_coefs_raw[n_coefs] = {20.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	double yaw1_coefs_raw[n_coefs] = {20.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-
-	matrix::Vector<double, n_coefs> x0_coefs(x0_coefs_raw);
-	matrix::Vector<double, n_coefs> y0_coefs(y0_coefs_raw);
-	matrix::Vector<double, n_coefs> z0_coefs(z0_coefs_raw);
-	matrix::Vector<double, n_coefs> yaw0_coefs(yaw0_coefs_raw);
-
-	matrix::Vector<double, n_coefs> x1_coefs(x1_coefs_raw);
-	matrix::Vector<double, n_coefs> y1_coefs(y1_coefs_raw);
-	matrix::Vector<double, n_coefs> z1_coefs(z1_coefs_raw);
-	matrix::Vector<double, n_coefs> yaw1_coefs(yaw1_coefs_raw);
-
-	matrix::Vector<matrix::Vector<matrix::Vector<double, n_coefs>, n_dofs>, n_segments> coefs;
-	coefs.setZero();
-	coefs(0)(0) = x0_coefs;
-	coefs(1)(0) = y0_coefs;
-	coefs(2)(0) = z0_coefs;
-	coefs(3)(0) = yaw0_coefs;
-
-	coefs(0)(1) = x1_coefs;
-	coefs(1)(1) = y1_coefs;
-	coefs(2)(1) = z1_coefs;
-	coefs(3)(1) = yaw1_coefs;
-
-	//coefs(2)(0).print();
-	//coefs(3)(1).print();
-
-	//matrix::Vector<matrix::Vector<double, n_coefs>,n_dofs> coefs_int;
-	//coefs_int.setZero();
-	//coefs_int(0) = x0_coefs;
-	//coefs_int(1) = y0_coefs;
-	//coefs_int(0).print();
-	//coefs_int(1).print();
-	printf("\n-----------\n");
-	return 0;
-}
-
 void SIM_GUIDANCE::update_guidance(void)
 {
-	//int32_t enable_fl = _param_smg_en.get();
+	int32_t enable_fl = _param_smg_en.get();
 
-	//if (enable_fl == 1)
-	//{
+
+	if (enable_fl == 1)
+	{
 		#ifdef DEBUG
-		printf("Updating main loop\n");
-		test_traj();
-		printf("\n");
+		PX4_INFO("Updating main loop");
 		#endif
-	//}
+		traj.update();
+
+	}
+
 
 }
 

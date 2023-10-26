@@ -83,6 +83,8 @@ private:
 
 	void update_guidance(void);
 
+	trajectory traj{};
+
 	hrt_abstime	_boot_timestamp{0};
 
 
