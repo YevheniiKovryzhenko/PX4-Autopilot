@@ -396,6 +396,43 @@ int trajectory::execute(void)
 	smg_traj.timestamp = hrt_absolute_time();
 	_sim_guidance_trajecotry_pub.publish(smg_traj);
 
+	//also publish it in array format:
+	debug_array_s smg{};
+	smg.timestamp = hrt_absolute_time();
+	size_t tmp_ind = 0;
+	smg.id = debug_array_s::SIMULINK_GUIDANCE_ID;
+	char message_name[10] = "guidance";
+	memcpy(smg.name, message_name, sizeof(message_name));
+	smg.name[sizeof(smg.name) - 1] = '\0'; // enforce null termination
+
+	for (size_t i = 0; i < n_dofs_max; i++)
+	{
+		smg.data[tmp_ind] = static_cast<float>(pos(i)) + static_cast<float>(initial_point.pos(i));
+		tmp_ind++;
+	}
+	for (size_t i = 0; i < n_dofs_max; i++)
+	{
+		smg.data[tmp_ind] = static_cast<float>(vel(i)) + static_cast<float>(initial_point.vel(i));
+		tmp_ind++;
+	}
+	for (size_t i = 0; i < n_dofs_max; i++)
+	{
+		smg.data[tmp_ind] = static_cast<float>(acc(i)) + static_cast<float>(initial_point.acc(i));
+		tmp_ind++;
+	}
+	for (size_t i = 0; i < n_dofs_max; i++)
+	{
+		smg.data[tmp_ind] = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
+		tmp_ind++;
+	}
+	for (size_t i = 0; i < n_dofs_max; i++)
+	{
+		smg.data[tmp_ind] = static_cast<float>(snap(i)) + static_cast<float>(initial_point.snap(i));
+		tmp_ind++;
+	}
+	_sim_guidance_pub.publish(smg);
+
+
 	return 0;
 }
 
