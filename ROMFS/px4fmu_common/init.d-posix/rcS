@@ -265,8 +265,8 @@ fi
 #
 # Start simulink modudes
 #
-sim_ctrl_mod start -f -p 42
-sim_guidance start -f -p 42
+sim_ctrl_mod start
+sim_guidance start
 
 # execute autostart post script if any
 [ -e "$autostart_file".post ] && . "$autostart_file".post

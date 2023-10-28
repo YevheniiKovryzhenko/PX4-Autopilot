@@ -49,7 +49,7 @@ class SIM_GUIDANCE : public ModuleBase<SIM_GUIDANCE>, public ModuleParams
 {
 public:
 
-	SIM_GUIDANCE(int example_param, bool example_flag);
+	SIM_GUIDANCE(int example_param);
 
 	virtual ~SIM_GUIDANCE() = default;
 
@@ -82,6 +82,8 @@ private:
 	void parameters_update(bool force = false);
 
 	void update_guidance(void);
+
+	int set_new_file_path(const char* _new_file_path);
 
 	trajectory traj{};
 

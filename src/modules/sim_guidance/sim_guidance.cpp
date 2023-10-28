@@ -39,29 +39,46 @@
 #include <math.h>
 #include <uORB/topics/parameter_update.h>
 
-
 int SIM_GUIDANCE::print_status()
 {
 	PX4_INFO("Running");
-	// TODO: print additional runtime information about the state of the module
+	traj.print_status();
 
+	return 0;
+}
+
+int SIM_GUIDANCE::set_new_file_path(const char* _new_file_path)
+{
+	PX4_INFO("Setting the path to %s", _new_file_path);
 	return 0;
 }
 
 int SIM_GUIDANCE::custom_command(int argc, char *argv[])
 {
-	/*
+
 	if (!is_running()) {
 		print_usage("not running");
 		return 1;
 	}
 
+	const char *file_string = nullptr;
+
 	// additional custom commands can be handled like this:
-	if (!strcmp(argv[0], "do-something")) {
-		get_instance()->do_something();
-		return 0;
+	for (int i = 0; i < argc; i++)
+	{
+		if (!strcmp(argv[i], "set_src")) {
+			file_string = argv[i+1];
+			PX4_INFO("src_file=%s",file_string);
+			if (get_instance()->set_new_file_path(file_string) < 0)
+			{
+				PX4_INFO("Failed to set new file path for trajectory execution");
+				return 0;
+			}
+			return 0;
+		}
+		else continue;
 	}
-	*/
+
 
 	return print_usage("unknown command");
 }
@@ -87,7 +104,7 @@ int SIM_GUIDANCE::task_spawn(int argc, char *argv[])
 SIM_GUIDANCE *SIM_GUIDANCE::instantiate(int argc, char *argv[])
 {
 	int example_param = 0;
-	bool example_flag = false;
+	const char *file_string = nullptr;
 	bool error_flag = false;
 
 	int myoptind = 1;
@@ -95,14 +112,17 @@ SIM_GUIDANCE *SIM_GUIDANCE::instantiate(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 
 	// parse CLI arguments
-	while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "p:f:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'p':
 			example_param = (int)strtol(myoptarg, nullptr, 10);
+			PX4_INFO("p=%i",example_param);
 			break;
 
 		case 'f':
-			example_flag = true;
+			file_string = myoptarg;
+
+			PX4_INFO("f=%s",file_string);
 			break;
 
 		case '?':
@@ -120,7 +140,7 @@ SIM_GUIDANCE *SIM_GUIDANCE::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
-	SIM_GUIDANCE *instance = new SIM_GUIDANCE(example_param, example_flag);
+	SIM_GUIDANCE *instance = new SIM_GUIDANCE(example_param);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -129,7 +149,7 @@ SIM_GUIDANCE *SIM_GUIDANCE::instantiate(int argc, char *argv[])
 	return instance;
 }
 
-SIM_GUIDANCE::SIM_GUIDANCE(int example_param, bool example_flag)
+SIM_GUIDANCE::SIM_GUIDANCE(int example_param)
 	: ModuleParams(nullptr)
 {
 }
@@ -215,7 +235,8 @@ $ SIM_GUIDANCE start -f -p 42
 
 	PRINT_MODULE_USAGE_NAME("SIM_GUIDANCE", "custom");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
+	//PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('f', "", nullptr, "Test load directory", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

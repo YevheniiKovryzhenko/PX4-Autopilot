@@ -105,8 +105,12 @@ int eval_traj(matrix::Vector<Type, n_dofs> &eval_vec, Type time_trajectory_s, ma
 	return res;
 }
 
-int read_from_file(void)
+int trajectory::read_from_file(const char* path)
 {
+
+	PX4_INFO("file path: %s",path);
+	return 0;
+
 	static int _fd = -1;
 
 	if (_fd < 0)
@@ -114,7 +118,7 @@ int read_from_file(void)
 		_fd = px4_open("/fs/microsd/1.txt", O_RDONLY);
 		if (_fd < 0)
 		{
-			PX4_ERR("can't open file, %d", errno);
+			PX4_ERR("Can't open file, %d", errno);
 			return -1;
 		}
 	}
@@ -242,6 +246,7 @@ void trajectory::update(void)
 				status.finished = true;
 				status.loaded = false;
 			}
+			file_loader.close_file(); //do this no matter what
 		}
 		else
 		{
@@ -275,10 +280,9 @@ void trajectory::update(void)
 	return;
 }
 
-
-int trajectory::load(void)
+/*
+void test(void)
 {
-
 	PX4_INFO("Begin trajectory loading sequence...");
 	//read first row to get the settings of the trajectory:
 	n_coeffs = 10;
@@ -331,6 +335,88 @@ int trajectory::load(void)
 	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 1, 1, y1_coefs_raw, n_coeffs);
 	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 1, 2, z1_coefs_raw, n_coeffs);
 	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 1, 3, yaw1_coefs_raw, n_coeffs);
+	return 0;
+}
+*/
+
+int trajectory::load(void)
+{
+
+	PX4_INFO("Begin trajectory loading sequence...");
+	//read first row to get the settings of the trajectory:
+	traj_file_header_t traj_header{};
+	if (file_loader.read_header(traj_header) < 0) return -1;
+	n_coeffs = static_cast<size_t>(traj_header.n_coeffs);
+	n_int = static_cast<size_t>(traj_header.n_int);
+	n_dofs = static_cast<size_t>(traj_header.n_dofs);
+
+	//check if all good:
+	if (n_coeffs > n_coeffs_max)
+	{
+		PX4_INFO("Too many coefficients");
+		return -1;
+	}
+	if (n_int > n_int_max)
+	{
+		PX4_INFO("Too many segments");
+		return -1;
+	}
+	if (n_dofs > n_dofs_max)
+	{
+		PX4_INFO("Too many dofs");
+		return -1;
+	}
+	if (n_coeffs == 0 || n_int == 0 || n_dofs == 0)
+	{
+		PX4_INFO("Ivalid trajectory (zeros in the settings)");
+		return -1;
+	}
+
+	//load the trajectory data (we need coefficients and time allocated for each interval)
+	tof_int.setZero();
+	coefs.setZero();
+	matrix::Vector<DATATYPE_TRAJ, n_dofs_max> tof_int_i;
+	for (size_t i_int = 0; i_int < n_int; i_int++)
+	{
+		tof_int_i.setZero();
+		for (size_t i_dof = 0; i_dof < n_dofs; i_dof++)
+		{
+			traj_file_data_t traj_data{};
+			if (file_loader.read_data(traj_data) < 0) return -1;
+
+			//perform additional checks:
+			if (static_cast<size_t>(traj_data.i_dof) != i_dof)
+			{
+				PX4_ERR("Error in the trajecotry loading: i_dof for i_int=%lu, i_dof=%lu does not match the file.",i_int, i_dof);
+				file_loader.close_file();
+				return -1;
+			}
+			if (static_cast<size_t>(traj_data.i_int) != i_int)
+			{
+				PX4_ERR("Error in the trajecotry loading: i_int for i_int=%lu, i_dof=%lu does not match the file.",i_int, i_dof);
+				file_loader.close_file();
+				return -1;
+			}
+			//that's all we can do for the data (as of right now)
+			assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, i_int, i_dof, traj_data.coefs, n_coeffs);
+			tof_int_i(i_dof) = traj_data.t_int;
+		}
+		if (n_dofs > 1)
+		{
+			for (size_t i_dof = 0; i_dof < n_dofs-1; i_dof++)
+			{
+				if (fabs(static_cast<float>(tof_int_i(i_dof) - tof_int_i(i_dof+1))) > 1.0E-5f)
+				{
+					PX4_ERR("Error in the trajecotry loading: i_int=%lu, t_int does not match accross all dofs.", i_int);
+					file_loader.close_file();
+					return -1;
+				}
+			}
+		}
+		tof_int(i_int) = tof_int_i(0);
+
+
+	}
 	return 0;
 }
 //#define DEBUG
@@ -461,6 +547,33 @@ void trajectory::reset(void)
 	n_coeffs = 10;
 	n_int = 0;
 	n_dofs = 4;
+	return;
+}
+
+void trajectory::print_status(void)
+{
+	PX4_INFO("Guidance Internal Status Report:");
+	if (status.started) 	PX4_INFO("Started: \t\t true");
+	else 			PX4_INFO("Started: \t\t false");
+
+	if (status.loaded) 	PX4_INFO("Loaded: \t\t true");
+	else 			PX4_INFO("Loaded: \t\t false");
+
+	if (status.executing) 	PX4_INFO("Executing: \t true");
+	else 			PX4_INFO("Executing: \t false");
+
+	if (status.trajectory_valid) \
+				PX4_INFO("Trajectory valid:\t true");
+	else 			PX4_INFO("Trajectory valid:\t false");
+
+	if (status.finished) 	PX4_INFO("Finished:\t\t true");
+	else 			PX4_INFO("Finished:\t\t false");
+
+
+	PX4_INFO("Latest Trajectory Parameters:");
+	PX4_INFO("Number of coefficients for each segment:\t %lu / %lu",n_coeffs,n_coeffs_max);
+	PX4_INFO("Number of segments:\t\t\t %lu / %lu",n_int,n_int_max);
+	PX4_INFO("Number of active degrees of freedom:\t %lu / %lu",n_dofs,n_dofs_max);
 	return;
 }
 

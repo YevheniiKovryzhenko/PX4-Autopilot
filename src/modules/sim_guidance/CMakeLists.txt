@@ -37,6 +37,7 @@ px4_add_module(
 	SRCS
 		sim_guidance.cpp
 		trajectory.cpp
+		file_loader_backend.cpp
 	MODULE_CONFIG
 		module.yaml
 	)

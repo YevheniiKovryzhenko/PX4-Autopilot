@@ -7,6 +7,7 @@
 #include <uORB/topics/sim_guidance_status.h>
 #include <uORB/topics/sim_guidance_request.h>
 #include <uORB/topics/debug_array.h>
+#include "file_loader_backend.hpp"
 
 using matrix::Dcmf;
 using matrix::Quatf;
@@ -15,6 +16,7 @@ using matrix::Vector3f;
 
 
 double get_dt_s_hrt(hrt_abstime &time_stamp);
+
 
 
 template <typename Type>
@@ -69,12 +71,15 @@ private:
 	matrix::Vector<float, n_int_max> tof_int;
 
 	pointf initial_point{};
+	file_loader_backend file_loader{};
+
 
 
 	void start(void);
 	void reset(void);
 	int load(void);
 	int execute(void);
+	int read_from_file(const char*);
 
 
 	sim_guidance_status_s status{};
@@ -96,6 +101,7 @@ public:
 	trajectory(/* args */);
 	~trajectory();
 
+	void print_status(void);
 	void update(void); //main update loop
 };
 
