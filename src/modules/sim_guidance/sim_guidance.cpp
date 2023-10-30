@@ -47,12 +47,6 @@ int SIM_GUIDANCE::print_status()
 	return 0;
 }
 
-int SIM_GUIDANCE::set_new_file_path(const char* _new_file_path)
-{
-	PX4_INFO("Setting the path to %s", _new_file_path);
-	return 0;
-}
-
 int SIM_GUIDANCE::custom_command(int argc, char *argv[])
 {
 
@@ -61,17 +55,60 @@ int SIM_GUIDANCE::custom_command(int argc, char *argv[])
 		return 1;
 	}
 
-	const char *file_string = nullptr;
+
 
 	// additional custom commands can be handled like this:
 	for (int i = 0; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "set_src")) {
-			file_string = argv[i+1];
-			PX4_INFO("src_file=%s",file_string);
-			if (get_instance()->set_new_file_path(file_string) < 0)
+			if (argc < i+1)
 			{
-				PX4_INFO("Failed to set new file path for trajectory execution");
+				PX4_WARN("Please specify a directory, followed by file name");
+				print_usage();
+				return 0;
+			}
+			const char *file_string = nullptr;
+			if (argc > i+1)
+			{
+				const char *dir_string = nullptr;
+				dir_string = argv[i+1];
+				file_string = argv[i+2];
+				if (get_instance()->traj.set_src(dir_string, file_string) < 0)
+				{
+					PX4_WARN("Failed to set new file path for trajectory execution");
+					return 0;
+				}
+			}
+			else
+			{
+				file_string = argv[i+1];
+				if (get_instance()->traj.set_src(file_string) < 0)
+				{
+					PX4_WARN("Failed to set new file path for trajectory execution");
+					return 0;
+				}
+			}
+
+			return 0;
+		}
+		else if(!strcmp(argv[i], "ls"))
+		{
+			if (argc < i+1)
+			{
+				PX4_WARN("Please specify a directory");
+				print_usage();
+				return 0;
+			}
+			const char *file_string = nullptr;
+			file_string = argv[i+1];
+			if (get_instance()->traj.file_loader.list_dirs(file_string) < 0)
+			{
+				PX4_WARN("Failed to list directories");
+				return 0;
+			}
+			if (get_instance()->traj.file_loader.list_files(file_string) < 0)
+			{
+				PX4_WARN("Failed to list files");
 				return 0;
 			}
 			return 0;
@@ -89,7 +126,7 @@ int SIM_GUIDANCE::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("SIM_GUIDANCE",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_DEFAULT,
-				      1024,
+				      1800,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -233,7 +270,7 @@ $ SIM_GUIDANCE start -f -p 42
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("SIM_GUIDANCE", "custom");
+	PRINT_MODULE_USAGE_NAME("sim_guidance", "custom");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	//PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('f', "", nullptr, "Test load directory", true);

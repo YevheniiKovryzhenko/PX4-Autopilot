@@ -22,7 +22,7 @@ size_t i_int, size_t i_dof, Type* input_1Darray, size_t n_coeffs_in)
 }
 
 template <typename Type, size_t n_coeffs>
-Type poly_val(matrix::Vector<Type, n_coeffs> coeffs, Type time_int_s, Type tof_int_s, uint8_t deriv_order, size_t n_coeffs_in)
+Type poly_val(matrix::Vector<Type, n_coeffs> &coeffs, Type time_int_s, Type tof_int_s, uint8_t deriv_order, size_t n_coeffs_in)
 {
 	Type out = static_cast<Type>(0.0);
 	double tau = static_cast<double>(time_int_s) / static_cast<double>(tof_int_s);
@@ -46,8 +46,8 @@ Type poly_val(matrix::Vector<Type, n_coeffs> coeffs, Type time_int_s, Type tof_i
 }
 
 template <typename Type, size_t n_coefs, size_t n_dofs, size_t n_int>
-int eval_traj(matrix::Vector<Type, n_dofs> &eval_vec, Type time_trajectory_s, matrix::Vector<matrix::Vector<matrix::Vector<Type, n_coefs>, n_dofs>, n_int> coeffs,\
- 		matrix::Vector<Type, n_int> tof_int_s, uint8_t deriv_order,\
+int eval_traj(matrix::Vector<Type, n_dofs> &eval_vec, Type time_trajectory_s, matrix::Vector<matrix::Vector<matrix::Vector<Type, n_coefs>, n_dofs>, n_int> &coeffs,\
+ 		matrix::Vector<Type, n_int> &tof_int_s, uint8_t deriv_order,\
 		size_t n_coeffs_in, size_t n_dofs_in, size_t n_int_in)
 {
 
@@ -235,18 +235,11 @@ void trajectory::update(void)
 		if (!status.loaded)
 		{
 			status.trajectory_valid = false;
-			if (load() == 0)
-			{
-				status.loaded = true;
-				PX4_INFO("Trajectory successfully loaded!");
-			}
-			else
+			if (load() < 0)
 			{
 				PX4_INFO("Failed to load trajectory, disengaging guidance...");
 				status.finished = true;
-				status.loaded = false;
 			}
-			file_loader.close_file(); //do this no matter what
 		}
 		else
 		{
@@ -281,7 +274,7 @@ void trajectory::update(void)
 }
 
 /*
-void test(void)
+int file_loader_backend::create_test_file(const char* location)
 {
 	PX4_INFO("Begin trajectory loading sequence...");
 	//read first row to get the settings of the trajectory:
@@ -341,7 +334,7 @@ void test(void)
 
 int trajectory::load(void)
 {
-
+	file_loader.close_file(); //do this no matter what
 	PX4_INFO("Begin trajectory loading sequence...");
 	//read first row to get the settings of the trajectory:
 	traj_file_header_t traj_header{};
@@ -354,21 +347,29 @@ int trajectory::load(void)
 	if (n_coeffs > n_coeffs_max)
 	{
 		PX4_INFO("Too many coefficients");
+		status.loaded = false;
+		file_loader.close_file();
 		return -1;
 	}
 	if (n_int > n_int_max)
 	{
 		PX4_INFO("Too many segments");
+		status.loaded = false;
+		file_loader.close_file();
 		return -1;
 	}
 	if (n_dofs > n_dofs_max)
 	{
 		PX4_INFO("Too many dofs");
+		status.loaded = false;
+		file_loader.close_file();
 		return -1;
 	}
 	if (n_coeffs == 0 || n_int == 0 || n_dofs == 0)
 	{
 		PX4_INFO("Ivalid trajectory (zeros in the settings)");
+		status.loaded = false;
+		file_loader.close_file();
 		return -1;
 	}
 
@@ -387,13 +388,15 @@ int trajectory::load(void)
 			//perform additional checks:
 			if (static_cast<size_t>(traj_data.i_dof) != i_dof)
 			{
-				PX4_ERR("Error in the trajecotry loading: i_dof for i_int=%lu, i_dof=%lu does not match the file.",i_int, i_dof);
+				PX4_ERR("Error in the trajecotry loading: i_dof for i_int=%u, i_dof=%u does not match the file.",i_int, i_dof);
+				status.loaded = false;
 				file_loader.close_file();
 				return -1;
 			}
 			if (static_cast<size_t>(traj_data.i_int) != i_int)
 			{
-				PX4_ERR("Error in the trajecotry loading: i_int for i_int=%lu, i_dof=%lu does not match the file.",i_int, i_dof);
+				PX4_ERR("Error in the trajecotry loading: i_int for i_int=%u, i_dof=%u does not match the file.",i_int, i_dof);
+				status.loaded = false;
 				file_loader.close_file();
 				return -1;
 			}
@@ -405,9 +408,10 @@ int trajectory::load(void)
 		{
 			for (size_t i_dof = 0; i_dof < n_dofs-1; i_dof++)
 			{
-				if (fabs(static_cast<float>(tof_int_i(i_dof) - tof_int_i(i_dof+1))) > 1.0E-5f)
+				if (fabsf(static_cast<float>(tof_int_i(i_dof) - tof_int_i(i_dof+1))) > 1.0E-5f)
 				{
-					PX4_ERR("Error in the trajecotry loading: i_int=%lu, t_int does not match accross all dofs.", i_int);
+					PX4_ERR("Error in the trajecotry loading: i_int=%u, t_int does not match accross all dofs.", i_int);
+					status.loaded = false;
 					file_loader.close_file();
 					return -1;
 				}
@@ -417,6 +421,10 @@ int trajectory::load(void)
 
 
 	}
+
+	status.loaded = true;
+	file_loader.close_file();
+	PX4_INFO("Trajectory successfully loaded!");
 	return 0;
 }
 //#define DEBUG
@@ -538,7 +546,6 @@ void trajectory::reset(void)
 {
 	initial_point.reset();
 	status.started = false;
-	status.loaded = false;
 	status.executing = false;
 	status.finished = false;
 	status.trajectory_valid = false;
@@ -548,6 +555,27 @@ void trajectory::reset(void)
 	n_int = 0;
 	n_dofs = 4;
 	return;
+}
+
+int trajectory::set_src(const char* _file)
+{
+	return file_loader.set_src(file_loader.get_dir(), _file);
+}
+
+int trajectory::set_src(const char* _dir, const char* _file)
+{
+	if (file_loader.set_src(_file, _dir))
+	{
+		PX4_INFO("Failed to set source location at %s for file %s.", _dir, _file);
+		return -1;
+	}
+	else
+	{
+		//much more efficient to just load file here
+		status.loaded = false;
+		load();
+	}
+	return 0;
 }
 
 void trajectory::print_status(void)
@@ -571,9 +599,9 @@ void trajectory::print_status(void)
 
 
 	PX4_INFO("Latest Trajectory Parameters:");
-	PX4_INFO("Number of coefficients for each segment:\t %lu / %lu",n_coeffs,n_coeffs_max);
-	PX4_INFO("Number of segments:\t\t\t %lu / %lu",n_int,n_int_max);
-	PX4_INFO("Number of active degrees of freedom:\t %lu / %lu",n_dofs,n_dofs_max);
+	PX4_INFO("Number of coefficients for each segment:\t %u / %u",n_coeffs,n_coeffs_max);
+	PX4_INFO("Number of segments:\t\t\t %u / %u",n_int,n_int_max);
+	PX4_INFO("Number of active degrees of freedom:\t %u / %u",n_dofs,n_dofs_max);
 	return;
 }
 

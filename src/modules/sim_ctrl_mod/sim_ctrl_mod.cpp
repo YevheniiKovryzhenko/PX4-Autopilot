@@ -125,7 +125,7 @@ int SIM_CTRL_MOD::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("sim_ctrl_mod",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_DEFAULT,
-				      1024,
+				      1124,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 

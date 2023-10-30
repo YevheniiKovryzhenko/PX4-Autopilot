@@ -71,15 +71,13 @@ private:
 	matrix::Vector<float, n_int_max> tof_int;
 
 	pointf initial_point{};
-	file_loader_backend file_loader{};
-
 
 
 	void start(void);
 	void reset(void);
 	int load(void);
 	int execute(void);
-	int read_from_file(const char*);
+	int read_from_file(const char* _file);
 
 
 	sim_guidance_status_s status{};
@@ -100,6 +98,10 @@ private:
 public:
 	trajectory(/* args */);
 	~trajectory();
+
+	file_loader_backend file_loader{};
+	int set_src(const char* _file);
+	int set_src(const char* _dir, const char* _file);
 
 	void print_status(void);
 	void update(void); //main update loop

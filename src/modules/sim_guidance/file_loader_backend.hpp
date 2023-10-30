@@ -23,16 +23,24 @@ struct traj_file_data_t
 class file_loader_backend
 {
 private:
-	char file_name[30] {};
+	char file_name[256] {};
+	char directory[256] {};
 	int _fd = -1;
 	int open_file(void);
 
 public:
-	int set_file_path(const char* _file_str);
+	int set_src(const char* _file, const char* _dir);
 	int read_header(traj_file_header_t& traj_header);
-
+	int write_header(traj_file_header_t& traj_header);
 	int read_data(traj_file_data_t& traj_data);
+	int write_data(traj_file_data_t& traj_data);
 	int close_file(void);
+
+	int list_dirs(const char* location);
+	int list_files(const char* location);
+	int list_abs_path(const char* location);
+	const char* get_dir(void);
+	const char* get_file(void);
 
 	file_loader_backend();
 	~file_loader_backend();

@@ -83,8 +83,6 @@ private:
 
 	void update_guidance(void);
 
-	int set_new_file_path(const char* _new_file_path);
-
 	trajectory traj{};
 
 	hrt_abstime	_boot_timestamp{0};
