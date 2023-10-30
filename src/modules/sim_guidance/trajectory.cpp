@@ -11,13 +11,19 @@ double get_dt_s_hrt(hrt_abstime &time_stamp)
 	return static_cast<double>(hrt_elapsed_time(&time_stamp))*1.0E-6;
 }
 
-template <typename Type, size_t n_coefs, size_t n_dofs, size_t n_int>
-void assign_coefs2matrix(matrix::Vector<matrix::Vector<matrix::Vector<Type, n_coefs>, n_dofs>, n_int> &coeffs,\
+template <typename Type, size_t n_coeffs, size_t n_dofs, size_t n_int>
+void assign_coefs2matrix(matrix::Vector<matrix::Vector<matrix::Vector<Type, n_coeffs>, n_dofs>, n_int> &coeffs,\
 size_t i_int, size_t i_dof, Type* input_1Darray, size_t n_coeffs_in)
 {
-	//matrix::Vector<Type, n_coefs> coefs_vec(input_1Darray);
+	for (size_t i_coeff = 0; i_coeff < n_coeffs_in && i_coeff < n_coeffs; i_coeff++) coeffs(i_int)(i_dof)(i_coeff) = input_1Darray[i_coeff];
+	return;
+}
 
-	for (size_t i_coeff = 0; i_coeff < n_coeffs_in && i_coeff < n_coefs; i_coeff++) coeffs(i_int)(i_dof)(i_coeff) = input_1Darray[i_coeff];
+template <typename Type, size_t n_coeffs, size_t n_dofs, size_t n_int>
+void assign_coefs2matrix(matrix::Vector<matrix::Vector<matrix::Vector<Type, n_coeffs>, n_dofs>, n_int> &coeffs,\
+traj_file_data_t& data_in, size_t n_coeffs_in)
+{
+	for (size_t i_coeff = 0; i_coeff < n_coeffs_in && i_coeff < n_coeffs; i_coeff++) coeffs(data_in.i_int)(data_in.i_dof)(i_coeff) = data_in.coefs[i_coeff];
 	return;
 }
 
@@ -388,20 +394,20 @@ int trajectory::load(void)
 			//perform additional checks:
 			if (static_cast<size_t>(traj_data.i_dof) != i_dof)
 			{
-				PX4_ERR("Error in the trajecotry loading: i_dof for i_int=%u, i_dof=%u does not match the file.",i_int, i_dof);
+				PX4_ERR("Error in the trajectory loading: i_dof for i_int=%u, i_dof=%u does not match the file.",i_int, i_dof);
 				status.loaded = false;
 				file_loader.close_file();
 				return -1;
 			}
 			if (static_cast<size_t>(traj_data.i_int) != i_int)
 			{
-				PX4_ERR("Error in the trajecotry loading: i_int for i_int=%u, i_dof=%u does not match the file.",i_int, i_dof);
+				PX4_ERR("Error in the trajectory loading: i_int for i_int=%u, i_dof=%u does not match the file.",i_int, i_dof);
 				status.loaded = false;
 				file_loader.close_file();
 				return -1;
 			}
 			//that's all we can do for the data (as of right now)
-			assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, i_int, i_dof, traj_data.coefs, n_coeffs);
+			assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, traj_data, n_coeffs);
 			tof_int_i(i_dof) = traj_data.t_int;
 		}
 		if (n_dofs > 1)
@@ -410,7 +416,7 @@ int trajectory::load(void)
 			{
 				if (fabsf(static_cast<float>(tof_int_i(i_dof) - tof_int_i(i_dof+1))) > 1.0E-5f)
 				{
-					PX4_ERR("Error in the trajecotry loading: i_int=%u, t_int does not match accross all dofs.", i_int);
+					PX4_ERR("Error in the trajectory loading: i_int=%u, t_int does not match accross all dofs.", i_int);
 					status.loaded = false;
 					file_loader.close_file();
 					return -1;

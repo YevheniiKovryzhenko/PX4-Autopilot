@@ -134,7 +134,7 @@ int file_loader_backend::set_src(const char* _file, const char* _dir)
 	return 0;
 }
 
-#define DEBUG
+//#define DEBUG
 
 int file_loader_backend::read_header(traj_file_header_t& header)
 {

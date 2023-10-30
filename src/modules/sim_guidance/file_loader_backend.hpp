@@ -5,20 +5,20 @@
 #include <uORB/Subscription.hpp>
 #include <matrix/math.hpp>
 
-struct traj_file_header_t
+typedef struct traj_file_header_t
 {
 	uint8_t n_coeffs;
 	uint8_t n_int;
 	uint8_t n_dofs;
-};
+}__attribute__((packed)) traj_file_header_t;
 
-struct traj_file_data_t
+typedef struct traj_file_data_t
 {
 	uint8_t i_int;
 	uint8_t i_dof;
 	float t_int;
 	float coefs[10];
-};
+} __attribute__((packed)) traj_file_data_t;
 
 class file_loader_backend
 {
