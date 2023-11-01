@@ -113,42 +113,6 @@ int eval_traj(matrix::Vector<Type, n_dofs> &eval_vec, Type time_trajectory_s, ma
 	return res;
 }
 
-int trajectory::read_from_file(const char* path)
-{
-
-	PX4_INFO("file path: %s",path);
-	return 0;
-
-	static int _fd = -1;
-
-	if (_fd < 0)
-	{
-		_fd = px4_open("/fs/microsd/1.txt", O_RDONLY);
-		if (_fd < 0)
-		{
-			PX4_ERR("Can't open file, %d", errno);
-			return -1;
-		}
-	}
-
-	PX4_INFO("Opened file!");
-
-        char buf[100];
-        int st = px4_read(_fd, buf, 100);
-        if (st < 0)
-	{
-            PX4_ERR("can't read from %d, because %d", _fd, errno);
-            return -1;
-        }
-	else
-	{
-            PX4_INFO("read %d bytes", st);
-        }
-	if (_fd > -1) px4_close(_fd);
-	PX4_INFO("Done!");
-        return 0;
-}
-
 
 
 
@@ -681,7 +645,7 @@ void trajectory::reset(void)
 
 int trajectory::set_src(const char* _file)
 {
-	return file_loader.set_src(file_loader.get_dir(), _file);
+	return set_src(file_loader.get_dir(), _file);
 }
 
 int trajectory::set_src(const char* _dir, const char* _file)
@@ -702,6 +666,8 @@ int trajectory::set_src(const char* _dir, const char* _file)
 
 void trajectory::print_status(void)
 {
+	PX4_INFO("Latched on to %s trajectory file in %s", file_loader.get_file(), file_loader.get_dir());
+
 	PX4_INFO("Guidance Internal Status Report:");
 	if (status.started) 	PX4_INFO("%-20s%10s", "Started:", "true");
 	else 			PX4_INFO("%-20s%10s", "Started:", "false");
