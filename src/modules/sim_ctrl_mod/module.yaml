@@ -291,7 +291,7 @@ parameters:
             max: 17
             default: 3
 
-        SM_MODE_MAN:
+        SM_3MODE_SW_SRC:
             description:
                 short: SIMULINK stick manual overwrite
                 long: |
@@ -299,7 +299,7 @@ parameters:
                     This should only be used for testing (when rc is not available).
             type: enum
             values:
-                0: DISABLE
+                0: SM_CMD_OPT
                 1: Mode_1 / Switch Low (-1)
                 2: Mode_2 / Switch Mid (0)
                 3: Mode_3 / Switch High (1)
