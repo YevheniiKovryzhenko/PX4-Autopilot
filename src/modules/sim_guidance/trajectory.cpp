@@ -358,7 +358,7 @@ void trajectory::update(void)
 }
 
 /*
-int file_loader_backend::create_test_file(const char* location)
+int trajectory::load_dummy_data(void)
 {
 	PX4_INFO("Begin trajectory loading sequence...");
 	//read first row to get the settings of the trajectory:
@@ -369,22 +369,26 @@ int file_loader_backend::create_test_file(const char* location)
 	//check if all good:
 	if (n_coeffs > n_coeffs_max)
 	{
-		PX4_INFO("Too many coefficients");
+		PX4_WARN("Too many coefficients");
+		status.loaded = false;
 		return -1;
 	}
 	if (n_int > n_int_max)
 	{
-		PX4_INFO("Too many segments");
+		PX4_WARN("Too many segments");
+		status.loaded = false;
 		return -1;
 	}
 	if (n_dofs > n_dofs_max)
 	{
-		PX4_INFO("Too many dofs");
+		PX4_WARN("Too many dofs");
+		status.loaded = false;
 		return -1;
 	}
 	if (n_coeffs == 0 || n_int == 0 || n_dofs == 0)
 	{
-		PX4_INFO("Ivalid trajectory (zeros in the settings)");
+		PX4_WARN("Invalid trajectory (zeros in the settings)");
+		status.loaded = false;
 		return -1;
 	}
 
@@ -430,28 +434,28 @@ int trajectory::load(void)
 	//check if all good:
 	if (n_coeffs > n_coeffs_max)
 	{
-		PX4_INFO("Too many coefficients");
+		PX4_WARN("Too many coefficients");
 		status.loaded = false;
 		file_loader.close_file();
 		return -1;
 	}
 	if (n_int > n_int_max)
 	{
-		PX4_INFO("Too many segments");
+		PX4_WARN("Too many segments");
 		status.loaded = false;
 		file_loader.close_file();
 		return -1;
 	}
 	if (n_dofs > n_dofs_max)
 	{
-		PX4_INFO("Too many dofs");
+		PX4_WARN("Too many dofs");
 		status.loaded = false;
 		file_loader.close_file();
 		return -1;
 	}
 	if (n_coeffs == 0 || n_int == 0 || n_dofs == 0)
 	{
-		PX4_INFO("Ivalid trajectory (zeros in the settings)");
+		PX4_WARN("Invalid trajectory (zeros in the settings)");
 		status.loaded = false;
 		file_loader.close_file();
 		return -1;

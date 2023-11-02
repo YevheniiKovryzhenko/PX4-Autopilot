@@ -768,13 +768,21 @@ void SIM_CTRL_MOD::update_mode_autonomous(control_level &current_mode, bool arme
 					//we want to wait for confirmation and check for any status updates
 					if (smg_status.started && smg_status.loaded && hrt_elapsed_time(&_pos_hold_timestamp) > static_cast<uint64_t>(SM_AUTO_DELAY_S_*1.0E6f))
 					{
-						sim_guidance_request_s smg_request{};
-						smg_request.start_execution = true; //start trajectory exaluation
-						smg_request.timestamp = hrt_absolute_time();
-						_sim_guidance_request_pub.publish(smg_request);
-						PX4_INFO("Requested guidance execution...");
-
-						current_mode = AUTONOMOUS;
+						if (smg_status.executing)
+						{
+							current_mode = AUTONOMOUS;
+							break;
+						}
+						else
+						{
+							sim_guidance_request_s smg_request{};
+							smg_request.start_execution = true; //start trajectory evaluation
+							smg_request.timestamp = hrt_absolute_time();
+							_sim_guidance_request_pub.publish(smg_request);
+							PX4_INFO("Requested guidance execution...");
+							current_mode = POS_HOLD;
+							break;
+						}
 					}
 					else current_mode = POS_HOLD;
 					break;
