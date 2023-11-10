@@ -152,6 +152,7 @@ private:
 	void add_vision_and_avoidance_topics();
 	void add_raw_imu_gyro_fifo();
 	void add_raw_imu_accel_fifo();
+	void add_sim_topics();
 
 	/**
 	 * add a logged topic (called by add_topic() above).

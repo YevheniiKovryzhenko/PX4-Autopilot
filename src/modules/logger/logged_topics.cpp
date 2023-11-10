@@ -280,6 +280,24 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("vehicle_torque_setpoint");
 }
 
+void LoggedTopics::add_sim_topics()
+{
+	//get all the debug instances used for simulink:
+	add_topic("simulink_inbound");
+	add_topic("simulink_outbound");
+	add_topic("simulink_inbound_ctrl");
+	add_topic("simulink_guidance");
+
+	//CAN topics:
+	add_topic("actuator_outputs_sv");
+	add_topic("actuator_outputs_esc");
+
+	//get the guidance topics:
+	//add_topic("sim_guidance_request");
+	//add_topic("sim_guidance_status");
+	//add_topic("sim_guidance_trajectory");
+}
+
 int LoggedTopics::add_topics_from_file(const char *fname)
 {
 	int ntopics = 0;
@@ -442,6 +460,7 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 	// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
 	if (profile & SDLogProfileMask::DEFAULT) {
 		add_default_topics();
+		add_sim_topics();
 	}
 
 	if (profile & SDLogProfileMask::ESTIMATOR_REPLAY) {
