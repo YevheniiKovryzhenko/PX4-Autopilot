@@ -1,13 +1,13 @@
 #ifndef SOLVER_CODEGEN_TYPES_H
 #define SOLVER_CODEGEN_TYPES_H
 
+#include "rtwtypes.h"
+#include "coder_posix_time.h"
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-#include "rtwtypes.h"
-#include "coder_posix_time.h"
 
 #ifndef typedef_c_robotics_core_internal_System
 #define typedef_c_robotics_core_internal_System

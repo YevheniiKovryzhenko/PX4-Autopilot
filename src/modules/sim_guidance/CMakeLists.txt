@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-add_subdirectory(libs)
+#add_subdirectory(libs)
 
 px4_add_module(
 	MODULE custom__sim_guidance
@@ -39,10 +39,10 @@ px4_add_module(
 		sim_guidance.cpp
 		trajectory.cpp
 		file_loader_backend.cpp
-		waypoints.cpp
+		#waypoints.cpp
 	MODULE_CONFIG
 		module.yaml
-	DEPENDS
-		trajectory_solver
+	#DEPENDS
+		#trajectory_solver
 	)
 

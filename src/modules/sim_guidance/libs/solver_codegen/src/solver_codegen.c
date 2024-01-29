@@ -1,3 +1,5 @@
+#include <px4_platform_common/posix.h>
+
 #include "solver_codegen.h"
 #include "rt_nonfinite.h"
 #include "solver_codegen_emxutil.h"
@@ -13,9 +15,39 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <px4_platform_common/posix.h>
+#define DEBUG
 
 #define PX4_SOLVER_WAIT_TIME_US 1000
+#ifdef DEBUG
+
+#define DELAY_FUNC1(string, delay_us) \
+  PX4_INFO("%s",string);\
+  px4_usleep(delay_us);\
+  int64_t time_stamp = hrt_absolute_time();
+
+#define DELAY_FUNC(string, delay_us) \
+  PX4_INFO("%s time: %f (s)",string,(double)(hrt_absolute_time() - time_stamp) / 1000000.0);\
+  px4_usleep(delay_us);\
+  time_stamp = hrt_absolute_time();
+
+#define DELAY_FUNC_END(string, delay_us) \
+  PX4_INFO("%s time: %f (s)",string,(double)(hrt_absolute_time() - time_stamp) / 1000000.0);\
+  px4_usleep(delay_us);
+
+#else
+
+#define DELAY_FUNC1(string, delay_us) \
+  px4_usleep(delay_us);
+
+#define DELAY_FUNC(string, delay_us) \
+  px4_usleep(delay_us);
+
+#define DELAY_FUNC_END(string, delay_us) \
+  px4_usleep(delay_us);
+
+#endif
+
+
 
 #ifndef typedef_struct_T
 #define typedef_struct_T
@@ -896,6 +928,8 @@ static void b_plus(emxArray_real_T *in1, const emxArray_real_T *in2, const
 static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
   const emxArray_real_T *T, emxArray_real_T *p)
 {
+
+  DELAY_FUNC1("Entry", PX4_SOLVER_WAIT_TIME_US)
   b_sparse b_expl_temp;
   b_sparse c_expl_temp;
   emxArray_boolean_T *fixed_constr_ids_tmp;
@@ -970,6 +1004,7 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
   int *jj_data;
   boolean_T *fixed_constr_ids_tmp_data;
   boolean_T *nontriv_dim_data;
+  DELAY_FUNC("Declarations", PX4_SOLVER_WAIT_TIME_US)
   T_data = T->data;
   vlen = this->wptFnc.workspace.wpts->size[0];
   i = this->waypoints_offset->size[0];
@@ -1034,7 +1069,7 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
     nontriv_dim_data[i_dim] = any(b_waypoints);
   }
 
-  px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+  DELAY_FUNC("1", PX4_SOLVER_WAIT_TIME_US)
 
   expl_temp = 0;
   i = nontriv_dim->size[0];
@@ -1091,7 +1126,7 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
     }
   }
 
-  px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+  DELAY_FUNC("2", PX4_SOLVER_WAIT_TIME_US)
 
   emxFree_real_T(&waypoints);
   vlen = (int)(5.0 * this->N_wps);
@@ -1104,6 +1139,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       this->constraints->data[nz + this->constraints->size[1] * i] = 0.0;
     }
   }
+
+  DELAY_FUNC("3", PX4_SOLVER_WAIT_TIME_US)
 
   if (expl_temp > 0) {
     i = (int)this->N_wps;
@@ -1149,6 +1186,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
     emxFree_real_T(&tmp_bcs);
   }
 
+  DELAY_FUNC("4", PX4_SOLVER_WAIT_TIME_US)
+
   this_idx_0_tmp = (int)this->n_dim;
   vlen = (int)this->N_segments;
   i = p->size[0] * p->size[1] * p->size[2];
@@ -1165,12 +1204,16 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
     }
   }
 
+  DELAY_FUNC("5", PX4_SOLVER_WAIT_TIME_US)
+
   J = 0.0;
   if (this_idx_0_tmp - 1 >= 0) {
     numSegments = this->N_segments;
     i1 = (int)numSegments;
     unnamed_idx_1 = (int)numSegments;
   }
+
+  DELAY_FUNC("6", PX4_SOLVER_WAIT_TIME_US)
 
   emxInit_real_T(&r, 2);
   emxInitStruct_sparse(&A_total_sp);
@@ -1202,6 +1245,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
   emxInit_real_T(&b_this, 1);
   emxInit_real_T(&e_p, 2);
   emxInit_real_T(&r2, 1);
+
+  DELAY_FUNC("7", PX4_SOLVER_WAIT_TIME_US)
   for (dimIdx = 0; dimIdx < this_idx_0_tmp; dimIdx++) {
     double cd;
     int M_m;
@@ -1243,22 +1288,33 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       }
     }
 
-    px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+    DELAY_FUNC("8", PX4_SOLVER_WAIT_TIME_US)
 
     spalloc(10.0 * numSegments, 10.0 * numSegments, 100.0 * numSegments,
             &A_total_sp);
+    DELAY_FUNC("spalloc", PX4_SOLVER_WAIT_TIME_US)
+
     spalloc(10.0 * numSegments, 10.0 * numSegments, 100.0 * numSegments,
             &Q_prime_total_sp);
+    DELAY_FUNC("spalloc", PX4_SOLVER_WAIT_TIME_US)
+
     for (segment = 0; segment < i1; segment++) {
       double offset;
       offset = (((double)segment + 1.0) - 1.0) * 10.0;
-      cd = T_data[segment];
-      get_A(cd, &b_expl_temp);
-      get_Q_prime(cd, &c_expl_temp);
+      DELAY_FUNC("still ok? ", PX4_SOLVER_WAIT_TIME_US)
 
-      px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+      cd = T_data[segment];
+      DELAY_FUNC("Ok.. here we go...", 10*PX4_SOLVER_WAIT_TIME_US)
+
+      get_A(cd, &b_expl_temp);
+      DELAY_FUNC("get_A total ", PX4_SOLVER_WAIT_TIME_US)
+
+      get_Q_prime(cd, &c_expl_temp);
+      DELAY_FUNC("get_Q_prime total ", PX4_SOLVER_WAIT_TIME_US)
 
       b_eml_find(b_expl_temp.colidx, b_expl_temp.rowidx, ii, jj);
+
+      DELAY_FUNC("9", PX4_SOLVER_WAIT_TIME_US)
       jj_data = jj->data;
       ii_data = ii->data;
       loop_ub = ii->size[0];
@@ -1306,7 +1362,7 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
         tmp_i_row_data[i] = ii_data[i];
       }
 
-      px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+      DELAY_FUNC("10", PX4_SOLVER_WAIT_TIME_US)
 
       loop_ub = jj->size[0];
       i = tmp_i_col->size[0];
@@ -1344,7 +1400,7 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
         constraints->size[1] * i];
     }
 
-    px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+    DELAY_FUNC("11", PX4_SOLVER_WAIT_TIME_US)
 
     M_m = solver_common_constructM(this, b_this, M_d, M_colidx, M_rowidx, &M_n);
     sparse_ctranspose(M_d, M_colidx, M_rowidx, M_m, M_n, &d_expl_temp);
@@ -1407,7 +1463,7 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       }
     }
 
-    px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+    DELAY_FUNC("12", PX4_SOLVER_WAIT_TIME_US)
 
     RPP_m = b_sparse_parenReference(R_d, R_colidx, R_rowidx, b_waypoints, y,
       RPP_d, RPP_colidx, RPP_rowidx, &RPP_n, &k);
@@ -1458,6 +1514,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
         constraints->size[1] * ii_data[i]];
     }
 
+    DELAY_FUNC("13", PX4_SOLVER_WAIT_TIME_US)
+
     b_sparse_mtimes(RPF_d, RPF_colidx, RPF_rowidx, RPF_m, RPF_n, b_this, r2);
     sparse_mldivide(RPP_d, RPP_colidx, RPP_rowidx, RPP_m, RPP_n, r2, DP);
     DP_data = DP->data;
@@ -1496,6 +1554,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       }
     }
 
+    DELAY_FUNC("14", PX4_SOLVER_WAIT_TIME_US)
+
     vlen = d_p->size[1];
     i = e_p->size[0] * e_p->size[1];
     e_p->size[1] = d_p->size[1];
@@ -1519,6 +1579,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
         c_p_data[nz + d_p->size[1] * i] = b_p_data[nz + e_p->size[1] * i];
       }
     }
+
+    DELAY_FUNC("15", PX4_SOLVER_WAIT_TIME_US)
 
     i = r->size[0] * r->size[1];
     r->size[1] = 10;
@@ -1549,6 +1611,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       b_waypoints_data[i] = 0.0;
     }
 
+    DELAY_FUNC("15", PX4_SOLVER_WAIT_TIME_US)
+
     if ((D->size[0] != 0) && (R_n != 0) && (R_colidx_data[R_colidx->size[0] - 1]
          - 1 != 0)) {
       for (k = 0; k < R_n; k++) {
@@ -1564,6 +1628,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       }
     }
 
+    DELAY_FUNC("16", PX4_SOLVER_WAIT_TIME_US)
+
     cd = 0.0;
     loop_ub = D->size[0];
     for (i = 0; i < loop_ub; i++) {
@@ -1572,6 +1638,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
 
     J += cd;
   }
+
+  DELAY_FUNC("END of solution", PX4_SOLVER_WAIT_TIME_US)
 
   emxFree_real_T(&r2);
   emxFree_real_T(&e_p);
@@ -1606,11 +1674,15 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
   emxFreeStruct_sparse(&Q_prime_total_sp);
   emxFreeStruct_sparse(&A_total_sp);
   emxFree_real_T(&r);
+
+  DELAY_FUNC_END("Freed vars", PX4_SOLVER_WAIT_TIME_US)
   return J;
 }
 
 static void b_sparse_fillIn(b_sparse *this)
 {
+
+  DELAY_FUNC1("Entry", PX4_SOLVER_WAIT_TIME_US)
   int c;
   int i;
   int idx;
@@ -1625,6 +1697,7 @@ static void b_sparse_fillIn(b_sparse *this)
     do {
       exitg1 = 0;
       i1 = this->colidx->data[c + 1];
+      DELAY_FUNC("do start", PX4_SOLVER_WAIT_TIME_US)
       if (ridx < i1) {
         double val;
         int currRowIdx;
@@ -1633,6 +1706,7 @@ static void b_sparse_fillIn(b_sparse *this)
         while ((ridx < i1) && (this->rowidx->data[ridx - 1] == currRowIdx)) {
           val += this->d->data[ridx - 1];
           ridx++;
+          DELAY_FUNC("while inner", PX4_SOLVER_WAIT_TIME_US)
         }
 
         if (fabs(val) >= DBL_EPSILON) {
@@ -1647,6 +1721,8 @@ static void b_sparse_fillIn(b_sparse *this)
   }
 
   this->colidx->data[this->colidx->size[0] - 1] = idx;
+
+  DELAY_FUNC_END("End of function", PX4_SOLVER_WAIT_TIME_US)
 }
 
 static void b_sparse_mtimes(const emxArray_real_T *a_d, const emxArray_int32_T
@@ -4411,6 +4487,8 @@ static void g_mtimes(const emxArray_real_T *A, const emxArray_real_T *B,
 
 static void get_A(double T, b_sparse *A)
 {
+
+  DELAY_FUNC1("get_A Start", PX4_SOLVER_WAIT_TIME_US)
   double yf[45];
   double t2;
   double t3;
@@ -4513,7 +4591,11 @@ static void get_A(double T, b_sparse *A)
     A->d->data[k] = yf[sortedIndices[k] - 1];
   }
 
+  DELAY_FUNC("get_A before b_sparse_fillIn", PX4_SOLVER_WAIT_TIME_US)
+
   b_sparse_fillIn(A);
+
+  DELAY_FUNC_END("get_A End", PX4_SOLVER_WAIT_TIME_US)
 }
 
 static void get_Q_prime(double T, b_sparse *Q_prime)
