@@ -38,7 +38,7 @@
 
 #include <math.h>
 #include <uORB/topics/parameter_update.h>
-//#include "waypoints.hpp"
+#include "waypoints.hpp"
 
 int SIM_GUIDANCE::print_status()
 {
@@ -128,7 +128,6 @@ int SIM_GUIDANCE::custom_command(int argc, char *argv[])
 			}
 
 		}
-		/*
 		else if(!strcmp(argv[i], "test"))
 		{
 			if (argc - 1 > i)
@@ -153,7 +152,6 @@ int SIM_GUIDANCE::custom_command(int argc, char *argv[])
 				return 0;
 			}
 		}
-		*/
 		else continue;
 	}
 

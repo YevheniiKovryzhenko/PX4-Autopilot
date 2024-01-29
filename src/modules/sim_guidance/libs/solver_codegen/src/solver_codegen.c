@@ -12,6 +12,11 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <px4_platform_common/posix.h>
+
+#define PX4_SOLVER_WAIT_TIME_US 1000
+
 #ifndef typedef_struct_T
 #define typedef_struct_T
 
@@ -1029,6 +1034,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
     nontriv_dim_data[i_dim] = any(b_waypoints);
   }
 
+  px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+
   expl_temp = 0;
   i = nontriv_dim->size[0];
   for (k = 0; k < i; k++) {
@@ -1083,6 +1090,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
         waypoints_data[nz + waypoints->size[1] * jj_data[i]];
     }
   }
+
+  px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
 
   emxFree_real_T(&waypoints);
   vlen = (int)(5.0 * this->N_wps);
@@ -1234,6 +1243,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       }
     }
 
+    px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+
     spalloc(10.0 * numSegments, 10.0 * numSegments, 100.0 * numSegments,
             &A_total_sp);
     spalloc(10.0 * numSegments, 10.0 * numSegments, 100.0 * numSegments,
@@ -1244,6 +1255,9 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       cd = T_data[segment];
       get_A(cd, &b_expl_temp);
       get_Q_prime(cd, &c_expl_temp);
+
+      px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+
       b_eml_find(b_expl_temp.colidx, b_expl_temp.rowidx, ii, jj);
       jj_data = jj->data;
       ii_data = ii->data;
@@ -1292,6 +1306,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
         tmp_i_row_data[i] = ii_data[i];
       }
 
+      px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+
       loop_ub = jj->size[0];
       i = tmp_i_col->size[0];
       tmp_i_col->size[0] = jj->size[0];
@@ -1327,6 +1343,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
       b_waypoints_data[i] = this->constraints->data[dimIdx + this->
         constraints->size[1] * i];
     }
+
+    px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
 
     M_m = solver_common_constructM(this, b_this, M_d, M_colidx, M_rowidx, &M_n);
     sparse_ctranspose(M_d, M_colidx, M_rowidx, M_m, M_n, &d_expl_temp);
@@ -1388,6 +1406,8 @@ static double b_solver_common_solvePoly(c_TrajectoryOptimizer_solver_me *this,
         b_waypoints_data[i] = ((double)nz + 1.0) + (double)i;
       }
     }
+
+    px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
 
     RPP_m = b_sparse_parenReference(R_d, R_colidx, R_rowidx, b_waypoints, y,
       RPP_d, RPP_colidx, RPP_rowidx, &RPP_n, &k);
@@ -9168,6 +9188,9 @@ void solver_codegen(const double wpts_data[], const int wpts_size[2], double Tf,
   emxInit_real_T(&ppMatrix, 3);
   emxInit_real_T(&tSegments, 1);
   emxInit_real_T(&r2, 1);
+
+  px4_usleep(PX4_SOLVER_WAIT_TIME_US);// don't update too frequenty
+
   if (sol.timeOptim && (initialGuess->size[1] > 1)) {
     J = solver_common_optimize(&sol, initialGuess, ppMatrix, tSegments,
       expl_temp_data, expl_temp_size, &exitstruct_Iterations, &expl_temp,
