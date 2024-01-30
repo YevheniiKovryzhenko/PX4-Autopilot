@@ -20,50 +20,52 @@ px4_add_board(
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
-		camera_capture
-		camera_trigger
+		#camera_capture
+		#camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		heater
+		#heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
 		imu/invensense/icm20948 # required for ak09916 mag
-		irlock
+		#irlock
 		lights # all available light drivers
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
-		optical_flow # all available optical flow drivers
-		osd
-		pca9685
-		pca9685_pwm_out
+		#optical_flow # all available optical flow drivers
+		#osd
+		#pca9685
+		#pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
-		pwm_input
-		pwm_out_sim
-		pwm_out
+		#pwm_input
+		#pwm_out_sim
+		#pwm_out
 		px4io
 		rc_input
-		roboclaw
-		smart_battery/batmon
-		rpm
+		#roboclaw
+		#smart_battery/batmon
+		#rpm
 		safety_button
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan
 	MODULES
+		sim_ctrl_mod
+		sim_guidance
 		airspeed_selector
 		attitude_estimator_q
 		battery_status
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
-		esc_battery
+		#esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
@@ -79,18 +81,18 @@ px4_add_board(
 		mc_att_control
 		mc_hover_thrust_estimator
 		mc_pos_control
-		mc_rate_control
+		#mc_rate_control
 		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
-		sih
+		#sih
 		temperature_compensation
-		uuv_att_control
-		uuv_pos_control
-		vmount
-		vtol_att_control
+		#uuv_att_control
+		#uuv_pos_control
+		#vmount
+		#vtol_att_control
 	SYSTEMCMDS
 		bl_update
 		dmesg
@@ -101,9 +103,9 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
-		mixer
-		motor_ramp
-		motor_test
+		#mixer
+		#motor_ramp
+		#motor_test
 		mtd
 		nshterm
 		param
@@ -111,8 +113,8 @@ px4_add_board(
 		pwm
 		reboot
 		reflect
-		sd_bench
-		serial_test
+		#sd_bench
+		#serial_test
 		system_time
 		top
 		topic_listener
@@ -122,7 +124,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		fake_gps
+		#fake_gps
 		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

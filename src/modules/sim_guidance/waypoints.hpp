@@ -2,7 +2,6 @@
 
 #include <matrix/math.hpp>
 
-//#include "tools.h"
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
