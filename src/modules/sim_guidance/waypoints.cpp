@@ -10,6 +10,8 @@ const char* get_trajectory_type_string(trajectory_type_t traj_type)
 
   switch (traj_type)
   {
+  case basic_1:
+    return "basic_1";
   case line_x_1:
     return "line_x_1";
   case line_xy_1:
@@ -120,6 +122,24 @@ bool reset_wpts(double** wpts_1D, double* wpts_2D, uint16_t wpts_size[2], double
     printf("ERROR: failed to preallocate array\n");
     return false;
   }
+}
+
+bool traj_basic_1(double** wpts, uint16_t wpts_size[2], double* Tf, double** T_out)
+{
+
+  static const uint16_t n_dim = 1;
+  static const uint16_t n_wpts = 2;
+
+  double wpts_[n_dim][n_wpts];
+
+  wpts_[0][0] = 0.0;
+  wpts_[0][1] = 1.0;
+
+  wpts_size[0] = n_dim;
+  wpts_size[1] = n_wpts;
+
+  *Tf = 5;
+  return reset_wpts(wpts, &wpts_[0][0], wpts_size, T_out);
 }
 
 bool traj_line_x_1(double** wpts, uint16_t wpts_size[2], double* Tf, double** T_out)
@@ -432,62 +452,64 @@ bool solve_preset_traj(trajectory_type_t traj_type,\
         double** wpts, uint16_t wpts_size[2], double* Tf, bool use_time_allocation, bool show_details,\
         double** pp, double** T_out, double* offsets, uint16_t* N_dim, uint16_t* N_segments)
 {
-
-  // uint64_t time_stamp = get_time_usec();
   int64_t time_stamp = hrt_absolute_time();
   switch (traj_type)
   {
-  case line_x_1:
-    if (traj_line_x_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case basic_1:
+      if (traj_basic_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case line_xy_1:
-    if (traj_line_xy_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case line_x_1:
+      if (traj_line_x_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case line_xyz_1:
-    if (traj_line_xyz_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case line_xy_1:
+      if (traj_line_xy_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case rrt_test_1:
-    if (traj_rrt_test_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case line_xyz_1:
+      if (traj_line_xyz_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case circle_1:
-    if (traj_circle_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case rrt_test_1:
+      if (traj_rrt_test_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case circle_1_slow:
-    if (traj_circle_1_slow(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case circle_1:
+      if (traj_circle_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case square_1:
-    if (traj_square_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case circle_1_slow:
+      if (traj_circle_1_slow(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case square_1_slow:
-    if (traj_square_1_slow(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case square_1:
+      if (traj_square_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case fig_8_1:
-    if (traj_8_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case square_1_slow:
+      if (traj_square_1_slow(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case fig_8_1_slow:
-    if (traj_8_1_slow(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case fig_8_1:
+      if (traj_8_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case fig_8_yaw_1:
-    if (traj_8_yaw_1(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case fig_8_1_slow:
+      if (traj_8_1_slow(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  case fig_8_yaw_1_slow:
-    if (traj_8_yaw_1_slow(wpts, wpts_size, Tf, T_out)) break;
-    else return false;
+    case fig_8_yaw_1:
+      if (traj_8_yaw_1(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
 
-  default:
-    printf("ERROR: unknown trajectory\n");
-    return false;
+    case fig_8_yaw_1_slow:
+      if (traj_8_yaw_1_slow(wpts, wpts_size, Tf, T_out)) break;
+      else return false;
+
+    default:
+      printf("ERROR: unknown trajectory\n");
+      return false;
   }
 
   PX4_INFO("Solving %s trajectory...", get_trajectory_type_string(traj_type));
@@ -515,6 +537,9 @@ void test_solver_codegen(void)
   double offsets[MAX_DIM];
   uint16_t N_dim;
   uint16_t N_segments;
+
+  solve_preset_traj(basic_1, &wpts, wpts_size, &Tf, use_time_allocation, show_details,\
+          &pp, &T_out, offsets, &N_dim, &N_segments);
 
   solve_preset_traj(line_x_1, &wpts, wpts_size, &Tf, use_time_allocation, show_details,\
           &pp, &T_out, offsets, &N_dim, &N_segments);

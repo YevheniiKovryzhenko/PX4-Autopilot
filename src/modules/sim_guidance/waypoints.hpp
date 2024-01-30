@@ -16,18 +16,19 @@
 
 typedef enum
 {
-  line_x_1,
-  line_xy_1,
-  line_xyz_1,
-  rrt_test_1,
-  circle_1,
-  circle_1_slow,
-  square_1,
-  square_1_slow,
-  fig_8_1,
-  fig_8_1_slow,
-  fig_8_yaw_1,
-  fig_8_yaw_1_slow
+        basic_1,
+        line_x_1,
+        line_xy_1,
+        line_xyz_1,
+        rrt_test_1,
+        circle_1,
+        circle_1_slow,
+        square_1,
+        square_1_slow,
+        fig_8_1,
+        fig_8_1_slow,
+        fig_8_yaw_1,
+        fig_8_yaw_1_slow
 } trajectory_type_t;
 
 bool solve_preset_traj(trajectory_type_t traj_type,\
