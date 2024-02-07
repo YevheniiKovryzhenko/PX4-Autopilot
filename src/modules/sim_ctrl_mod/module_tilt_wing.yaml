@@ -1713,3 +1713,43 @@ parameters:
             max: 90.0
             default: 90.0
 
+        SM_LATCS_KVLAT:
+            description:
+                short: SIMULINK very useful discription
+                long: |
+                    SIMULINK very useful discription
+
+            type: float
+            decimal: 4
+            default: 0.0
+
+        SM_LATCS_KPSI:
+            description:
+                short: SIMULINK very useful discription
+                long: |
+                    SIMULINK very useful discription
+
+            type: float
+            decimal: 4
+            default: 0.0
+
+
+        SM_LATCS_KBETA:
+            description:
+                short: SIMULINK very useful discription
+                long: |
+                    SIMULINK very useful discription
+
+            type: float
+            decimal: 4
+            default: 0.0
+
+        SM_LATCS_KTRK:
+            description:
+                short: SIMULINK very useful discription
+                long: |
+                    SIMULINK very useful discription
+
+            type: float
+            decimal: 4
+            default: 0.0
