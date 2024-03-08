@@ -536,6 +536,8 @@ else
 		fi
 	fi
 
+simulink_px4_bridge start
+
 #
 # End of autostart.
 #

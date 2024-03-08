@@ -24,6 +24,7 @@ px4_add_board(
 		tone_alarm
 		#uavcan
 	MODULES
+		simulink_px4_bridge
 		airship_att_control
 		airspeed_selector
 		attitude_estimator_q
