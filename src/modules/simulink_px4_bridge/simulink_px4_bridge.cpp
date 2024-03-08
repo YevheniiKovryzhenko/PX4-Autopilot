@@ -116,6 +116,9 @@ void SIMULINK_PX4_BRIDGE::main_update_loop(void)
 {
 	int32_t enable_fl = _param_sim_bridge_en.get();
 
+	int value = 0;
+	param_get(param_find("EXAMPLE_FLAG"),&value);
+
 
 	if (enable_fl == 1)
 	{
@@ -135,13 +138,15 @@ bool SIMULINK_PX4_BRIDGE::update_all_px4_sensors(void)
 	bool need_2_pub = false;
 
 	if (_vehicle_local_position_sub.update(&local_pos)) need_2_pub = true;
-	// if (_vehicle_odometry_sub.update(&odom)) need_2_pub = true;
+	if (_vehicle_odometry_sub.update(&odom)) need_2_pub = true;
 	if (_vehicle_global_position_sub.update(&global_pos)) need_2_pub = true;
 	if (_vehicle_attitude_sub.update(&att)) need_2_pub = true;
 	// if (update_control_inputs(control_vec)) need_2_pub = true;
 	if (_distance_sensor_sub.update(&dist)) need_2_pub = true;
 	if (_airspeed_sub.update(&airspeed)) need_2_pub = true;
 	if (_vehicle_angular_velocity_sub.update(&v_angular_velocity)) need_2_pub = true;
+	if (_vehicle_gps_position_sub.update(&veh_gps_position)) need_2_pub = true;
+	if (_vehicle_acceleration_sub.update(&veh_acceleration)) need_2_pub = true;
 
 	return need_2_pub;
 }
@@ -149,7 +154,9 @@ bool SIMULINK_PX4_BRIDGE::update_all_px4_sensors(void)
 
 void SIMULINK_PX4_BRIDGE::publish_all_px4_sensors(void)
 {
-	// populate main data fields:
+	/////// populate main data fields: ///////////
+
+	///## local position NED:
 	//# Position in local NED frame
 	sim_bridge_data.x = local_pos.x;				//# North position in NED earth-fixed frame, (metres)
 	sim_bridge_data.y = local_pos.y;				//# East position in NED earth-fixed frame, (metres)
@@ -164,15 +171,23 @@ void SIMULINK_PX4_BRIDGE::publish_all_px4_sensors(void)
 	sim_bridge_data.ay = local_pos.ay;       //# East velocity derivative in NED earth-fixed frame, (metres/sec^2)
 	sim_bridge_data.az = local_pos.az;       //# Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
 
+	///## vehicle acceleration:
+	sim_bridge_data.veh_ax = veh_acceleration.xyz[0];		//# Bias corrected acceleration (including gravity) in the FRD body frame XYZ-axis in m/s^2
+	sim_bridge_data.veh_ay = veh_acceleration.xyz[1];			//# Bias corrected acceleration (including gravity) in the FRD body frame XYZ-axis in m/s^2
+	sim_bridge_data.veh_az = veh_acceleration.xyz[2];			//# Bias corrected acceleration (including gravity) in the FRD body frame XYZ-axis in m/s^2
 
+	///## vehicle odometry:
+	sim_bridge_data.odom_vz = odom.vz;			//# Down velocity
+
+	///## vehicle angular velocity:
 	sim_bridge_data.roll_rate = v_angular_velocity.xyz[0];	//# Bias corrected angular velocity about the FRD body frame XYZ-axis in rad/s
 	sim_bridge_data.pitch_rate = v_angular_velocity.xyz[1];	//# Bias corrected angular velocity about the FRD body frame XYZ-axis in rad/s
 	sim_bridge_data.yaw_rate = v_angular_velocity.xyz[2];	//# Bias corrected angular velocity about the FRD body frame XYZ-axis in rad/s
 
-
+	///## vehicle attitude:
 	for (int i = 0; i < 4; i++) sim_bridge_data.q[i] = att.q[i];			    //# Quaternion rotation from the FRD body frame to the NED earth frame
 
-
+	///## vehicle global position NED:
 	sim_bridge_data.lat = global_pos.lat;			//# Latitude, (degrees)
 	sim_bridge_data.lon = global_pos.lon;			//# Longitude, (degrees)
 	sim_bridge_data.alt = global_pos.alt;			//# Altitude AMSL, (meters)
@@ -181,18 +196,21 @@ void SIMULINK_PX4_BRIDGE::publish_all_px4_sensors(void)
 	sim_bridge_data.terrain_alt_valid = global_pos.terrain_alt_valid; //# Terrain altitude estimate is valid
 	sim_bridge_data.dead_reckoning = global_pos.dead_reckoning;		//# True if this position is estimated through dead-reckoning
 
+	///## vehicle gps position:
+	sim_bridge_data.satellites_used = veh_gps_position.satellites_used;
+
+	///## airspeed:
 	sim_bridge_data.indicated_airspeed_m_s = airspeed.indicated_airspeed_m_s;		//# indicated airspeed in m/s
 	sim_bridge_data.true_airspeed_m_s = airspeed.true_airspeed_m_s;		//# true filtered airspeed in m/s
 	sim_bridge_data.air_temperature_celsius	= airspeed.air_temperature_celsius;	//# air temperature in degrees celsius, -1000 if unknown
 	sim_bridge_data.airspeed_confidence = airspeed.confidence;		//# confidence value from 0 to 1 for this sensor
 
-
+	///## distance sensor:
 	sim_bridge_data.lidar_current_distance = dist.current_distance;	//# Current distance reading (in m)
 
-	// finalize and publish the updated struct:
+	///////////////// finalize and publish the updated struct: ////////////
 	sim_bridge_data.timestamp = hrt_absolute_time();
 	_simulink_px4_bridge_data_pub.publish(sim_bridge_data);
-	// PX4_INFO("UPDATED DATA");
 }
 
 

@@ -4,6 +4,7 @@ px4_add_module(
 	SRCS
 		simulink_px4_bridge.cpp
 	MODULE_CONFIG
-		module.yaml
+		simulink_px4_bridge_main_params.yaml
+		tilt_wing_params.yaml
 	)
 

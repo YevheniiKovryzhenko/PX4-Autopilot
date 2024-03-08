@@ -22,6 +22,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_acceleration.h>
 
 #include <uORB/topics/debug_array.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -89,7 +91,7 @@ private:
 	//uORB::Subscription		_battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription		_distance_sensor_sub{ORB_ID(distance_sensor)};
 	// uORB::Subscription		_actuator_armed_sub{ORB_ID(actuator_armed)};
-	// uORB::Subscription		_vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
+	uORB::Subscription		_vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
 	// uORB::Subscription		_adc_report_sub{ORB_ID(adc_report)};
 	//uORB::Subscription		_obstacle_distance_sub{ORB_ID(obstacle_distance)};
 	// uORB::Subscription		_rc_channels_sub{ORB_ID(rc_channels)};
@@ -99,6 +101,8 @@ private:
 	// uORB::Subscription 		_actuator_outputs_sv_sub{ORB_ID(actuator_outputs_sv)};
 	//uORB::Subscription 		_vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 	uORB::Subscription     		_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription		_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	//data structures for storing most recent data
 	vehicle_local_position_s local_pos{};
@@ -109,9 +113,11 @@ private:
 	distance_sensor_s dist{};
 	actuator_armed_s act_armed{};
 	// actuator_armed_s act_armed_px4{};
-	// vehicle_odometry_s odom{};
+	vehicle_odometry_s odom{};
 	// adc_report_s adc{};
 	vehicle_angular_velocity_s v_angular_velocity{};
+	vehicle_gps_position_s veh_gps_position{};
+	vehicle_acceleration_s veh_acceleration{};
 
 	simulink_px4_bridge_data_s sim_bridge_data{};
 
