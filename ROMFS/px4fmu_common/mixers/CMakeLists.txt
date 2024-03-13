@@ -94,5 +94,7 @@ px4_add_romfs_files(
 	vtol_convergence.main.mix
 	vtol_delta.aux.mix
 	vtol_tailsitter_duo.main.mix
+	vtol_tilt_wing.main.mix
+	vtol_tilt_wing.aux.mix
 	wingwing.main.mix
 )
