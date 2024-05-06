@@ -282,6 +282,66 @@ void LoggedTopics::add_system_identification_topics()
 
 void LoggedTopics::add_sim_topics()
 {
+	// add_topic("actuator_armed");
+	// add_topic("actuator_controls_0", 50);
+	// add_topic("actuator_controls_1", 100);
+	// add_topic("actuator_controls_2", 100);
+	// add_topic("actuator_controls_3", 100);
+	// add_topic("actuator_controls_4", 100);
+	// add_topic("actuator_controls_5", 100);
+	// add_topic("airspeed", 1000);
+	// add_topic("airspeed_validated", 200);
+	// add_topic("cellular_status", 200);
+	// add_topic("commander_state");
+	// add_topic("cpuload");
+	// add_topic("home_position");
+	// add_topic("hover_thrust_estimate", 100);
+	// add_topic("input_rc", 500);
+	// add_topic("mag_worker_data");
+	// add_topic("manual_control_setpoint", 200);
+	// add_topic("manual_control_switches");
+	// add_topic("offboard_control_mode", 100);
+	// add_topic("onboard_computer_status", 10);
+	// add_topic("parameter_update");
+	// add_topic("position_controller_status", 500);
+	// add_topic("px4io_status");
+	// add_topic("radio_status");
+	// add_topic("rtl_flight_time", 1000);
+	// add_topic("safety");
+	// add_topic("sensor_combined");
+	// add_topic("sensor_correction");
+	// add_topic("sensor_gyro_fft", 50);
+	// add_topic("sensor_preflight_mag", 500);
+	// add_topic("sensor_selection");
+	// add_topic("sensors_status_imu", 200);
+	// add_topic("system_power", 500);
+	// add_topic("takeoff_status", 1000);
+	// add_topic("transponder_report");
+	// add_topic("vehicle_acceleration", 50);
+	// add_topic("vehicle_air_data", 200);
+	// add_topic("vehicle_angular_velocity", 20);
+	// add_topic("vehicle_attitude", 50);
+	// add_topic("vehicle_command");
+	// add_topic("vehicle_control_mode");
+	// add_topic("vehicle_global_position", 200);
+	// add_topic("vehicle_gps_position", 500);
+	// add_topic("vehicle_land_detected");
+	// add_topic("vehicle_local_position", 100);
+	// add_topic("vehicle_magnetometer", 200);
+	// add_topic("vehicle_roi", 1000);
+	// add_topic("vehicle_status");
+	// add_topic("vehicle_status_flags");
+	// add_topic("vtol_vehicle_status", 200);
+	// add_topic("wind", 1000);
+
+	// // multi topics
+	// add_topic_multi("actuator_outputs", 100, 3);
+	// add_topic_multi("airspeed_wind", 1000);
+	// add_topic_multi("logger_status", 0, 2);
+	// add_topic_multi("telemetry_status", 1000, 4);
+
+
+
 	//get all the debug instances used for simulink:
 	add_topic("simulink_inbound");
 	add_topic("simulink_outbound");
@@ -293,9 +353,11 @@ void LoggedTopics::add_sim_topics()
 	add_topic("actuator_outputs_esc");
 
 	//get the guidance topics:
-	//add_topic("sim_guidance_request");
-	//add_topic("sim_guidance_status");
-	//add_topic("sim_guidance_trajectory");
+	add_topic("sim_guidance_request");
+	add_topic("sim_guidance_status");
+	add_topic("sim_guidance_trajectory");
+	add_topic("companion_guidance_inbound");
+	add_topic("companion_guidance_outbound");
 }
 
 int LoggedTopics::add_topics_from_file(const char *fname)
@@ -460,7 +522,7 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 	// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
 	if (profile & SDLogProfileMask::DEFAULT) {
 		add_default_topics();
-		add_sim_topics();
+		//add_sim_topics();
 	}
 
 	if (profile & SDLogProfileMask::ESTIMATOR_REPLAY) {
@@ -497,5 +559,9 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 
 	if (profile & SDLogProfileMask::RAW_IMU_ACCEL_FIFO) {
 		add_raw_imu_accel_fifo();
+	}
+
+	if (profile & SDLogProfileMask::SIMULINK) {
+		add_sim_topics();
 	}
 }
