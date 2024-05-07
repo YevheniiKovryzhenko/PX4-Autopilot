@@ -276,6 +276,15 @@ void trajectory::update(bool use_companion)
 	{
 		if (smg_request.reset || smg_request.start || smg_request.stop || smg_request.start_execution) //ignore if all is false (no real requests)
 		{
+			if (smg_request.stop)
+			{
+				status.finished = true; //this this as early termination
+				if (use_companion)
+				{
+					update_companion(false, true);
+					status.loaded = false;
+				}
+			}
 			if (smg_request.reset)
 			{
 				reset(); //check reset flag first
@@ -305,15 +314,7 @@ void trajectory::update(bool use_companion)
 				set_home(); //set home to current state
 				//assume pos_hold will latch on this point, so we won't update the ref untill trajectory is executed or reset
 			}
-			if (smg_request.stop)
-			{
-				status.finished = true; //this this as early termination
-				if (use_companion)
-				{
-					update_companion(false, true);
-					status.loaded = false;
-				}
-			}
+
 
 			if (!smg_request.start && !smg_request.reset && !smg_request.stop && smg_request.start_execution \
 				&& status.loaded && status.started && !status.finished)
