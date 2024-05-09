@@ -831,7 +831,7 @@ void SIM_CTRL_MOD::update_mode_autonomous(control_level &current_mode, bool arme
 			default: //go though position hold first
 				{
 					sim_guidance_request_s smg_request{};
-					smg_request.reset = true;
+					//smg_request.reset = false;
 					smg_request.start = true;
 					smg_request.timestamp = hrt_absolute_time();
 					_sim_guidance_request_pub.publish(smg_request);
