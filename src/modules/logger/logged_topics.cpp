@@ -343,20 +343,20 @@ void LoggedTopics::add_sim_topics()
 
 
 	//get all the debug instances used for simulink:
-	add_topic("simulink_inbound", 25);
-	add_topic("simulink_outbound", 25);
-	add_topic("simulink_inbound_ctrl", 25);
-	add_topic("simulink_guidance", 25);
+	add_topic("simulink_inbound", 20);
+	add_topic("simulink_outbound", 20);
+	add_topic("simulink_inbound_ctrl", 20);
+	add_topic("simulink_guidance", 20);
 
 	//CAN topics:
-	add_topic("actuator_outputs_sv", 100);
-	add_topic("actuator_outputs_esc", 100);
+	add_topic("actuator_outputs_sv", 20);
+	add_topic("actuator_outputs_esc", 20);
 
 	//get the guidance topics:
 	add_topic("sim_guidance_request");
-	add_topic("sim_guidance_status", 100);
-	add_topic("sim_guidance_trajectory", 500);
-	add_topic("companion_guidance_inbound", 500);
+	add_topic("sim_guidance_status", 20);
+	add_topic("sim_guidance_trajectory", 100);
+	add_topic("companion_guidance_inbound", 100);
 	add_topic("companion_guidance_outbound", 100);
 }
 
