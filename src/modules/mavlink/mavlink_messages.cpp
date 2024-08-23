@@ -379,7 +379,15 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamDebugVect>(),
 #endif // DEBUG_VECT_HPP
 #if defined(DEBUG_FLOAT_ARRAY_HPP)
-	create_stream_list_item<MavlinkStreamDebugFloatArray>(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<0> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<1> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<2> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<3> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<4> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<5> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<6> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<7> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<8> >(),
 #endif // DEBUG_FLOAT_ARRAY_HPP
 #if defined(NAV_CONTROLLER_OUTPUT_HPP)
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),

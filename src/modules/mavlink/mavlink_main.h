@@ -211,6 +211,8 @@ public:
 		MAVLINK_MODE_GIMBAL,
 		MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH,
 		MAVLINK_MODE_UAVIONIX,
+		MAVLINK_MODE_SIMULINK,
+		MAVLINK_MODE_COMPANION,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -267,6 +269,12 @@ public:
 
 		case MAVLINK_MODE_UAVIONIX:
 			return "uAvionix";
+
+		case MAVLINK_MODE_SIMULINK:
+			return "SIMULINK";
+
+		case MAVLINK_MODE_COMPANION:
+			return "Companion";
 
 		default:
 			return "Unknown";

@@ -44,5 +44,6 @@
  * @value 6 SF30/b
  * @value 7 SF30/c
  * @value 8 LW20/c
+ * @value 9 SF30/d
  */
 PARAM_DEFINE_INT32(SENS_EN_SF0X, 1);

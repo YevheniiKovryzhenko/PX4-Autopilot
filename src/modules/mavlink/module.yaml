@@ -69,6 +69,8 @@ parameters:
                 10: Gimbal
                 11: Onboard Low Bandwidth
                 12: uAvionix
+                13: Simulink
+                14: Companion
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [0, 2, 0]
@@ -178,3 +180,151 @@ parameters:
             num_instances: *max_num_config_instances
             default: [2, 2, 2]
             reboot_required: true
+
+    - group: SIM_CTRL_MOD
+      definitions:
+        SM_MAV_STREAM:
+            description:
+                short: SIMULINK enable inbound/outbound mavlink stream
+                long: |
+                    SIMULINK parameter for enabling/disabling
+                    mavlink stream of inbound/outbound simulink states.
+
+            type: enum
+            values:
+                0: DISABLE_ALL
+                1: OUTBOUND_ONLY
+                2: INBOUND_ONLY
+                3: BOTH
+            reboot_required: true
+            default: 0
+
+        SM_MAVOUT_${i}_HZ:
+            description:
+                short: SIMULINK Outbound mavlink stream rate
+                long: |
+                    SIMULINK parameter for setting the streaming rate
+                    of sm_outbound_${i} simulink stream (if enabled).
+                    Note that the real streaming rate is limited
+                    by the update rate of the simulink model
+                    and will be throttled down based on the
+                    lowest of the two.
+            type: float
+            decimal: 1
+            unit: Hz
+            min: 0
+            max: 100
+            reboot_required: true
+            num_instances: 4
+            instance_start: 0
+            default: 5
+
+        SM_MAV_IN_RATE:
+            description:
+                short: SIMULINK Inbound mavlink stream rate
+                long: |
+                    SIMULINK parameter for setting the mavlink
+                    streaming rate of inbound simulink stream (if enabled).
+
+            type: float
+            decimal: 1
+            unit: Hz
+            min: 0
+            max: 100
+            reboot_required: true
+            default: 1
+
+    - group: SIM_GUIDANCE
+      definitions:
+        SGM_MAV_STREAM:
+            description:
+                short: Enable SIMULINK guidance mavlink stream
+                long: |
+                    SIMULINK parameter for enabling/disabling
+                    mavlink stream of guidance message.
+                    This only works for MAVLINK_MODE_SIMULINK.
+
+            type: enum
+            values:
+                0: DISABLE
+                1: ENABLE
+            reboot_required: true
+            default: 0
+
+        SMG_MAV_RATE:
+            description:
+                short: SIMULINK guidance mavlink stream rate
+                long: |
+                    SIMULINK parameter for setting the streaming rate
+                    of simulink guidance stream (if enabled).
+                    Note that the real streaming rate is limited
+                    by the update rate of the simulink model
+                    and will be throttled down based on the
+                    lowest of the two.
+                    This only works for MAVLINK_MODE_SIMULINK.
+
+            type: float
+            decimal: 1
+            unit: Hz
+            min: 0
+            max: 100
+            reboot_required: true
+            default: 1
+
+        COMPG_MAV_STREAM:
+            description:
+                short: Enable companion guidance mavlink streams
+                long: |
+                    companion parameter for enabling/disabling
+                    mavlink stream of companion_guidance message.
+                    This only works for MAVLINK_MODE_SIMULINK.
+                    MAVLINK_MODE_COMPANION configures INBOUND msg.
+
+            type: enum
+            values:
+                0: DISABLE
+                1: INBOUND
+                2: OUTBOUND
+                3: BOTH
+            reboot_required: true
+            default: 0
+
+        COMPGIN_MAVRATE:
+            description:
+                short: Companion guidance mavlink stream rate
+                long: |
+                    Companion parameter for setting the streaming rate
+                    of companion guidance stream (if enabled).
+                    Note that the real streaming rate is limited
+                    by the update rate of the internal code
+                    and will be throttled down based on the
+                    lowest of the two.
+                    This only works for MAVLINK_MODE_SIMULINK.
+
+            type: float
+            decimal: 1
+            unit: Hz
+            min: 0
+            max: 300
+            reboot_required: true
+            default: 1
+
+        COMPGOUT_MAVRATE:
+            description:
+                short: Companion guidance mavlink stream rate
+                long: |
+                    Companion parameter for setting the streaming rate
+                    of companion guidance stream (if enabled).
+                    Note that the real streaming rate is limited
+                    by the update rate of the internal code
+                    and will be throttled down based on the
+                    lowest of the two.
+                    This only works for MAVLINK_MODE_SIMULINK.
+
+            type: float
+            decimal: 1
+            unit: Hz
+            min: 0
+            max: 300
+            reboot_required: true
+            default: 1

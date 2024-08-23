@@ -1697,6 +1697,103 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
+	{
+		int32_t compg_mav_stream = 0;
+		param_get(param_find("COMPG_MAV_STREAM"),&compg_mav_stream);
+		float compg_in_mav_rate = 0.f;
+		param_get(param_find("COMPGIN_MAVRATE"),&compg_in_mav_rate);
+		float compg_out_mav_rate = 0.f;
+		param_get(param_find("COMPGOUT_MAVRATE"),&compg_out_mav_rate);
+		switch (compg_mav_stream)
+		{
+		case 1:
+			configure_stream_local("COMPANION_GUIDANCE_OUTBOUND", compg_out_mav_rate);
+			break;
+		case 2:
+			configure_stream_local("COMPANION_GUIDANCE_INBOUND", compg_in_mav_rate);
+			break;
+		case 3:
+			configure_stream_local("COMPANION_GUIDANCE_INBOUND", compg_in_mav_rate);
+			configure_stream_local("COMPANION_GUIDANCE_OUTBOUND", compg_out_mav_rate);
+			break;
+
+		default:
+			break;
+		}
+
+		int32_t sm_mav_stream = 0;
+		param_get(param_find("SM_MAV_STREAM"),&sm_mav_stream);
+
+		float sm_mav_out_rate[4] = {0.f, 0.f, 0.f, 0.f};
+		float sm_mav_in_rate = 0.f;
+
+		for (int i = 0; i < 4; i++)
+		{
+			char str[17];
+			static const char *prefix = "SM_MAVOUT_";
+			static const char *suffix = "_HZ";
+
+			sprintf(str, "%s%u%s", prefix, i, suffix);
+			param_get(param_find(str), &sm_mav_out_rate[i]);
+		}
+		// param_get(param_find("SM_MAVOUT_${i}_HZ"),&sm_mav_out_rate);
+		param_get(param_find("SM_MAV_IN_RATE"),&sm_mav_in_rate);
+
+
+		switch (sm_mav_stream)
+		{
+		case 1:
+		{
+			char str[20];
+			static const char *prefix = "SIMULINK_OUTBOUND";
+
+			if (sm_mav_out_rate[0] > 0.f) configure_stream_local(prefix, sm_mav_out_rate[0]);
+			for (int i = 1; i < 4; i++)
+			{
+				sprintf(str, "%s_%u", prefix, i);
+				if (sm_mav_out_rate[i] > 0.f) configure_stream_local(str, sm_mav_out_rate[i]);
+			}
+			// configure_stream_local("SIMULINK_OUTBOUND", sm_mav_out_rate);
+			break;
+		}
+
+		case 2:
+			configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
+			break;
+		case 3:
+		{
+			configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
+
+			char str[20];
+			static const char *prefix = "SIMULINK_OUTBOUND";
+
+			if (sm_mav_out_rate[0] > 0.f) configure_stream_local(prefix, sm_mav_out_rate[0]);
+			for (int i = 1; i < 4; i++)
+			{
+				sprintf(str, "%s_%u", prefix, i);
+				if (sm_mav_out_rate[i] > 0.f) configure_stream_local(str, sm_mav_out_rate[i]);
+			}
+			break;
+		}
+		default:
+			break;
+		}
+
+		int32_t smg_mav_stream = 0;
+		param_get(param_find("SGM_MAV_STREAM"),&smg_mav_stream);
+		float smg_mav_rate = 0.f;
+		param_get(param_find("SMG_MAV_RATE"),&smg_mav_rate);
+		switch (smg_mav_stream)
+		{
+		case 1:
+			configure_stream_local("SIMULINK_GUIDANCE", smg_mav_rate);
+			break;
+
+		default:
+			break;
+		}
+
+
 		// Note: streams requiring low latency come first
 		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
@@ -1760,7 +1857,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #endif // !CONSTRAINED_FLASH
 
 		break;
-
+	}
 	case MAVLINK_MODE_IRIDIUM:
 		configure_stream_local("HIGH_LATENCY2", 0.015f);
 		break;
@@ -1841,6 +1938,187 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UAVIONIX_ADSB_OUT_CFG", 0.1f);
 		configure_stream_local("UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f);
 		break;
+
+	case MAVLINK_MODE_SIMULINK:
+	{
+		int32_t compg_mav_stream = 0;
+		param_get(param_find("COMPG_MAV_STREAM"),&compg_mav_stream);
+		float compg_in_mav_rate = 0.f;
+		param_get(param_find("COMPGIN_MAVRATE"),&compg_in_mav_rate);
+		float compg_out_mav_rate = 0.f;
+		param_get(param_find("COMPGOUT_MAVRATE"),&compg_out_mav_rate);
+		switch (compg_mav_stream)
+		{
+		case 1:
+			configure_stream_local("COMPANION_GUIDANCE_OUTBOUND", compg_out_mav_rate);
+			break;
+		case 2:
+			configure_stream_local("COMPANION_GUIDANCE_INBOUND", compg_in_mav_rate);
+			break;
+		case 3:
+			configure_stream_local("COMPANION_GUIDANCE_INBOUND", compg_in_mav_rate);
+			configure_stream_local("COMPANION_GUIDANCE_OUTBOUND", compg_out_mav_rate);
+			break;
+
+		default:
+			break;
+		}
+
+		int32_t sm_mav_stream = 0;
+		param_get(param_find("SM_MAV_STREAM"),&sm_mav_stream);
+
+		float sm_mav_out_rate[4] = {0.f, 0.f, 0.f, 0.f};
+		float sm_mav_in_rate = 0.f;
+
+		for (int i = 0; i < 4; i++)
+		{
+			char str[17];
+			static const char *prefix = "SM_MAVOUT_";
+			static const char *suffix = "_HZ";
+
+			sprintf(str, "%s%u%s", prefix, i, suffix);
+			param_get(param_find(str), &sm_mav_out_rate[i]);
+		}
+		// param_get(param_find("SM_MAVOUT_${i}_HZ"),&sm_mav_out_rate);
+		param_get(param_find("SM_MAV_IN_RATE"),&sm_mav_in_rate);
+
+
+		switch (sm_mav_stream)
+		{
+		case 1:
+		{
+			char str[20];
+			static const char *prefix = "SIMULINK_OUTBOUND";
+
+			if (sm_mav_out_rate[0] > 0.f) configure_stream_local(prefix, sm_mav_out_rate[0]);
+			for (int i = 1; i < 4; i++)
+			{
+				sprintf(str, "%s_%u", prefix, i);
+				if (sm_mav_out_rate[i] > 0.f) configure_stream_local(str, sm_mav_out_rate[i]);
+			}
+			// configure_stream_local("SIMULINK_OUTBOUND", sm_mav_out_rate);
+			break;
+		}
+
+		case 2:
+			configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
+			break;
+		case 3:
+		{
+			configure_stream_local("SIMULINK_INBOUND", sm_mav_in_rate);
+
+			char str[20];
+			static const char *prefix = "SIMULINK_OUTBOUND";
+
+			if (sm_mav_out_rate[0] > 0.f) configure_stream_local(prefix, sm_mav_out_rate[0]);
+			for (int i = 1; i < 4; i++)
+			{
+				sprintf(str, "%s_%u", prefix, i);
+				if (sm_mav_out_rate[i] > 0.f) configure_stream_local(str, sm_mav_out_rate[i]);
+			}
+			break;
+		}
+		default:
+			break;
+		}
+
+		int32_t smg_mav_stream = 0;
+		param_get(param_find("SGM_MAV_STREAM"),&smg_mav_stream);
+		float smg_mav_rate = 0.f;
+		param_get(param_find("SMG_MAV_RATE"),&smg_mav_rate);
+		switch (smg_mav_stream)
+		{
+		case 1:
+			configure_stream_local("SIMULINK_GUIDANCE", smg_mav_rate);
+			break;
+
+		default:
+			break;
+		}
+
+		int32_t uavcan_sv_mav = 0;
+		param_get(param_find("UAVCAN_SV_MAV"),&uavcan_sv_mav);
+
+
+		int32_t sm_mav_config = 0;
+		param_get(param_find("SM_MAV_CONF"),&sm_mav_config);
+		switch (sm_mav_config)
+		{
+		case 1: //ignore all other trafic
+			return ret;
+
+		default:
+			break;
+		}
+
+		//copy of normal messages:
+		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
+		configure_stream_local("ALTITUDE", 1.0f);
+		configure_stream_local("ATTITUDE", 15.0f);
+		configure_stream_local("ATTITUDE_QUATERNION", 10.0f);
+		configure_stream_local("ATTITUDE_TARGET", 2.0f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
+		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
+		configure_stream_local("COLLISION", unlimited_rate);
+		configure_stream_local("DISTANCE_SENSOR", 0.5f);
+		configure_stream_local("EFI_STATUS", 2.0f);
+		configure_stream_local("ESC_INFO", 1.0f);
+		configure_stream_local("ESC_STATUS", 1.0f);
+		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
+		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
+		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
+		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
+		configure_stream_local("GPS2_RAW", 1.0f);
+		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
+		configure_stream_local("GPS_RAW_INT", 1.0f);
+		configure_stream_local("GPS_STATUS", 1.0f);
+		configure_stream_local("HOME_POSITION", 0.5f);
+		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
+		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
+		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
+		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
+		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
+		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
+		configure_stream_local("PING", 0.1f);
+		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
+		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
+		configure_stream_local("RAW_RPM", 2.0f);
+		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("SCALED_PRESSURE", 1.0f);
+		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
+		configure_stream_local("SYS_STATUS", 1.0f);
+		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
+		configure_stream_local("UTM_GLOBAL_POSITION", 0.5f);
+		configure_stream_local("VFR_HUD", 4.0f);
+		configure_stream_local("VIBRATION", 0.1f);
+		configure_stream_local("WIND_COV", 0.5f);
+
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("DEBUG", 1.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
+		configure_stream_local("DEBUG_VECT", 1.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
+#endif // !CONSTRAINED_FLASH
+
+
+		break;
+	}
+
+	case MAVLINK_MODE_COMPANION:
+	{
+		float compg_in_mav_rate = 0.f;
+		param_get(param_find("COMPGIN_MAVRATE"),&compg_in_mav_rate);
+		configure_stream_local("COMPANION_GUIDANCE_INBOUND", compg_in_mav_rate);
+
+		configure_stream_local("PING", 0.1f);
+		configure_stream_local("SYS_STATUS", 5.0f);
+		configure_stream_local("TIMESYNC", 5.0f);
+		break;
+	}
 
 	default:
 		ret = -1;

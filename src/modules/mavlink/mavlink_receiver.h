@@ -319,6 +319,14 @@ private:
 	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
+	uORB::Publication<debug_array_s>			_simulink_inbound_pub {ORB_ID(simulink_inbound)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_pub {ORB_ID(simulink_outbound)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_1_pub {ORB_ID(simulink_outbound_1)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_2_pub {ORB_ID(simulink_outbound_2)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_3_pub {ORB_ID(simulink_outbound_3)};
+	uORB::Publication<debug_array_s>			_simulink_inbound_ctrl_pub {ORB_ID(simulink_inbound_ctrl)};
+	uORB::Publication<debug_array_s>			_companion_guidance_inbound_pub {ORB_ID(companion_guidance_inbound)};
+	uORB::Publication<debug_array_s>			_companion_guidance_outbound_pub {ORB_ID(companion_guidance_outbound)};
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
 	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
