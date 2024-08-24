@@ -390,6 +390,30 @@ void LoggedTopics::add_mavlink_tunnel()
 	add_topic("mavlink_tunnel");
 }
 
+void LoggedTopics::add_sim_topics()
+{
+
+	//get all the debug instances used for simulink:
+	int32_t sm_log_delay_ms = 0;
+	param_get(param_find("SM_LOG_DELAY"),&sm_log_delay_ms);
+	add_topic("simulink_inbound", sm_log_delay_ms);
+	add_topic("simulink_outbound", sm_log_delay_ms);
+	add_topic("simulink_outbound_1", sm_log_delay_ms);
+	add_topic("simulink_outbound_2", sm_log_delay_ms);
+	add_topic("simulink_outbound_3", sm_log_delay_ms);
+	add_topic("simulink_inbound_ctrl", sm_log_delay_ms);
+	add_topic("simulink_guidance", sm_log_delay_ms);
+
+	//get the guidance topics:
+	int32_t compg_log_delay_ms = 0;
+	param_get(param_find("COMPG_LOG_DELAY"),&compg_log_delay_ms);
+	add_topic("sim_guidance_request");
+	add_topic("sim_guidance_status", 20);
+	add_topic("sim_guidance_trajectory", compg_log_delay_ms);
+	add_topic("companion_guidance_inbound", compg_log_delay_ms);
+	add_topic("companion_guidance_outbound", compg_log_delay_ms);
+}
+
 int LoggedTopics::add_topics_from_file(const char *fname)
 {
 	int ntopics = 0;
@@ -599,5 +623,9 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 
 	if (profile & SDLogProfileMask::MAVLINK_TUNNEL) {
 		add_mavlink_tunnel();
+	}
+
+	if (profile & SDLogProfileMask::SIMULINK) {
+		add_sim_topics();
 	}
 }

@@ -173,6 +173,9 @@ set(msg_files
 	SensorPreflightMag.msg
 	SensorSelection.msg
 	SensorsStatus.msg
+	SimGuidanceRequest.msg
+	SimGuidanceStatus.msg
+	SimGuidanceTrajectory.msg
 	SensorsStatusImu.msg
 	SensorUwb.msg
 	SystemPower.msg
