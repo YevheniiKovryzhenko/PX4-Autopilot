@@ -1,0 +1,16 @@
+module_name: SIMULINK_GUIDANCE
+parameters:
+    - group: SIMULINK_GUIDANCE
+      definitions:
+        SMG_EN:
+            description:
+                short: Enable SIMULINK guidance
+                long: |
+                    Enable/Disable SIMULINK guidance update routine.
+
+            type: enum
+            values:
+                0: DISABLE
+                1: ENABLE
+                2: ENABLE_COMPANION
+            default: 0
