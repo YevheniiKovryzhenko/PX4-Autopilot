@@ -41,6 +41,7 @@
 #include <uORB/Subscription.hpp>
 //#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sim_guidance_request.h>
 #include "trajectory.hpp"
 
 extern "C" __EXPORT int simulink_guidance_main(int argc, char *argv[]);
@@ -91,6 +92,9 @@ private:
 
 	// Subscriptions
 	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
+
+	// Publications
+	uORB::Publication<sim_guidance_request_s>	_sim_guidance_request_pub{ORB_ID(sim_guidance_request)};
 
 	/**
 	 * THIS IS WHERE YOU DEFINE NEW PARAMETRS

@@ -1935,74 +1935,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		default:
 			break;
 		}
-
-		int32_t uavcan_sv_mav = 0;
-		param_get(param_find("UAVCAN_SV_MAV"),&uavcan_sv_mav);
-
-
-		int32_t sm_mav_config = 0;
-		param_get(param_find("SM_MAV_CONF"),&sm_mav_config);
-		switch (sm_mav_config)
-		{
-		case 1: //ignore all other trafic
-			return ret;
-
-		default:
-			break;
-		}
-
-		//copy of normal messages:
-		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
-		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("ATTITUDE", 15.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 10.0f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("COLLISION", unlimited_rate);
-		configure_stream_local("DISTANCE_SENSOR", 0.5f);
-		configure_stream_local("EFI_STATUS", 2.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 1.0f);
-		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-		configure_stream_local("GPS2_RAW", 1.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", 1.0f);
-		configure_stream_local("GPS_STATUS", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
-		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream_local("RAW_RPM", 2.0f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 1.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("UTM_GLOBAL_POSITION", 0.5f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.1f);
-		configure_stream_local("WIND_COV", 0.5f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#endif // !CONSTRAINED_FLASH
 		break;
 	}
 
@@ -2264,6 +2196,12 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "uavionix") == 0) {
 						_mode = MAVLINK_MODE_UAVIONIX;
+
+					} else if (strcmp(myoptarg, "simulink") == 0) {
+						_mode = MAVLINK_MODE_SIMULINK;
+
+					} else if (strcmp(myoptarg, "companion") == 0) {
+						_mode = MAVLINK_MODE_COMPANION;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -3498,7 +3436,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix|simulink|companion",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)

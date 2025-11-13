@@ -63,37 +63,86 @@ int SimulinkGuidance::custom_command(int argc, char *argv[])
 	for (int i = 0; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "set_src")) {
-			if (argc < i+1)
-			{
-				PX4_WARN("Please specify a directory, followed by file name");
+			// Check argument count: need at least 1 argument (filename)
+			if (argc < i + 2) {
+				PX4_WARN("Usage: set_src <file_name> or set_src <directory> <file_name>");
 				print_usage();
 				return 0;
 			}
-			const char *file_string = nullptr;
-			if (argc > i+2)
-			{
-				const char *dir_string = nullptr;
-				dir_string = argv[i+1];
-				file_string = argv[i+2];
-				if (get_instance()->traj.set_src(dir_string, file_string) < 0)
-				{
-					PX4_WARN("Failed to set new file path for trajectory execution");
-					return 0;
-				}
+
+			const char *dir_arg = nullptr;
+			const char *file_arg = nullptr;
+
+			// Parse arguments: 1 arg = filename only, 2 args = directory + filename
+			if (argc >= i + 3) {
+				// Two arguments: directory and filename
+				dir_arg = argv[i + 1];
+				file_arg = argv[i + 2];
+			} else {
+				// One argument: filename only, use current directory
+				dir_arg = get_instance()->traj.file_loader.get_dir();
+				file_arg = argv[i + 1];
 			}
-			else
-			{
-				file_string = argv[i+1];
-				if (get_instance()->traj.set_src(file_string) < 0)
-				{
-					PX4_WARN("Failed to set new file path for trajectory execution");
-					return 0;
-				}
+
+			// Normalize paths (handles .traj extension, trailing slashes, etc.)
+			char normalized_file[256];
+			char normalized_dir[256];
+			if (get_instance()->traj.file_loader.normalize_paths(
+				normalized_file, normalized_dir, file_arg, dir_arg) < 0) {
+				PX4_WARN("Failed to normalize file paths");
+				return 0;
+			}
+
+			// Set source with normalized paths
+			if (get_instance()->traj.set_src(normalized_dir, normalized_file) < 0) {
+				PX4_WARN("Failed to set trajectory file");
+				return 0;
 			}
 
 			return 0;
 		}
-		else if(!strcmp(argv[i], "ls"))
+		else if(!strcmp(argv[i], "trajectory"))
+		{
+			if (argc < i + 2) {
+				PX4_WARN("Usage: trajectory <start|stop|reset|execute>");
+				return 0;
+			}
+
+			const char *cmd = argv[i + 1];
+			sim_guidance_request_s request{};
+			request.timestamp = hrt_absolute_time();
+
+			if (!strcmp(cmd, "start")) {
+				request.start = true;
+				PX4_INFO("Starting trajectory guidance");
+			}
+			else if (!strcmp(cmd, "stop")) {
+				request.stop = true;
+				PX4_INFO("Stopping trajectory guidance");
+			}
+			else if (!strcmp(cmd, "reset")) {
+				request.reset = true;
+				PX4_INFO("Resetting trajectory guidance");
+			}
+			else if (!strcmp(cmd, "execute")) {
+				request.start_execution = true;
+				PX4_INFO("Executing trajectory");
+			}
+			else if (!strcmp(cmd, "set_home")) {
+				request.set_home = true;
+				PX4_INFO("Setting home position");
+			}
+			else {
+				PX4_WARN("Unknown trajectory command: %s", cmd);
+				PX4_WARN("Available commands: start, stop, reset, execute, set_home");
+				return 0;
+			}
+
+			// Publish the request
+			get_instance()->_sim_guidance_request_pub.publish(request);
+			return 0;
+		}
+		else if(!strcmp(argv[i], "test"))
 		{
 			if (argc < i+2)
 			{
@@ -297,24 +346,47 @@ int SimulinkGuidance::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Section that describes the provided SimulinkGuidance module functionality.
+Simulink Guidance module for autonomous trajectory tracking control.
 
-This is a template for a SimulinkGuidance module running as a task in the background with start/stop/status functionality.
+Loads polynomial trajectory files and executes them by publishing setpoint commands.
+Supports multi-DOF trajectories (x, y, z, yaw) with configurable polynomial orders.
 
 ### Implementation
-Section describing the high-level implementation of this SimulinkGuidance module.
+Runs as a background task with real-time trajectory execution.
+File I/O uses standard POSIX operations for robust filesystem access.
+Integrates with PX4 uORB messaging for position/velocity/acceleration setpoints.
 
 ### Examples
-CLI usage example:
-$ SimulinkGuidance start
+Load and execute a trajectory:
+$ simulink_guidance start
+$ simulink_guidance set_src ./trajectories fig_8_1
+$ simulink_guidance trajectory start
+$ simulink_guidance status
+
+Trajectory control commands:
+$ simulink_guidance trajectory start     # Engage guidance module
+$ simulink_guidance trajectory stop      # Stop trajectory execution
+$ simulink_guidance trajectory reset     # Reset trajectory state
+$ simulink_guidance trajectory execute   # Begin trajectory evaluation
+$ simulink_guidance trajectory set_home  # Set home at current position
+
+Test trajectory solver:
+$ simulink_guidance test solver
 
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("simulink_guidance", "simulink");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("set_src <file_name.traj>", "Load trajectory file");
-	// PRINT_MODULE_USAGE_COMMAND("ls");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test <option>", "Run test (options listed below)");
+	PRINT_MODULE_USAGE_COMMAND("set_src");
+	PRINT_MODULE_USAGE_ARG("<file_name>", "Load trajectory file from current directory (.traj extension optional)", false);
+	PRINT_MODULE_USAGE_ARG("<directory> <file_name>", "Load trajectory file from specified directory", false);
+	PRINT_MODULE_USAGE_COMMAND("trajectory");
+	PRINT_MODULE_USAGE_ARG("start", "Engage guidance module and activate trajectory tracking", false);
+	PRINT_MODULE_USAGE_ARG("stop", "Stop trajectory execution and halt guidance", false);
+	PRINT_MODULE_USAGE_ARG("reset", "Reset trajectory state to initial conditions", false);
+	PRINT_MODULE_USAGE_ARG("execute", "Begin trajectory evaluation and tracking", false);
+	PRINT_MODULE_USAGE_ARG("set_home", "Set home position at current vehicle location", false);
+	PRINT_MODULE_USAGE_COMMAND("test");
 	PRINT_MODULE_USAGE_ARG("solver", "Test solver code generation", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

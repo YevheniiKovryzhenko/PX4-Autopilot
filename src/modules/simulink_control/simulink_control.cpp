@@ -339,9 +339,9 @@ bool SimulinkControl::update_sticks(int input_source_opt, sticks_ind stick, floa
 			case MODE:
 				{
 					bool use_raw_mode_switch = _param_mode_type.get() == 1;
-					if(man_switches.mode_switch != manual_control_switches_s::SWITCH_POS_NONE)
+					if(man_switches.mode_slot != manual_control_switches_s::SWITCH_POS_NONE)
 					{
-						switch (man_switches.mode_switch)
+						switch (man_switches.mode_slot)
 						{
 						case manual_control_switches_s::SWITCH_POS_ON:
 							if(use_raw_mode_switch) stick_val = 1.f;
@@ -1081,7 +1081,7 @@ bool SimulinkControl::update_control_inputs(float in_vec[CONTROL_VEC_SIZE])
 			man_switches.timestamp = hrt_absolute_time();
 			man_switches.arm_switch = armed_switch;
 			man_switches.kill_switch = !armed_switch;
-			man_switches.mode_switch = mode_stick;
+			man_switches.mode_slot = mode_stick;
 
 			_manual_control_switches_pub.publish(man_switches);
 		}
