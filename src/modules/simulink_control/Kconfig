@@ -1,0 +1,12 @@
+menuconfig MODULES_SIMULINK_CONTROL
+	bool "simulink_control"
+	default n
+	---help---
+		Enable support for simulink_control
+
+menuconfig USER_SIMULINK_CONTROL
+	bool "simulink_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_SIMULINK_CONTROL
+	---help---
+		Put simulink_control in userspace memory

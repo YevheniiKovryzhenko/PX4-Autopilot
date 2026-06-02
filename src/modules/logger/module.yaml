@@ -83,7 +83,8 @@ parameters:
           sensor comparison (low rate raw IMU, Baro and magnetometer data) 7 : Topics
           for computer vision and collision prevention 8 : Raw FIFO high-rate IMU
           (Gyro) 9 : Raw FIFO high-rate IMU (Accel) 10: Logging of mavlink tunnel
-          message (useful for payload communication debugging)'
+          message (useful for payload communication debugging) 11: Logging of Simulink
+          and guidance-related topics'
       type: bitmask
       bit:
         0: Default set (general log analysis)
@@ -98,9 +99,10 @@ parameters:
         9: Raw FIFO high-rate IMU (Accel)
         10: Mavlink tunnel message logging
         11: High rate sensors
+        12: Simulink and guidance-related topics
       default: 1
       min: 0
-      max: 4095
+      max: 8191
       reboot_required: true
     SDLOG_DIRS_MAX:
       description:
@@ -122,3 +124,34 @@ parameters:
         long: If set to 1, add an ID to the log, which uniquely identifies the vehicle
       type: boolean
       default: 1
+- group: SIM_CTRL_MOD
+  definitions:
+    SM_LOG_DELAY:
+            description:
+                short: SIMULINK INBOUND/OUTBOUND topics logging delay
+                long: |
+                    This parameter control the frequency of the logging for
+                    all inputs/outputs to/from simulink. The value is delay
+                    is milliseconds.
+            type: int32
+            unit: ms
+            min: 0
+            max: 10000
+            reboot_required: true
+            default: 20
+
+- group: SIM_GUIDANCE
+  definitions:
+    COMPG_LOG_DELAY:
+            description:
+                short: SIMULINK Guidance topics logging delay
+                long: |
+                    This parameter control the frequency of the logging for
+                    all inputs/outputs to/from companion. The value is delay
+                    is milliseconds.
+            type: int32
+            unit: ms
+            min: 0
+            max: 10000
+            reboot_required: true
+            default: 100

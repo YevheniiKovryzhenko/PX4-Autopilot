@@ -535,6 +535,24 @@ else
 	#
 	navigator start
 
+	# Start simulink_io module if compiled
+	if simulink_io start
+	then
+		echo "INFO  [init] simulink_io started"
+	fi
+
+	# Start simulink_guidance module if compiled
+	if simulink_guidance start
+	then
+		echo "INFO  [init] simulink_guidance started"
+	fi
+
+	# Start simulink_control module if compiled
+	if simulink_control start
+	then
+		echo "INFO  [init] simulink_control started"
+	fi
+
 	#
 	# Start a thermal calibration if required.
 	#
