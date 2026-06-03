@@ -91,6 +91,8 @@ void SimulinkIO::run()
             PX4_INFO("[Simulink Test] Parameter Read: %f",
                      (double)outputs.Out3);
 
+            PX4_INFO("[Simulink Test] VehicleStatus.nav_state = %f", (double)outputs.Out4);
+
             iteration_counter = 0; // Reset counter
         }
 
