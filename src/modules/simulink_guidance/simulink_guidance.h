@@ -110,7 +110,8 @@ private:
 	 *	They MUST BE UPPERCASE AND lowercase respectively (don't mix)
 	 */
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SMG_EN>) _param_smg_en
+		(ParamInt<px4::params::SMG_EN>) _param_smg_en,
+		(ParamInt<px4::params::SMG_OUT_TYPE>) _param_smg_out_type
 	)//MAKE SURE EVERY PARAMETER IS FOLLOWED BY "," AND LAST ONE DOES NOT HAVE ANYTHING
 };
 

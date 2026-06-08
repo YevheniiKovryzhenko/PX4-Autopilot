@@ -41,6 +41,8 @@
 #include <uORB/topics/sim_guidance_status.h>
 #include <uORB/topics/sim_guidance_request.h>
 #include <uORB/topics/debug_array.h>
+#include <uORB/topics/trajectory_setpoint.h>
+#include <px4_platform_common/module_params.h>
 #include "file_loader_backend.hpp"
 
 using matrix::Dcmf;
@@ -126,8 +128,9 @@ private:
 	uORB::Publication<sim_guidance_trajectory_s>	_sim_guidance_trajecotry_pub{ORB_ID(sim_guidance_trajectory)};
 	uORB::Publication<sim_guidance_status_s>	_sim_guidance_status_pub{ORB_ID(sim_guidance_status)};
 	uORB::Publication<sim_guidance_request_s>	_sim_guidance_request_pub{ORB_ID(sim_guidance_request)};
-	// uORB::Publication<debug_array_s>		_sim_guidance_pub{ORB_ID(simulink_guidance)};
+	uORB::Publication<debug_array_s>		_sim_guidance_pub{ORB_ID(simulink_guidance)};
 	uORB::Publication<debug_array_s>		_companion_guidance_inbound_pub{ORB_ID(companion_guidance_inbound)};
+	uORB::Publication<trajectory_setpoint_s>	_trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 
 
 	// Subscriptions

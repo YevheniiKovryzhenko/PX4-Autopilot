@@ -693,12 +693,10 @@ int trajectory::load(void)
 	PX4_INFO("Trajectory successfully loaded!");
 	return 0;
 }
-//#define DEBUG
+#define DEBUG
 
 int trajectory::execute(void)
 {
-
-
 	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
 	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
 	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
@@ -735,70 +733,129 @@ int trajectory::execute(void)
 	(double)snap(0));
 	#endif
 
-	//publish new data:
-	sim_guidance_trajectory_s smg_traj{};
-	smg_traj.time_s = static_cast<float>(time_trajecotry_s);
-	smg_traj.n_dofs = static_cast<uint8_t>(n_dofs);
-	for (size_t i = 0; i < n_dofs; i++)
-	{
-		smg_traj.position[i] = static_cast<float>(pos(i)) + static_cast<float>(initial_point.pos(i));
-		smg_traj.velocity[i] = static_cast<float>(vel(i)) + static_cast<float>(initial_point.acc(i));
-		smg_traj.acceleration[i] = static_cast<float>(acc(i)) + static_cast<float>(initial_point.vel(i));
-		smg_traj.jerk[i] = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
-		smg_traj.snap[i] = static_cast<float>(snap(i)) + static_cast<float>(initial_point.snap(i));
+	// Optimized Parameter Check (static lookup avoids heavy runtime string searches)
+	static param_t smg_out_type_handle = param_find("SMG_OUT_TYPE");
+	int32_t output_type_mask = 0;
+	if (smg_out_type_handle == PARAM_INVALID || param_get(smg_out_type_handle, &output_type_mask) != OK) {
+		return -1;
 	}
 
-	//printf("initial_point.pos(0) = %f\n",(double)initial_point.pos(0));
+	// ==========================================
+	// TRAJECTORY_SETPOINT (Standard PX4 3D/4D)
+	// ==========================================
+	if (output_type_mask & (1 << 0)) {
+		trajectory_setpoint_s tr_sp{};
 
-	#ifdef DEBUG
-	printf("t=%9.6f, X=%9.6ff, X_vel=%9.6ff, X_acc=%9.6ff, X_jerk=%9.6ff, X_snap = %9.6ff\n\n",\
-	 (double)smg_traj.time_s,\
-	 (double)(smg_traj.position[0]),\
-	 (double)smg_traj.velocity[0],\
-	 (double)smg_traj.acceleration[0],\
-	 (double)smg_traj.jerk[0],\
-	 (double)smg_traj.snap[0]);
-	 #endif
+		// Loop through standard 3D elements (X=0, Y=1, Z=2)
+		for (size_t i = 0; i < 3; i++)
+		{
+			if (i < n_dofs) {
+				// Dof is valid: Publish initial point baseline + trajectory offset
+				tr_sp.position[i]     = static_cast<float>(pos(i))  + static_cast<float>(initial_point.pos(i));
+				tr_sp.velocity[i]     = static_cast<float>(vel(i))  + static_cast<float>(initial_point.vel(i));
+				tr_sp.acceleration[i] = static_cast<float>(acc(i))  + static_cast<float>(initial_point.acc(i));
+				tr_sp.jerk[i]         = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
+			} else {
+				// Dof exceeds trajectory allocation: Fall back strictly to initial coordinates
+				tr_sp.position[i]     = static_cast<float>(initial_point.pos(i));
+				tr_sp.velocity[i]     = static_cast<float>(initial_point.vel(i));
+				tr_sp.acceleration[i] = static_cast<float>(initial_point.acc(i));
+				tr_sp.jerk[i]         = static_cast<float>(initial_point.jerk(i));
+			}
+		}
 
-	smg_traj.timestamp = hrt_absolute_time();
-	_sim_guidance_trajecotry_pub.publish(smg_traj);
+		// Yaw Guidance Check (Index 3 represents Yaw in a 4-DOF vector map)
+		if (n_dofs > 3) {
+			tr_sp.yaw      = static_cast<float>(pos(3)) + static_cast<float>(initial_point.pos(3));
+			tr_sp.yawspeed = static_cast<float>(vel(3)) + static_cast<float>(initial_point.vel(3));
+		} else {
+			tr_sp.yaw      = static_cast<float>(initial_point.pos(3));
+			tr_sp.yawspeed = static_cast<float>(initial_point.vel(3));
+		}
 
-	//also publish it in array format:
-	// smg.timestamp = hrt_absolute_time();
-	// size_t tmp_ind = 0;
+		tr_sp.timestamp = hrt_absolute_time();
+		_trajectory_setpoint_pub.publish(tr_sp);
+	}
 
-	// smg.data[tmp_ind] = static_cast<float>(status.finished);
-	// tmp_ind++;
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(pos(i)) + static_cast<float>(initial_point.pos(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(vel(i)) + static_cast<float>(initial_point.vel(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(acc(i)) + static_cast<float>(initial_point.acc(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(snap(i)) + static_cast<float>(initial_point.snap(i));
-	// 	tmp_ind++;
-	// }
-	// _sim_guidance_pub.publish(smg);
+	// ==========================================
+	// SIM_GUIDANCE_TRAJECTORY (Custom uORB)
+	// ==========================================
+	if (output_type_mask & (1 << 1)) {
+		sim_guidance_trajectory_s smg_traj{};
+		smg_traj.time_s = static_cast<float>(time_trajecotry_s);
+		smg_traj.n_dofs = static_cast<uint8_t>(n_dofs);
 
+		// Fill array boundaries completely up to maximum capacity
+		for (size_t i = 0; i < n_dofs_max; i++)
+		{
+			if (i < n_dofs) {
+				smg_traj.position[i]     = static_cast<float>(pos(i))  + static_cast<float>(initial_point.pos(i));
+				smg_traj.velocity[i]     = static_cast<float>(vel(i))  + static_cast<float>(initial_point.vel(i));
+				smg_traj.acceleration[i] = static_cast<float>(acc(i))  + static_cast<float>(initial_point.acc(i));
+				smg_traj.jerk[i]         = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
+				smg_traj.snap[i]         = static_cast<float>(snap(i)) + static_cast<float>(initial_point.snap(i));
+			} else {
+				smg_traj.position[i]     = static_cast<float>(initial_point.pos(i));
+				smg_traj.velocity[i]     = static_cast<float>(initial_point.vel(i));
+				smg_traj.acceleration[i] = static_cast<float>(initial_point.acc(i));
+				smg_traj.jerk[i]         = static_cast<float>(initial_point.jerk(i));
+				smg_traj.snap[i]         = static_cast<float>(initial_point.snap(i));
+			}
+		}
 
+		#ifdef DEBUG
+		printf("t=%9.6f, X=%9.6ff, X_vel=%9.6ff, X_acc=%9.6ff, X_jerk=%9.6ff, X_snap = %9.6ff\n\n",\
+		(double)smg_traj.time_s,\
+		(double)(smg_traj.position[0]),\
+		(double)smg_traj.velocity[0],\
+		(double)smg_traj.acceleration[0],\
+		(double)smg_traj.jerk[0],\
+		(double)smg_traj.snap[0]);
+		#endif
+
+		smg_traj.timestamp = hrt_absolute_time();
+		_sim_guidance_trajecotry_pub.publish(smg_traj);
+	}
+
+	// ==========================================
+	// SIMULINK_GUIDANCE
+	// ==========================================
+	if (output_type_mask & (1 << 2)) {
+		smg.timestamp = hrt_absolute_time();
+		size_t tmp_ind = 0;
+
+		smg.data[tmp_ind] = static_cast<float>(status.finished);
+		tmp_ind++;
+		for (size_t i = 0; i < n_dofs_max; i++)
+		{
+			smg.data[tmp_ind] = static_cast<float>(pos(i)) + static_cast<float>(initial_point.pos(i));
+			tmp_ind++;
+		}
+		for (size_t i = 0; i < n_dofs_max; i++)
+		{
+			smg.data[tmp_ind] = static_cast<float>(vel(i)) + static_cast<float>(initial_point.vel(i));
+			tmp_ind++;
+		}
+		for (size_t i = 0; i < n_dofs_max; i++)
+		{
+			smg.data[tmp_ind] = static_cast<float>(acc(i)) + static_cast<float>(initial_point.acc(i));
+			tmp_ind++;
+		}
+		for (size_t i = 0; i < n_dofs_max; i++)
+		{
+			smg.data[tmp_ind] = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
+			tmp_ind++;
+		}
+		for (size_t i = 0; i < n_dofs_max; i++)
+		{
+			smg.data[tmp_ind] = static_cast<float>(snap(i)) + static_cast<float>(initial_point.snap(i));
+			tmp_ind++;
+		}
+		_sim_guidance_pub.publish(smg);
+	}
 	return 0;
 }
+
 int trajectory::update_from_companion(void)
 {
 

@@ -14,3 +14,18 @@ parameters:
                 1: ENABLE
                 2: ENABLE_COMPANION
             default: 0
+
+        SMG_OUT_TYPE:
+            description:
+                short: Choose Guidance Output Type
+                long: |
+                    Select the type of uORB message to publish data to. Note that
+                    standard px4 messages do not support snap-level inputs.
+                    You can select multiple options simultaneously.
+            type: bitmask
+            bit:
+                0: TRAJECTORY_SETPOINT
+                1: SIM_GUIDANCE_TRAJECTORY
+                2: DEBUG_FLOAT_ARRAY
+            default: 1
+

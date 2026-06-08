@@ -142,7 +142,7 @@ int SimulinkGuidance::custom_command(int argc, char *argv[])
 			get_instance()->_sim_guidance_request_pub.publish(request);
 			return 0;
 		}
-		else if(!strcmp(argv[i], "test"))
+		else if(!strcmp(argv[i], "ls"))
 		{
 			if (argc < i+2)
 			{
@@ -180,7 +180,23 @@ int SimulinkGuidance::custom_command(int argc, char *argv[])
 		}
 		else if(!strcmp(argv[i], "test"))
 		{
-			if (argc - 1 > i)
+			if (argc < i+2)
+			{
+				const char* directory_ = get_instance()->traj.file_loader.get_dir();
+				//PX4_WARN("Please specify a directory");
+				if (get_instance()->traj.file_loader.list_dirs(directory_) < 0)
+				{
+					PX4_WARN("Failed to list directories");
+					return 0;
+				}
+				if (get_instance()->traj.file_loader.list_files(directory_) < 0)
+				{
+					PX4_WARN("Failed to list files");
+					return 0;
+				}
+				return 0;
+			}
+			else if (argc - 1 > i)
 			{
 				if (!strcmp(argv[i+1], "solver"))
 				{
@@ -197,8 +213,18 @@ int SimulinkGuidance::custom_command(int argc, char *argv[])
 			}
 			else
 			{
-				PX4_WARN("Please specify test routine from the list:\n\
-				solver");
+				const char *directory_ = nullptr;
+				directory_ = argv[i+1];
+				if (get_instance()->traj.file_loader.list_dirs(directory_) < 0)
+				{
+					PX4_WARN("Failed to list directories");
+					return 0;
+				}
+				if (get_instance()->traj.file_loader.list_files(directory_) < 0)
+				{
+					PX4_WARN("Failed to list files");
+					return 0;
+				}
 				return 0;
 			}
 		}
