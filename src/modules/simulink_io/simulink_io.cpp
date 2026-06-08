@@ -71,30 +71,30 @@ void SimulinkIO::run()
         iteration_counter++;
 
         // This block runs exactly every 2 seconds (400 cycles @ 200Hz)
-        if (iteration_counter >= 400) {
-            PX4_INFO("[Simulink Test] Class is ticking healthy! Running background steps...");
+        // if (iteration_counter >= 400) {
+        //     PX4_INFO("[Simulink Test] Class is ticking healthy! Running background steps...");
 
-            // Query fields out of the generated model's global Output variable structure (Test_Y).
-            // Extract a read-only handle reference to the private data structure
-            const Test::ExtY_Test_T &outputs = _simulink_model.getExternalOutputs();
+        //     // Query fields out of the generated model's global Output variable structure (Test_Y).
+        //     // Extract a read-only handle reference to the private data structure
+        //     const Test::ExtY_Test_T &outputs = _simulink_model.getExternalOutputs();
 
-            PX4_INFO("[Simulink Test] Local Position: %f, %f, %f",
-                     (double)outputs.Out1.x,
-                     (double)outputs.Out1.y,
-                     (double)outputs.Out1.z);
+        //     PX4_INFO("[Simulink Test] Local Position: %f, %f, %f",
+        //              (double)outputs.Out1.x,
+        //              (double)outputs.Out1.y,
+        //              (double)outputs.Out1.z);
 
-            PX4_INFO("[Simulink Test] Local Position Setpoint: %f, %f, %f",
-                     (double)outputs.Out2.x,
-                     (double)outputs.Out2.y,
-                     (double)outputs.Out2.z);
+        //     PX4_INFO("[Simulink Test] Local Position Setpoint: %f, %f, %f",
+        //              (double)outputs.Out2.x,
+        //              (double)outputs.Out2.y,
+        //              (double)outputs.Out2.z);
 
-            PX4_INFO("[Simulink Test] Parameter Read: %f",
-                     (double)outputs.Out3);
+        //     PX4_INFO("[Simulink Test] Parameter Read: %f",
+        //              (double)outputs.Out3);
 
-            PX4_INFO("[Simulink Test] VehicleStatus.nav_state = %f", (double)outputs.Out4);
+        //     PX4_INFO("[Simulink Test] VehicleStatus.nav_state = %f", (double)outputs.Out4);
 
-            iteration_counter = 0; // Reset counter
-        }
+        //     iteration_counter = 0; // Reset counter
+        // }
 
         // Check for runtime system parameters updates
         parameters_update();
