@@ -35,7 +35,6 @@
 #include <matrix/math.hpp>
 #include "trajectory.hpp"
 
-#define DATATYPE_TRAJ float //shortcut for testing double vs float
 static const int XYZ_OFFSET_START_IND = 18 + 17; //control vector size + number of states before xyz
 static const int XYZ_VEL_OFFSET_START_IND = 18 + 0; //control vector size + number of states before xyz velocity
 static const int QUAT_OFFSET_START_IND = 18 + 6; //control vector size + number of states before quat
@@ -184,9 +183,6 @@ point<Type>::~point()
 
 int trajectory::set_home(void)
 {
-	//need to feed-in intial point:
-	//_sim_inbound_sub.update(&sm_inbound); //assume this is already done
-
 	initial_point.reset();
 	size_t tmp_ind = 1;
 	for (size_t i = 0; i < n_dofs_max; i++)
@@ -194,38 +190,22 @@ int trajectory::set_home(void)
 		initial_point.pos(i) = smg.data[tmp_ind];
 		tmp_ind++;
 	}
-
-
-
-	// initial_point.pos(0) = sm_inbound.data[XYZ_OFFSET_START_IND]; 	//x
-	// initial_point.pos(1) = sm_inbound.data[XYZ_OFFSET_START_IND+1]; //y
-	// initial_point.pos(2) = sm_inbound.data[XYZ_OFFSET_START_IND+2]; //z
-
-
-
-	// matrix::Quaternion<float> vehicle_attitude_quat(
-	// sm_inbound.data[QUAT_OFFSET_START_IND],
-	// sm_inbound.data[QUAT_OFFSET_START_IND+1],
-	// sm_inbound.data[QUAT_OFFSET_START_IND+2],
-	// sm_inbound.data[QUAT_OFFSET_START_IND+3]);
-
-	// matrix::Euler<float> vehicle_attitude_eul(vehicle_attitude_quat);
-	// initial_point.pos(3) = vehicle_attitude_eul.psi();		//yaw
 	return 0;
 }
 
 int trajectory::reset_ref2state()
 {
-	//need to feed-in current point:
-	//_sim_inbound_sub.update(&sm_inbound);
-
 	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
 	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
 	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk;
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap;
 
 	pos.setZero();
 	vel.setZero();
 	acc.setZero();
+	jerk.setZero();
+	snap.setZero();
 
 	pos(0) = sm_inbound.data[XYZ_OFFSET_START_IND];   //x
 	pos(1) = sm_inbound.data[XYZ_OFFSET_START_IND+1]; //y
@@ -249,58 +229,9 @@ int trajectory::reset_ref2state()
 	matrix::Euler<float> vehicle_attitude_eul(vehicle_attitude_quat);
 	pos(3) = vehicle_attitude_eul.psi();			//yaw
 
-
-	//publish new data:
-	sim_guidance_trajectory_s smg_traj{};
-	smg_traj.time_s = 0.0f;
-	smg_traj.n_dofs = 0.0f;
-	for (size_t i = 0; i < 3; i++)
-	{
-		smg_traj.position[i] = static_cast<float>(pos(i));
-		smg_traj.velocity[i] = static_cast<float>(vel(i));
-		smg_traj.acceleration[i] = static_cast<float>(acc(i));
-		smg_traj.jerk[i] = 0.0f;
-		smg_traj.snap[i] = 0.0f;
-	}
-
-	smg_traj.timestamp = hrt_absolute_time();
-	_sim_guidance_trajecotry_pub.publish(smg_traj);
-
-	//also publish it in array format:
-	// smg.timestamp = hrt_absolute_time();
-	// size_t tmp_ind = 0;
-
-	// smg.data[tmp_ind] = static_cast<float>(status.finished);
-	// tmp_ind++;
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(pos(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(vel(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = static_cast<float>(acc(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = 0.0f;
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < n_dofs_max; i++)
-	// {
-	// 	smg.data[tmp_ind] = 0.0f;
-	// 	tmp_ind++;
-	// }
-
 	set_home();
-	// _sim_guidance_pub.publish(smg);
-	return 0;
+
+	return publish_trajectory_setpoint(0.0, pos, vel, acc, jerk, snap);
 }
 
 void trajectory::update(bool use_companion)
@@ -309,6 +240,7 @@ void trajectory::update(bool use_companion)
 	bool already_sent_request = false;
 	if (use_companion) update_from_companion(); //also updates status flags
 	_sim_inbound_sub.update(&sm_inbound); //get most recent state information (process later)
+	_vehicle_local_position_sub.update(&vehicle_local_position);
 
 	//check the requests:
 	sim_guidance_request_s smg_request{};
@@ -421,8 +353,6 @@ void trajectory::update(bool use_companion)
 		status.trajectory_valid = false;
 		//don't update the reference since it has home + ref until guidance is properly reset
 	}
-	//if (!status.started) reset_ref2state(); //keep updating such that ref=state, but only when guidance was not engaged
-
 
 	//publish guidance status:
 	sim_guidance_status_s smg_status{};
@@ -438,69 +368,6 @@ void trajectory::update(bool use_companion)
 
 	return;
 }
-
-/*
-int trajectory::load_dummy_data(void)
-{
-	PX4_INFO("Begin trajectory loading sequence...");
-	//read first row to get the settings of the trajectory:
-	n_coeffs = 10;
-	n_int = 2;
-	n_dofs = 1;
-
-	//check if all good:
-	if (n_coeffs > n_coeffs_max)
-	{
-		PX4_WARN("Too many coefficients");
-		status.loaded = false;
-		return -1;
-	}
-	if (n_int > n_int_max)
-	{
-		PX4_WARN("Too many segments");
-		status.loaded = false;
-		return -1;
-	}
-	if (n_dofs > n_dofs_max)
-	{
-		PX4_WARN("Too many dofs");
-		status.loaded = false;
-		return -1;
-	}
-	if (n_coeffs == 0 || n_int == 0 || n_dofs == 0)
-	{
-		PX4_WARN("Invalid trajectory (zeros in the settings)");
-		status.loaded = false;
-		return -1;
-	}
-
-	//load the trajectory data (we need coefficients and time allocated for each interval)
-	DATATYPE_TRAJ tof_int_raw[n_int_max] = {2.107510627081439, 2.892489372918561};
-	DATATYPE_TRAJ x0_coefs_raw[n_coeffs_max] = {0.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	DATATYPE_TRAJ y0_coefs_raw[n_coeffs_max] = {0.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	DATATYPE_TRAJ z0_coefs_raw[n_coeffs_max] = {0.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-	DATATYPE_TRAJ yaw0_coefs_raw[n_coeffs_max] = {0.0, 1.223059991942257e-15,-4.932113332000828e-14,1.161170181981698e-14,-2.593478958556478e-15,10.901912753415060,-24.562419897244904,24.024854141204592,-11.641988801638679,2.277641804263970};
-
-	DATATYPE_TRAJ x1_coefs_raw[n_coeffs_max] = {1,3.667080492742769,2.117588692858374,-5.141681182811569,-3.594994733263419,16.288952666450880,-37.844351520577504,53.726887291011200,-36.411234714857710,9.191753008446979};
-	DATATYPE_TRAJ y1_coefs_raw[n_coeffs_max] = {1,3.667080492742769,2.117588692858374,-5.141681182811569,-3.594994733263419,16.288952666450880,-37.844351520577504,53.726887291011200,-36.411234714857710,9.191753008446979};
-	DATATYPE_TRAJ z1_coefs_raw[n_coeffs_max] = {1,3.667080492742769,2.117588692858374,-5.141681182811569,-3.594994733263419,16.288952666450880,-37.844351520577504,53.726887291011200,-36.411234714857710,9.191753008446979};
-	DATATYPE_TRAJ yaw1_coefs_raw[n_coeffs_max] = {1,3.667080492742769,2.117588692858374,-5.141681182811569,-3.594994733263419,16.288952666450880,-37.844351520577504,53.726887291011200,-36.411234714857710,9.191753008446979};
-
-	tof_int = matrix::Vector<DATATYPE_TRAJ, n_int_max>(tof_int_raw);
-	coefs.setZero();
-
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 0, 0, x0_coefs_raw, n_coeffs);
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 0, 1, y0_coefs_raw, n_coeffs);
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 0, 2, z0_coefs_raw, n_coeffs);
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 0, 3, yaw0_coefs_raw, n_coeffs);
-
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 1, 0, x1_coefs_raw, n_coeffs);
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 1, 1, y1_coefs_raw, n_coeffs);
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 1, 2, z1_coefs_raw, n_coeffs);
-	assign_coefs2matrix<DATATYPE_TRAJ, n_coeffs_max, n_dofs_max, n_int_max>(coefs, 1, 3, yaw1_coefs_raw, n_coeffs);
-	return 0;
-}
-*/
 
 int trajectory::load_dummy_data(void)
 {
@@ -693,46 +560,15 @@ int trajectory::load(void)
 	PX4_INFO("Trajectory successfully loaded!");
 	return 0;
 }
+
 #define DEBUG
-
-int trajectory::execute(void)
+int trajectory::publish_trajectory_setpoint(double time_trajectory_s,
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap)
 {
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap;
-	pos.setZero();
-	vel.setZero();
-	acc.setZero();
-	jerk.setZero();
-	snap.setZero();
-
-	double time_trajecotry_s = initial_point.get_time_s();
-
-	int res = eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(pos, time_trajecotry_s, coefs, tof_int, 0, n_coeffs, n_dofs, n_int);
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(vel, time_trajecotry_s, coefs, tof_int, 1, n_coeffs, n_dofs, n_int) < 0) return -1;
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(acc, time_trajecotry_s, coefs, tof_int, 2, n_coeffs, n_dofs, n_int) < 0) return -1;
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(jerk, time_trajecotry_s, coefs, tof_int, 3, n_coeffs, n_dofs, n_int) < 0) return -1;
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(snap, time_trajecotry_s, coefs, tof_int, 4, n_coeffs, n_dofs, n_int) < 0) return -1;
-	if (res < 0) return -1;
-	else if (res == 1)
-	{
-		status.executing = false;
-		status.finished = true;
-		PX4_INFO("Completed trajectory execution");
-	}
-
-	#ifdef DEBUG
-	printf("t=%9.6f, X=%9.6ff, X_vel=%9.6ff, X_acc=%9.6ff, X_jerk=%9.6ff, X_snap = %9.6ff\n",\
-	time_trajecotry_s,\
-	(double)pos(0),\
-	(double)vel(0),\
-	(double)acc(0),\
-	(double)jerk(0),\
-	(double)snap(0));
-	#endif
-
 	// Optimized Parameter Check (static lookup avoids heavy runtime string searches)
 	static param_t smg_out_type_handle = param_find("SMG_OUT_TYPE");
 	int32_t output_type_mask = 0;
@@ -782,7 +618,7 @@ int trajectory::execute(void)
 	// ==========================================
 	if (output_type_mask & (1 << 1)) {
 		sim_guidance_trajectory_s smg_traj{};
-		smg_traj.time_s = static_cast<float>(time_trajecotry_s);
+		smg_traj.time_s = static_cast<float>(time_trajectory_s);
 		smg_traj.n_dofs = static_cast<uint8_t>(n_dofs);
 
 		// Fill array boundaries completely up to maximum capacity
@@ -856,6 +692,48 @@ int trajectory::execute(void)
 	return 0;
 }
 
+
+int trajectory::execute(void)
+{
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk;
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap;
+	pos.setZero();
+	vel.setZero();
+	acc.setZero();
+	jerk.setZero();
+	snap.setZero();
+
+	double time_trajectory_s = initial_point.get_time_s();
+
+	int res = eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(pos, time_trajectory_s, coefs, tof_int, 0, n_coeffs, n_dofs, n_int);
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(vel, time_trajectory_s, coefs, tof_int, 1, n_coeffs, n_dofs, n_int) < 0) return -1;
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(acc, time_trajectory_s, coefs, tof_int, 2, n_coeffs, n_dofs, n_int) < 0) return -1;
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(jerk, time_trajectory_s, coefs, tof_int, 3, n_coeffs, n_dofs, n_int) < 0) return -1;
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(snap, time_trajectory_s, coefs, tof_int, 4, n_coeffs, n_dofs, n_int) < 0) return -1;
+	if (res < 0) return -1;
+	else if (res == 1)
+	{
+		status.executing = false;
+		status.finished = true;
+		PX4_INFO("Completed trajectory execution");
+	}
+
+	#ifdef DEBUG
+	printf("t=%9.6f, X=%9.6ff, X_vel=%9.6ff, X_acc=%9.6ff, X_jerk=%9.6ff, X_snap = %9.6ff\n",\
+	time_trajectory_s,\
+	(double)pos(0),\
+	(double)vel(0),\
+	(double)acc(0),\
+	(double)jerk(0),\
+	(double)snap(0));
+	#endif
+
+	return publish_trajectory_setpoint(time_trajectory_s, pos, vel, acc, jerk, snap);
+}
+
 int trajectory::update_from_companion(void)
 {
 
@@ -894,7 +772,7 @@ int trajectory::update_from_companion(void)
 
 	if (status.executing)
 	{
-		float time_trajecotry_s = comp_outbound.data[tmp_ind];
+		float time_trajectory_s = comp_outbound.data[tmp_ind];
 		tmp_ind++;
 		for (int i = 0; i < companion_max_dof; i++)
 		{
@@ -924,7 +802,7 @@ int trajectory::update_from_companion(void)
 
 		//publish new data:
 		sim_guidance_trajectory_s smg_traj{};
-		smg_traj.time_s = static_cast<float>(time_trajecotry_s);
+		smg_traj.time_s = static_cast<float>(time_trajectory_s);
 		smg_traj.n_dofs = static_cast<uint8_t>(n_dofs);
 		for (size_t i = 0; i < n_dofs; i++)
 		{
@@ -995,34 +873,12 @@ int trajectory::update_from_companion(void)
 
 int trajectory::update_companion(bool request_start, bool request_stop, bool request_start_executing)
 {
-
-	//need to feed-in current point:
-	//bool need2publish_anything = request_start || request_stop || request_start_executing;
-
-	//if (_sim_inbound_sub.update(&sm_inbound)) need2publish_anything = true;
-	//if (_companion_guidance_inbound_sub.update(&_companion_guidance_inbound)) need2publish_anything = true;
-
-	//if (!need2publish_anything) return 0;
-
 	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
-	// matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
-	// matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
-
 	pos.setZero();
-	// vel.setZero();
-	// acc.setZero();
 
 	pos(0) = sm_inbound.data[XYZ_OFFSET_START_IND];   //x
 	pos(1) = sm_inbound.data[XYZ_OFFSET_START_IND+1]; //y
 	pos(2) = sm_inbound.data[XYZ_OFFSET_START_IND+2]; //z
-
-	// vel(0) = sm_inbound.data[XYZ_VEL_OFFSET_START_IND];   	//Vx
-	// vel(1) = sm_inbound.data[XYZ_VEL_OFFSET_START_IND+1]; 	//Vy
-	// vel(2) = sm_inbound.data[XYZ_VEL_OFFSET_START_IND+2]; 	//Vz
-	// vel(3) = sm_inbound.data[PQR_OFFSET_START_IND+2]; 	//yaw_rate
-	// acc(0) = sm_inbound.data[XYZ_ACC_OFFSET_START_IND];   	//ACCx
-	// acc(1) = sm_inbound.data[XYZ_ACC_OFFSET_START_IND+1]; 	//ACCy
-	// acc(2) = sm_inbound.data[XYZ_ACC_OFFSET_START_IND+2]; 	//ACCz
 
 
 	matrix::Quaternion<float> vehicle_attitude_quat(\
@@ -1126,26 +982,6 @@ int trajectory::update_companion(bool request_start, bool request_stop, bool req
 		_companion_guidance_inbound.data[tmp_ind] = static_cast<float>(pos(i));
 		tmp_ind++;
 	}
-	// for (size_t i = 0; i < companion_max_dof; i++)
-	// {
-	// 	_companion_guidance_inbound.data[tmp_ind] = static_cast<float>(vel(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < companion_max_dof; i++)
-	// {
-	// 	_companion_guidance_inbound.data[tmp_ind] = static_cast<float>(acc(i));
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < companion_max_dof; i++)
-	// {
-	// 	_companion_guidance_inbound.data[tmp_ind] = 0.0f;
-	// 	tmp_ind++;
-	// }
-	// for (size_t i = 0; i < companion_max_dof; i++)
-	// {
-	// 	_companion_guidance_inbound.data[tmp_ind] = 0.0f;
-	// 	tmp_ind++;
-	// }
 	_companion_guidance_inbound_pub.publish(_companion_guidance_inbound);
 	return 0;
 }

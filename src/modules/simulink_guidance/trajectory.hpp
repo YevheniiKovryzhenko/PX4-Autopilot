@@ -42,8 +42,12 @@
 #include <uORB/topics/sim_guidance_request.h>
 #include <uORB/topics/debug_array.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <px4_platform_common/module_params.h>
 #include "file_loader_backend.hpp"
+
+
+#define DATATYPE_TRAJ float //shortcut for testing double vs float
 
 using matrix::Dcmf;
 using matrix::Quatf;
@@ -119,8 +123,16 @@ private:
 	int set_home(void);
 	int reset_ref2state();
 
+	int publish_trajectory_setpoint(double time_trajectory_s,
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk, \
+	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap);
+
 	sim_guidance_status_s status{};
 	debug_array_s sm_inbound{}, smg{};
+	vehicle_local_position_s vehicle_local_position{};
 	//debug_array_s _companion_guidance_inbound{};
 
 
@@ -136,6 +148,7 @@ private:
 	// Subscriptions
 	uORB::Subscription				_sim_guidance_request_sub{ORB_ID(sim_guidance_request)};
 	uORB::Subscription				_sim_inbound_sub{ORB_ID(simulink_inbound)};
+	uORB::Subscription				_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription				_companion_guidance_outbound_sub{ORB_ID(companion_guidance_outbound)};
 	uORB::Subscription				_companion_guidance_inbound_sub{ORB_ID(companion_guidance_inbound)};
 
