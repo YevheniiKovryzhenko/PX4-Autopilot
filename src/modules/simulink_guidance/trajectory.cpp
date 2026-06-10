@@ -33,6 +33,7 @@
  ****************************************************************************/
 
 #include <matrix/math.hpp>
+#include <lib/mathlib/mathlib.h>
 #include "trajectory.hpp"
 
 static const int XYZ_OFFSET_START_IND = 18 + 17; //control vector size + number of states before xyz
@@ -181,57 +182,14 @@ point<Type>::~point()
 {
 }
 
-int trajectory::set_home(void)
+int trajectory::set_home()
 {
-	initial_point.reset();
-	size_t tmp_ind = 1;
-	for (size_t i = 0; i < n_dofs_max; i++)
-	{
-		initial_point.pos(i) = smg.data[tmp_ind];
-		tmp_ind++;
-	}
-	return 0;
-}
+	setpoint_current.reset();
+	setpoint_current = vehicle_state;
+	setpoint_current.start();
 
-int trajectory::reset_ref2state()
-{
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap;
-
-	pos.setZero();
-	vel.setZero();
-	acc.setZero();
-	jerk.setZero();
-	snap.setZero();
-
-	pos(0) = sm_inbound.data[XYZ_OFFSET_START_IND];   //x
-	pos(1) = sm_inbound.data[XYZ_OFFSET_START_IND+1]; //y
-	pos(2) = sm_inbound.data[XYZ_OFFSET_START_IND+2]; //z
-
-	vel(0) = sm_inbound.data[XYZ_VEL_OFFSET_START_IND];   	//Vx
-	vel(1) = sm_inbound.data[XYZ_VEL_OFFSET_START_IND+1]; 	//Vy
-	vel(2) = sm_inbound.data[XYZ_VEL_OFFSET_START_IND+2]; 	//Vz
-	vel(3) = sm_inbound.data[PQR_OFFSET_START_IND+2]; 	//yaw_rate
-	acc(0) = sm_inbound.data[XYZ_ACC_OFFSET_START_IND];   	//ACCx
-	acc(1) = sm_inbound.data[XYZ_ACC_OFFSET_START_IND+1]; 	//ACCy
-	acc(2) = sm_inbound.data[XYZ_ACC_OFFSET_START_IND+2]; 	//ACCz
-
-
-	matrix::Quaternion<float> vehicle_attitude_quat(\
-	sm_inbound.data[QUAT_OFFSET_START_IND],\
-	sm_inbound.data[QUAT_OFFSET_START_IND+1],\
-	sm_inbound.data[QUAT_OFFSET_START_IND+2],\
-	sm_inbound.data[QUAT_OFFSET_START_IND+3]);
-
-	matrix::Euler<float> vehicle_attitude_eul(vehicle_attitude_quat);
-	pos(3) = vehicle_attitude_eul.psi();			//yaw
-
-	set_home();
-
-	return publish_trajectory_setpoint(0.0, pos, vel, acc, jerk, snap);
+	setpoint_initial = setpoint_current;
+	return publish_trajectory_setpoint(0.0);
 }
 
 void trajectory::update(bool use_companion)
@@ -239,7 +197,7 @@ void trajectory::update(bool use_companion)
 	//if using companion, we need to process it first
 	bool already_sent_request = false;
 	if (use_companion) update_from_companion(); //also updates status flags
-	_sim_inbound_sub.update(&sm_inbound); //get most recent state information (process later)
+	update_vehicle_state();
 	_vehicle_local_position_sub.update(&vehicle_local_position);
 
 	//check the requests:
@@ -270,8 +228,7 @@ void trajectory::update(bool use_companion)
 			}
 			if (smg_request.set_home) //process manually-requested set_home (even if disabled)
 			{
-				reset_ref2state(); //make sure we have the most recent state first, also sets home
-				//set_home(); //set home to current state
+				set_home(); //make sure we have the most recent state first, also sets home
 				if (use_companion)
 				{
 					update_companion(false, true);
@@ -284,8 +241,7 @@ void trajectory::update(bool use_companion)
 			if (smg_request.start) //this is when we have received the first request (assume pos_hold is not yet enabled, but will be as we send back ack)
 			{
 				start(); //start if not started yet
-				reset_ref2state(); //make sure we have the most recent state first, also sets home
-				//set_home(); //set home to current state
+				set_home(); //make sure we have the most recent state first, also sets home
 				if (use_companion) update_companion(true);
 				//assume pos_hold will latch on this point, so we won't update the ref untill trajectory is executed or reset
 				already_sent_request = true;
@@ -298,7 +254,7 @@ void trajectory::update(bool use_companion)
 				if(use_companion) update_companion(true, false, true);
 				status.executing = true; //trajecotry is fully loaded and ready, so start evaluation
 				PX4_INFO("Started trajectory execution");
-				initial_point.start(); //starts the timer for trajectory execuition
+				setpoint_initial.start(); //starts the timer for trajectory execuition
 				already_sent_request = true;
 			}
 
@@ -561,15 +517,73 @@ int trajectory::load(void)
 	return 0;
 }
 
-#define DEBUG
-int trajectory::publish_trajectory_setpoint(double time_trajectory_s,
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap)
+// #define DEBUG
+int trajectory::update_vehicle_state(void)
 {
-	// Optimized Parameter Check (static lookup avoids heavy runtime string searches)
+	static param_t smg_in_type_handle = param_find("SMG_IN_TYPE");
+	int32_t input_type = 0;
+	if (smg_in_type_handle == PARAM_INVALID || param_get(smg_in_type_handle, &input_type) != OK) {
+		return -1;
+	}
+
+	vehicle_state.reset();
+	vehicle_state.start();
+
+	switch (input_type)
+	{
+	case 1: //DEBUG_FLOAT_ARRAY
+	{
+		_sim_inbound_sub.update(&sm_inbound);
+
+		for (int i = 0; i < math::min(static_cast<int>(n_dofs), 2); i++)
+		{
+			vehicle_state.pos(i) = sm_inbound.data[XYZ_OFFSET_START_IND + i]; //position [x y z]
+			vehicle_state.vel(i) = sm_inbound.data[XYZ_VEL_OFFSET_START_IND + i]; //velocity [x y z]
+			vehicle_state.acc(i) = sm_inbound.data[XYZ_ACC_OFFSET_START_IND + i]; //acceleration [x y z]
+		}
+		if (n_dofs > 2)
+		{
+			vehicle_state.vel(3) = sm_inbound.data[PQR_OFFSET_START_IND + 2]; //yaw rate
+
+			matrix::Quaternion<float> vehicle_attitude_quat(\
+			sm_inbound.data[QUAT_OFFSET_START_IND],\
+			sm_inbound.data[QUAT_OFFSET_START_IND+1],\
+			sm_inbound.data[QUAT_OFFSET_START_IND+2],\
+			sm_inbound.data[QUAT_OFFSET_START_IND+3]);
+
+			matrix::Euler<float> vehicle_attitude_eul(vehicle_attitude_quat);
+			vehicle_state.pos(3) = vehicle_attitude_eul.psi();		//yaw
+		}
+		break;
+	}
+	default: //VEHICLE_LOCAL_POSITION
+	{
+		_vehicle_local_position_sub.update(&vehicle_local_position);
+		_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity);
+
+		vehicle_state.pos(0) = vehicle_local_position.x;
+		vehicle_state.pos(1) = vehicle_local_position.y;
+		vehicle_state.pos(2) = vehicle_local_position.z;
+
+		vehicle_state.vel(0) = vehicle_local_position.vx;
+		vehicle_state.vel(1) = vehicle_local_position.vy;
+		vehicle_state.vel(2) = vehicle_local_position.vz;
+
+		vehicle_state.acc(0) = vehicle_local_position.ax;
+		vehicle_state.acc(1) = vehicle_local_position.ay;
+		vehicle_state.acc(2) = vehicle_local_position.az;
+
+		vehicle_state.pos(3) = vehicle_local_position.heading;
+		vehicle_state.vel(3) = vehicle_angular_velocity.xyz[2];
+		vehicle_state.acc(3) = vehicle_angular_velocity.xyz_derivative[2];
+		break;
+	}}
+
+	return 0;
+}
+
+int trajectory::publish_trajectory_setpoint(float time_trajectory_s)
+{
 	static param_t smg_out_type_handle = param_find("SMG_OUT_TYPE");
 	int32_t output_type_mask = 0;
 	if (smg_out_type_handle == PARAM_INVALID || param_get(smg_out_type_handle, &output_type_mask) != OK) {
@@ -587,26 +601,26 @@ int trajectory::publish_trajectory_setpoint(double time_trajectory_s,
 		{
 			if (i < n_dofs) {
 				// Dof is valid: Publish initial point baseline + trajectory offset
-				tr_sp.position[i]     = static_cast<float>(pos(i))  + static_cast<float>(initial_point.pos(i));
-				tr_sp.velocity[i]     = static_cast<float>(vel(i))  + static_cast<float>(initial_point.vel(i));
-				tr_sp.acceleration[i] = static_cast<float>(acc(i))  + static_cast<float>(initial_point.acc(i));
-				tr_sp.jerk[i]         = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
+				tr_sp.position[i]     = static_cast<float>(setpoint_current.pos(i));
+				tr_sp.velocity[i]     = static_cast<float>(setpoint_current.vel(i));
+				tr_sp.acceleration[i] = static_cast<float>(setpoint_current.acc(i));
+				tr_sp.jerk[i]         = static_cast<float>(setpoint_current.jerk(i));
 			} else {
 				// Dof exceeds trajectory allocation: Fall back strictly to initial coordinates
-				tr_sp.position[i]     = static_cast<float>(initial_point.pos(i));
-				tr_sp.velocity[i]     = static_cast<float>(initial_point.vel(i));
-				tr_sp.acceleration[i] = static_cast<float>(initial_point.acc(i));
-				tr_sp.jerk[i]         = static_cast<float>(initial_point.jerk(i));
+				tr_sp.position[i]     = static_cast<float>(setpoint_initial.pos(i));
+				tr_sp.velocity[i]     = static_cast<float>(setpoint_initial.vel(i));
+				tr_sp.acceleration[i] = static_cast<float>(setpoint_initial.acc(i));
+				tr_sp.jerk[i]         = static_cast<float>(setpoint_initial.jerk(i));
 			}
 		}
 
 		// Yaw Guidance Check (Index 3 represents Yaw in a 4-DOF vector map)
 		if (n_dofs > 3) {
-			tr_sp.yaw      = static_cast<float>(pos(3)) + static_cast<float>(initial_point.pos(3));
-			tr_sp.yawspeed = static_cast<float>(vel(3)) + static_cast<float>(initial_point.vel(3));
+			tr_sp.yaw      = static_cast<float>(setpoint_current.pos(3)) + static_cast<float>(setpoint_initial.pos(3));
+			tr_sp.yawspeed = static_cast<float>(setpoint_current.vel(3)) + static_cast<float>(setpoint_initial.vel(3));
 		} else {
-			tr_sp.yaw      = static_cast<float>(initial_point.pos(3));
-			tr_sp.yawspeed = static_cast<float>(initial_point.vel(3));
+			tr_sp.yaw      = static_cast<float>(setpoint_initial.pos(3));
+			tr_sp.yawspeed = static_cast<float>(setpoint_initial.vel(3));
 		}
 
 		tr_sp.timestamp = hrt_absolute_time();
@@ -625,29 +639,38 @@ int trajectory::publish_trajectory_setpoint(double time_trajectory_s,
 		for (size_t i = 0; i < n_dofs_max; i++)
 		{
 			if (i < n_dofs) {
-				smg_traj.position[i]     = static_cast<float>(pos(i))  + static_cast<float>(initial_point.pos(i));
-				smg_traj.velocity[i]     = static_cast<float>(vel(i))  + static_cast<float>(initial_point.vel(i));
-				smg_traj.acceleration[i] = static_cast<float>(acc(i))  + static_cast<float>(initial_point.acc(i));
-				smg_traj.jerk[i]         = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
-				smg_traj.snap[i]         = static_cast<float>(snap(i)) + static_cast<float>(initial_point.snap(i));
+				smg_traj.position[i]     = static_cast<float>(setpoint_current.pos(i));
+				smg_traj.velocity[i]     = static_cast<float>(setpoint_current.vel(i));
+				smg_traj.acceleration[i] = static_cast<float>(setpoint_current.acc(i));
+				smg_traj.jerk[i]         = static_cast<float>(setpoint_current.jerk(i));
+				smg_traj.snap[i]         = static_cast<float>(setpoint_current.snap(i));
 			} else {
-				smg_traj.position[i]     = static_cast<float>(initial_point.pos(i));
-				smg_traj.velocity[i]     = static_cast<float>(initial_point.vel(i));
-				smg_traj.acceleration[i] = static_cast<float>(initial_point.acc(i));
-				smg_traj.jerk[i]         = static_cast<float>(initial_point.jerk(i));
-				smg_traj.snap[i]         = static_cast<float>(initial_point.snap(i));
+				smg_traj.position[i]     = static_cast<float>(setpoint_initial.pos(i));
+				smg_traj.velocity[i]     = static_cast<float>(setpoint_initial.vel(i));
+				smg_traj.acceleration[i] = static_cast<float>(setpoint_initial.acc(i));
+				smg_traj.jerk[i]         = static_cast<float>(setpoint_initial.jerk(i));
+				smg_traj.snap[i]         = static_cast<float>(setpoint_initial.snap(i));
 			}
 		}
 
 		#ifdef DEBUG
-		printf("t=%9.6f, X=%9.6ff, X_vel=%9.6ff, X_acc=%9.6ff, X_jerk=%9.6ff, X_snap = %9.6ff\n\n",\
-		(double)smg_traj.time_s,\
-		(double)(smg_traj.position[0]),\
-		(double)smg_traj.velocity[0],\
-		(double)smg_traj.acceleration[0],\
-		(double)smg_traj.jerk[0],\
-		(double)smg_traj.snap[0]);
+		// Print header timestamp row safely under PX4 character buffer limits
+		PX4_INFO("--- TRAJECTORY SMG TIMESTEP t = %9.6f ---", (double)smg_traj.time_s);
+
+		// Axis-by-axis clean row outputs [Pos, Vel, Acc, Jerk, Snap]
+		PX4_INFO("  X-AXIS : pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+			(double)smg_traj.position[0], (double)smg_traj.velocity[0], (double)smg_traj.acceleration[0], (double)smg_traj.jerk[0], (double)smg_traj.snap[0]);
+
+		PX4_INFO("  Y-AXIS : pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+			(double)smg_traj.position[1], (double)smg_traj.velocity[1], (double)smg_traj.acceleration[1], (double)smg_traj.jerk[1], (double)smg_traj.snap[1]);
+
+		PX4_INFO("  Z-AXIS : pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+			(double)smg_traj.position[2], (double)smg_traj.velocity[2], (double)smg_traj.acceleration[2], (double)smg_traj.jerk[2], (double)smg_traj.snap[2]);
+
+		PX4_INFO("  YAW-AXIS: pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+			(double)smg_traj.position[3], (double)smg_traj.velocity[3], (double)smg_traj.acceleration[3], (double)smg_traj.jerk[3], (double)smg_traj.snap[3]);
 		#endif
+
 
 		smg_traj.timestamp = hrt_absolute_time();
 		_sim_guidance_trajecotry_pub.publish(smg_traj);
@@ -657,6 +680,12 @@ int trajectory::publish_trajectory_setpoint(double time_trajectory_s,
 	// SIMULINK_GUIDANCE
 	// ==========================================
 	if (output_type_mask & (1 << 2)) {
+		debug_array_s smg{};
+		smg.id = debug_array_s::SIMULINK_GUIDANCE_ID;
+		char message_name[10] = "guidance";
+		memcpy(smg.name, message_name, sizeof(message_name));
+		smg.name[sizeof(smg.name) - 1] = '\0'; // enforce null termination
+
 		smg.timestamp = hrt_absolute_time();
 		size_t tmp_ind = 0;
 
@@ -664,27 +693,27 @@ int trajectory::publish_trajectory_setpoint(double time_trajectory_s,
 		tmp_ind++;
 		for (size_t i = 0; i < n_dofs_max; i++)
 		{
-			smg.data[tmp_ind] = static_cast<float>(pos(i)) + static_cast<float>(initial_point.pos(i));
+			smg.data[tmp_ind] = static_cast<float>(setpoint_current.pos(i));
 			tmp_ind++;
 		}
 		for (size_t i = 0; i < n_dofs_max; i++)
 		{
-			smg.data[tmp_ind] = static_cast<float>(vel(i)) + static_cast<float>(initial_point.vel(i));
+			smg.data[tmp_ind] = static_cast<float>(setpoint_current.vel(i));
 			tmp_ind++;
 		}
 		for (size_t i = 0; i < n_dofs_max; i++)
 		{
-			smg.data[tmp_ind] = static_cast<float>(acc(i)) + static_cast<float>(initial_point.acc(i));
+			smg.data[tmp_ind] = static_cast<float>(setpoint_current.acc(i));
 			tmp_ind++;
 		}
 		for (size_t i = 0; i < n_dofs_max; i++)
 		{
-			smg.data[tmp_ind] = static_cast<float>(jerk(i)) + static_cast<float>(initial_point.jerk(i));
+			smg.data[tmp_ind] = static_cast<float>(setpoint_current.jerk(i));
 			tmp_ind++;
 		}
 		for (size_t i = 0; i < n_dofs_max; i++)
 		{
-			smg.data[tmp_ind] = static_cast<float>(snap(i)) + static_cast<float>(initial_point.snap(i));
+			smg.data[tmp_ind] = static_cast<float>(setpoint_current.snap(i));
 			tmp_ind++;
 		}
 		_sim_guidance_pub.publish(smg);
@@ -695,24 +724,17 @@ int trajectory::publish_trajectory_setpoint(double time_trajectory_s,
 
 int trajectory::execute(void)
 {
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap;
-	pos.setZero();
-	vel.setZero();
-	acc.setZero();
-	jerk.setZero();
-	snap.setZero();
+	double time_trajectory_s = setpoint_initial.get_time_s();
+	setpoint_current.start();
 
-	double time_trajectory_s = initial_point.get_time_s();
+	pointf offset{};
+	offset.reset();
 
-	int res = eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(pos, time_trajectory_s, coefs, tof_int, 0, n_coeffs, n_dofs, n_int);
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(vel, time_trajectory_s, coefs, tof_int, 1, n_coeffs, n_dofs, n_int) < 0) return -1;
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(acc, time_trajectory_s, coefs, tof_int, 2, n_coeffs, n_dofs, n_int) < 0) return -1;
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(jerk, time_trajectory_s, coefs, tof_int, 3, n_coeffs, n_dofs, n_int) < 0) return -1;
-	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(snap, time_trajectory_s, coefs, tof_int, 4, n_coeffs, n_dofs, n_int) < 0) return -1;
+	int res = eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(offset.pos, time_trajectory_s, coefs, tof_int, 0, n_coeffs, n_dofs, n_int);
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(offset.vel, time_trajectory_s, coefs, tof_int, 1, n_coeffs, n_dofs, n_int) < 0) return -1;
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(offset.acc, time_trajectory_s, coefs, tof_int, 2, n_coeffs, n_dofs, n_int) < 0) return -1;
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(offset.jerk, time_trajectory_s, coefs, tof_int, 3, n_coeffs, n_dofs, n_int) < 0) return -1;
+	if (eval_traj<DATATYPE_TRAJ,n_coeffs_max,n_dofs_max,n_int_max>(offset.snap, time_trajectory_s, coefs, tof_int, 4, n_coeffs, n_dofs, n_int) < 0) return -1;
 	if (res < 0) return -1;
 	else if (res == 1)
 	{
@@ -721,17 +743,34 @@ int trajectory::execute(void)
 		PX4_INFO("Completed trajectory execution");
 	}
 
+	setpoint_current.start();
+	setpoint_current.pos = setpoint_initial.pos + offset.pos;
+	setpoint_current.vel = offset.vel;
+	setpoint_current.acc = offset.acc;
+	setpoint_current.jerk = offset.jerk;
+	setpoint_current.snap = offset.snap;
+
 	#ifdef DEBUG
-	printf("t=%9.6f, X=%9.6ff, X_vel=%9.6ff, X_acc=%9.6ff, X_jerk=%9.6ff, X_snap = %9.6ff\n",\
-	time_trajectory_s,\
-	(double)pos(0),\
-	(double)vel(0),\
-	(double)acc(0),\
-	(double)jerk(0),\
-	(double)snap(0));
+	// Print header timestamp row safely under PX4 character buffer limits
+	PX4_INFO("--- TRAJECTORY SETPOINT TIMESTEP t = %9.6f ---", time_trajectory_s);
+
+	// Axis-by-axis clean row outputs [Pos, Vel, Acc, Jerk, Snap]
+	PX4_INFO("  X-AXIS : pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+		(double)setpoint_current.pos(0), (double)setpoint_current.vel(0), (double)setpoint_current.acc(0), (double)setpoint_current.jerk(0), (double)setpoint_current.snap(0));
+
+	PX4_INFO("  Y-AXIS : pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+		(double)setpoint_current.pos(1), (double)setpoint_current.vel(1), (double)setpoint_current.acc(1), (double)setpoint_current.jerk(1), (double)setpoint_current.snap(1));
+
+	PX4_INFO("  Z-AXIS : pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+		(double)setpoint_current.pos(2), (double)setpoint_current.vel(2), (double)setpoint_current.acc(2), (double)setpoint_current.jerk(2), (double)setpoint_current.snap(2));
+
+	PX4_INFO("  YAW-AXIS: pos=%7.3f | vel=%7.3f | acc=%7.3f | jerk=%7.3f | snap=%7.3f",
+		(double)setpoint_current.pos(3), (double)setpoint_current.vel(3), (double)setpoint_current.acc(3), (double)setpoint_current.jerk(3), (double)setpoint_current.snap(3));
 	#endif
 
-	return publish_trajectory_setpoint(time_trajectory_s, pos, vel, acc, jerk, snap);
+
+
+	return publish_trajectory_setpoint(time_trajectory_s);
 }
 
 int trajectory::update_from_companion(void)
@@ -740,18 +779,8 @@ int trajectory::update_from_companion(void)
 	debug_array_s comp_outbound{};
 	if (!_companion_guidance_outbound_sub.update(&comp_outbound)) return 0;
 
-	//PX4_INFO("Processing update from companion...");
-
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk;
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap;
-	pos.setZero();
-	vel.setZero();
-	acc.setZero();
-	jerk.setZero();
-	snap.setZero();
+	setpoint_current.reset();
+	setpoint_current.start();
 
 	size_t tmp_ind = 0;
 	static const int companion_max_dof = 3;
@@ -776,95 +805,31 @@ int trajectory::update_from_companion(void)
 		tmp_ind++;
 		for (int i = 0; i < companion_max_dof; i++)
 		{
-			pos(i) = comp_outbound.data[tmp_ind];
+			setpoint_current.pos(i) = comp_outbound.data[tmp_ind];
 			tmp_ind++;
 		}
 		for (int i = 0; i < companion_max_dof; i++)
 		{
-			vel(i) = comp_outbound.data[tmp_ind];
+			setpoint_current.vel(i) = comp_outbound.data[tmp_ind];
 			tmp_ind++;
 		}
 		for (int i = 0; i < companion_max_dof; i++)
 		{
-			acc(i) = comp_outbound.data[tmp_ind];
+			setpoint_current.acc(i) = comp_outbound.data[tmp_ind];
 			tmp_ind++;
 		}
 		for (int i = 0; i < companion_max_dof; i++)
 		{
-			jerk(i) = comp_outbound.data[tmp_ind];
+			setpoint_current.jerk(i) = comp_outbound.data[tmp_ind];
 			tmp_ind++;
 		}
 		for (int i = 0; i < companion_max_dof; i++)
 		{
-			snap(i) = comp_outbound.data[tmp_ind];
+			setpoint_current.snap(i) = comp_outbound.data[tmp_ind];
 			tmp_ind++;
 		}
 
-		//publish new data:
-		sim_guidance_trajectory_s smg_traj{};
-		smg_traj.time_s = static_cast<float>(time_trajectory_s);
-		smg_traj.n_dofs = static_cast<uint8_t>(n_dofs);
-		for (size_t i = 0; i < n_dofs; i++)
-		{
-			if (i < companion_max_dof)
-			{
-				smg_traj.position[i] = static_cast<float>(pos(i));
-				smg_traj.velocity[i] = static_cast<float>(vel(i));
-				smg_traj.acceleration[i] = static_cast<float>(acc(i));
-				smg_traj.jerk[i] = static_cast<float>(jerk(i));
-				smg_traj.snap[i] = static_cast<float>(snap(i));
-			}
-			else
-			{
-				smg_traj.position[i] = static_cast<float>(initial_point.pos(i));
-				smg_traj.velocity[i] = static_cast<float>(initial_point.acc(i));
-				smg_traj.acceleration[i] = static_cast<float>(initial_point.vel(i));
-				smg_traj.jerk[i] = static_cast<float>(initial_point.jerk(i));
-				smg_traj.snap[i] = static_cast<float>(initial_point.snap(i));
-			}
-
-		}
-
-		smg_traj.timestamp = hrt_absolute_time();
-		_sim_guidance_trajecotry_pub.publish(smg_traj);
-
-		//also publish it in array format:
-		// smg.timestamp = hrt_absolute_time();
-		// tmp_ind = 0;
-
-		// smg.data[tmp_ind] = static_cast<float>(status.finished);
-		// tmp_ind++;
-		// for (size_t i = 0; i < n_dofs_max; i++)
-		// {
-		// 	if (i < companion_max_dof) smg.data[tmp_ind] = static_cast<float>(pos(i));
-		// 	else smg.data[tmp_ind] = static_cast<float>(initial_point.pos(i));
-		// 	tmp_ind++;
-		// }
-		// for (size_t i = 0; i < n_dofs_max; i++)
-		// {
-		// 	if (i < companion_max_dof) smg.data[tmp_ind] = static_cast<float>(vel(i));
-		// 	else smg.data[tmp_ind] = static_cast<float>(initial_point.vel(i));
-		// 	tmp_ind++;
-		// }
-		// for (size_t i = 0; i < n_dofs_max; i++)
-		// {
-		// 	if (i < companion_max_dof) smg.data[tmp_ind] = static_cast<float>(acc(i));
-		// 	else smg.data[tmp_ind] = static_cast<float>(initial_point.acc(i));
-		// 	tmp_ind++;
-		// }
-		// for (size_t i = 0; i < n_dofs_max; i++)
-		// {
-		// 	if (i < companion_max_dof) smg.data[tmp_ind] = static_cast<float>(jerk(i));
-		// 	else smg.data[tmp_ind] = static_cast<float>(initial_point.jerk(i));
-		// 	tmp_ind++;
-		// }
-		// for (size_t i = 0; i < n_dofs_max; i++)
-		// {
-		// 	if (i < companion_max_dof) smg.data[tmp_ind] = static_cast<float>(snap(i));
-		// 	else smg.data[tmp_ind] = static_cast<float>(initial_point.snap(i));
-		// 	tmp_ind++;
-		// }
-		// _sim_guidance_pub.publish(smg);
+		publish_trajectory_setpoint(time_trajectory_s);
 	}
 
 	status.loaded = is_alive;
@@ -873,56 +838,6 @@ int trajectory::update_from_companion(void)
 
 int trajectory::update_companion(bool request_start, bool request_stop, bool request_start_executing)
 {
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos;
-	pos.setZero();
-
-	pos(0) = sm_inbound.data[XYZ_OFFSET_START_IND];   //x
-	pos(1) = sm_inbound.data[XYZ_OFFSET_START_IND+1]; //y
-	pos(2) = sm_inbound.data[XYZ_OFFSET_START_IND+2]; //z
-
-
-	matrix::Quaternion<float> vehicle_attitude_quat(\
-	sm_inbound.data[QUAT_OFFSET_START_IND],\
-	sm_inbound.data[QUAT_OFFSET_START_IND+1],\
-	sm_inbound.data[QUAT_OFFSET_START_IND+2],\
-	sm_inbound.data[QUAT_OFFSET_START_IND+3]);
-
-	matrix::Euler<float> vehicle_attitude_eul(vehicle_attitude_quat);
-	pos(3) = vehicle_attitude_eul.psi();			//yaw
-
-
-
-	size_t tmp_ind = 1;
-	pointf setpoint_last{};
-	for (size_t i = 0; i < n_dofs_max; i++)
-	{
-		setpoint_last.pos(i) = smg.data[tmp_ind];
-		tmp_ind++;
-	}
-	for (size_t i = 0; i < n_dofs_max; i++)
-	{
-		setpoint_last.vel(i) = smg.data[tmp_ind];
-		tmp_ind++;
-	}
-	for (size_t i = 0; i < n_dofs_max; i++)
-	{
-		setpoint_last.acc(i) = smg.data[tmp_ind];
-		tmp_ind++;
-	}
-	for (size_t i = 0; i < n_dofs_max; i++)
-	{
-		setpoint_last.jerk(i) = smg.data[tmp_ind];
-		tmp_ind++;
-	}
-	for (size_t i = 0; i < n_dofs_max; i++)
-	{
-		setpoint_last.snap(i) = smg.data[tmp_ind];
-		tmp_ind++;
-	}
-
-
-
-	//publish new data:
 	debug_array_s _companion_guidance_inbound{};
 	_companion_guidance_inbound.timestamp = hrt_absolute_time();
 	_companion_guidance_inbound.id = debug_array_s::COMPANION_GUIDANCE_INBOUND_ID;
@@ -930,7 +845,7 @@ int trajectory::update_companion(bool request_start, bool request_stop, bool req
 	memcpy(_companion_guidance_inbound.name, message_name, sizeof(message_name));
 	_companion_guidance_inbound.name[sizeof(_companion_guidance_inbound.name) - 1] = '\0'; // enforce null termination
 
-	tmp_ind = 0;
+	int tmp_ind = 0;
 	static const size_t companion_max_dof = 3;
 
 	if (request_stop) PX4_INFO("Sending stop request to the companion...");
@@ -938,8 +853,8 @@ int trajectory::update_companion(bool request_start, bool request_stop, bool req
 	{
 		PX4_INFO("Sending start request to the companion...");
 		PX4_INFO("Position = [%f, %f, %f, %f], Reference = [%f, %f, %f, %f]",\
-		 (double)pos(0), (double)pos(1), (double)pos(2), (double)pos(3),\
-		 (double)setpoint_last.pos(0), (double)setpoint_last.pos(1), (double)setpoint_last.pos(2), (double)setpoint_last.pos(3));
+		 (double)vehicle_state.pos(0), (double)vehicle_state.pos(1), (double)vehicle_state.pos(2), (double)vehicle_state.pos(3),\
+		 (double)setpoint_current.pos(0), (double)setpoint_current.pos(1), (double)setpoint_current.pos(2), (double)setpoint_current.pos(3));
 	}
 	if (request_start_executing) PX4_INFO("Sending start execution request to the companion...");
 
@@ -952,34 +867,33 @@ int trajectory::update_companion(bool request_start, bool request_stop, bool req
 
 	for (size_t i = 0; i < companion_max_dof; i++)
 	{
-		_companion_guidance_inbound.data[tmp_ind] = setpoint_last.pos(i);
+		_companion_guidance_inbound.data[tmp_ind] = setpoint_current.pos(i);
 		tmp_ind++;
 	}
 	for (size_t i = 0; i < companion_max_dof; i++)
 	{
-		_companion_guidance_inbound.data[tmp_ind] = setpoint_last.vel(i);
+		_companion_guidance_inbound.data[tmp_ind] = setpoint_current.vel(i);
 		tmp_ind++;
 	}
 	for (size_t i = 0; i < companion_max_dof; i++)
 	{
-		_companion_guidance_inbound.data[tmp_ind] = setpoint_last.acc(i);
+		_companion_guidance_inbound.data[tmp_ind] = setpoint_current.acc(i);
 		tmp_ind++;
 	}
 	for (size_t i = 0; i < companion_max_dof; i++)
 	{
-		_companion_guidance_inbound.data[tmp_ind] = setpoint_last.jerk(i);
+		_companion_guidance_inbound.data[tmp_ind] = setpoint_current.jerk(i);
 		tmp_ind++;
 	}
 	for (size_t i = 0; i < companion_max_dof; i++)
 	{
-		_companion_guidance_inbound.data[tmp_ind] = setpoint_last.snap(i);
+		_companion_guidance_inbound.data[tmp_ind] = setpoint_current.snap(i);
 		tmp_ind++;
 	}
 
-	//parse state:
 	for (size_t i = 0; i < companion_max_dof; i++)
 	{
-		_companion_guidance_inbound.data[tmp_ind] = static_cast<float>(pos(i));
+		_companion_guidance_inbound.data[tmp_ind] = static_cast<float>(vehicle_state.pos(i));
 		tmp_ind++;
 	}
 	_companion_guidance_inbound_pub.publish(_companion_guidance_inbound);
@@ -1000,7 +914,7 @@ void trajectory::start(void)
 }
 void trajectory::reset(void)
 {
-	initial_point.reset();
+	setpoint_initial.reset();
 	status.started = false;
 	status.executing = false;
 	status.finished = false;
@@ -1060,10 +974,6 @@ void trajectory::print_status(void)
 
 trajectory::trajectory(/* args */)
 {
-	smg.id = debug_array_s::SIMULINK_GUIDANCE_ID;
-	char message_name[10] = "guidance";
-	memcpy(smg.name, message_name, sizeof(message_name));
-	smg.name[sizeof(smg.name) - 1] = '\0'; // enforce null termination
 }
 
 trajectory::~trajectory()

@@ -43,6 +43,7 @@
 #include <uORB/topics/debug_array.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <px4_platform_common/module_params.h>
 #include "file_loader_backend.hpp"
 
@@ -110,7 +111,7 @@ private:
 	matrix::Vector<matrix::Vector<matrix::Vector<float, n_coeffs_max>, n_dofs_max>, n_int_max> coefs;
 	matrix::Vector<float, n_int_max> tof_int;
 
-	pointf initial_point{};
+	pointf setpoint_initial{}, setpoint_current{}, vehicle_state{};
 
 
 	void start(void);
@@ -120,20 +121,17 @@ private:
 	int execute(void);
 	int update_from_companion(void);
 	int update_companion(bool request_start = false, bool request_stop = false, bool request_start_executing = false);
-	int set_home(void);
-	int reset_ref2state();
+	int set_home();
 
-	int publish_trajectory_setpoint(double time_trajectory_s,
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> pos, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> vel, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> acc, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> jerk, \
-	matrix::Vector<DATATYPE_TRAJ,n_dofs_max> snap);
+	int update_vehicle_state(void);
+	int publish_trajectory_setpoint(float time_trajectory_s);
 
 	sim_guidance_status_s status{};
-	debug_array_s sm_inbound{}, smg{};
+	debug_array_s sm_inbound{};
 	vehicle_local_position_s vehicle_local_position{};
 	//debug_array_s _companion_guidance_inbound{};
+
+	vehicle_angular_velocity_s     vehicle_angular_velocity{};
 
 
 	// Publications
@@ -151,6 +149,7 @@ private:
 	uORB::Subscription				_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription				_companion_guidance_outbound_sub{ORB_ID(companion_guidance_outbound)};
 	uORB::Subscription				_companion_guidance_inbound_sub{ORB_ID(companion_guidance_inbound)};
+	uORB::Subscription 				_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 public:
 	trajectory(/* args */);

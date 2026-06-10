@@ -15,6 +15,18 @@ parameters:
                 2: ENABLE_COMPANION
             default: 0
 
+        SMG_IN_TYPE:
+            description:
+                short: Choose Guidance Input Type
+                long: |
+                    Select the type of uORB message to subscribe to for feeding in
+                    the current state of the vehicle.
+            type: enum
+            values:
+                0: VEHICLE_LOCAL_POSITION
+                1: DEBUG_FLOAT_ARRAY
+            default: 0
+
         SMG_OUT_TYPE:
             description:
                 short: Choose Guidance Output Type
