@@ -45,3 +45,8 @@ px4_add_module(
     INCLUDES
         generated_code
 )
+
+
+set_source_files_properties(${SIMULINK_GENERATED_SRCS}
+    PROPERTIES COMPILE_FLAGS "-Wno-float-equal -Wno-logical-op -Wno-unused-variable -Wno-unused-but-set-variable -Wno-parentheses"
+)

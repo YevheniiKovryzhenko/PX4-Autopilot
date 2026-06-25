@@ -252,7 +252,7 @@ void trajectory::update(bool use_companion)
 				&& status.loaded && status.started && !status.finished)
 			{
 				if(use_companion) update_companion(true, false, true);
-				status.executing = true; //trajecotry is fully loaded and ready, so start evaluation
+				status.executing = true; //trajectory is fully loaded and ready, so start evaluation
 				PX4_INFO("Started trajectory execution");
 				setpoint_initial.start(); //starts the timer for trajectory execuition
 				already_sent_request = true;
