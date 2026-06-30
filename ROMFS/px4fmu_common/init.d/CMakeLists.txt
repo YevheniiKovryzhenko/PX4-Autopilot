@@ -123,3 +123,12 @@ if(CONFIG_MODULES_TEMPERATURE_COMPENSATION)
 		rc.thermal_cal
 	)
 endif()
+
+if(CONFIG_MODULES_SIMULINK_IO)
+	px4_add_romfs_files(
+		rc.simulink_apps
+		rc.mc_defaults
+		rc.vtol_defaults
+	)
+endif()
+

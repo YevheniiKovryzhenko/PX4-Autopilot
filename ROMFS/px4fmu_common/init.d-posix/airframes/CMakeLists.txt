@@ -89,6 +89,12 @@ px4_add_romfs_files(
 	4020_gz_tiltrotor
 	4021_gz_x500_flow
 
+	4030_gz_s500
+	4031_gz_s500_lidar_down
+
+	4040_gz_s500_simulink
+	4041_gz_s500_simulink_lidar_down
+
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
 

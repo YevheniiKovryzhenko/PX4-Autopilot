@@ -44,6 +44,10 @@ px4_add_module(
         ${SIMULINK_GENERATED_SRCS}
     INCLUDES
         generated_code
+
+    MODULE_CONFIG
+		module.yaml
+        module_stock_missing.yaml
 )
 
 

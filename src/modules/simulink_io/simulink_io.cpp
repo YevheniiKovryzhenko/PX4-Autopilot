@@ -354,7 +354,7 @@ void SimulinkIO::run()
     const hrt_abstime interval_us = 5000; // 5000 microseconds = 5ms (200Hz)
 
     // Setup an internal slow iteration counter for our print test
-    uint32_t iteration_counter = 0;
+    // uint32_t iteration_counter = 0;
 
     // Check parameters on boot
     parameters_update(true);
@@ -367,24 +367,24 @@ void SimulinkIO::run()
         _simulink_model.step();
 
         // Increment loop tick counter
-        iteration_counter++;
+        // iteration_counter++;
 
         // This block runs exactly every 1 seconds (200 cycles @ 200Hz)
-        if (iteration_counter >= 200) {
-            PX4_INFO("[Simulink Test] Class is ticking healthy! Running background steps...");
+        // if (iteration_counter >= 200) {
+        //     PX4_INFO("[Simulink Test] Class is ticking healthy! Running background steps...");
 
-            // Query fields out of the generated model's global Output variable structure (Test_Y).
-            // Extract a read-only handle reference to the private data structure
-            const HardwareModel::ExtY_HardwareModel_T &outputs = _simulink_model.getExternalOutputs();
-            PX4_INFO("\n");
-            print_pilot_input(outputs.PilotInput);
-            print_states(outputs.States_c);
-            print_control_references(outputs.ControlOutputs);
-            print_actuator_commands(outputs.ActuatorCommands);
-            PX4_INFO("\n");
+        //     // Query fields out of the generated model's global Output variable structure (Test_Y).
+        //     // Extract a read-only handle reference to the private data structure
+        //     const HardwareModel::ExtY_HardwareModel_T &outputs = _simulink_model.getExternalOutputs();
+        //     PX4_INFO("\n");
+        //     print_pilot_input(outputs.PilotInput);
+        //     print_states(outputs.States_c);
+        //     print_control_references(outputs.ControlOutputs);
+        //     print_actuator_commands(outputs.ActuatorCommands);
+        //     PX4_INFO("\n");
 
-            iteration_counter = 0; // Reset counter
-        }
+        //     iteration_counter = 0; // Reset counter
+        // }
 
         // Check for runtime system parameters updates
         parameters_update();
