@@ -209,6 +209,7 @@ set(msg_files
 	SensorsStatusImu.msg
 	SensorUwb.msg
 	SensorAirflow.msg
+	SimControlStatus.msg
 	SimGuidanceRequest.msg
 	SimGuidanceStatus.msg
 	SimGuidanceTrajectory.msg

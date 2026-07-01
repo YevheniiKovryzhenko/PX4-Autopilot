@@ -384,6 +384,7 @@ void LoggedTopics::add_sim_topics()
 	//get all the debug instances used for simulink:
 	int32_t sm_log_delay_ms = 0;
 	param_get(param_find("SM_LOG_DELAY"),&sm_log_delay_ms);
+	add_topic("sim_control_status", sm_log_delay_ms);
 	add_topic("simulink_inbound", sm_log_delay_ms);
 	add_topic("simulink_outbound", sm_log_delay_ms);
 	add_topic("simulink_outbound_1", sm_log_delay_ms);
