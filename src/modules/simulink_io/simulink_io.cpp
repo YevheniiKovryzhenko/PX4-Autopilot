@@ -36,15 +36,10 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
+#include <errno.h>
 
-SimulinkIO::SimulinkIO() :
-    ModuleParams(nullptr)
-{
-    // Run any internal native module setups here
-}
-
-#include <cstdio>
-#include <cmath>
+// #include <cstdio>
+// #include <cmath>
 
 // // Reuse or keep the print_row_vector function from the previous step
 // void print_row_vector(const char* label, const float* data, int size, int max_line_len = 75) {
@@ -344,8 +339,11 @@ SimulinkIO::SimulinkIO() :
 
 void SimulinkIO::run()
 {
+    PX4_INFO("Entry point reached. Preparing initialization sequence...");
+
     PX4_INFO("Initializing Simulink generated object class...");
     _simulink_model.initialize();
+    PX4_INFO("_simulink_model.initialize() completed without a hard fault.");
 
     PX4_INFO("Module initialized successfully. Starting loop at 200Hz...");
 
@@ -354,61 +352,78 @@ void SimulinkIO::run()
     const hrt_abstime interval_us = 5000; // 5000 microseconds = 5ms (200Hz)
 
     // Setup an internal slow iteration counter for our print test
-    // uint32_t iteration_counter = 0;
+    uint32_t iteration_counter = 0;
 
-    // Check parameters on boot
-    parameters_update(true);
 
     while (!should_exit()) {
         // Linearly increment tick baseline target
         loop_time_reference += interval_us;
 
+        update_simulink_params();
+
+        // Increment loop tick counter
+        iteration_counter++;
+
+        update_simulink_params();
+
+        // Low-frequency heartbeat print so you know the loop is alive without spamming
+        // if (iteration_counter % 200 == 1) {
+        //     PX4_INFO("Loop Heartbeat Active. Preparing for next step()...");
+        // }
+
+        // CRITICAL CHECKPOINT 1: Right before memory evaluation
+        // if (iteration_counter % 200 == 1) {
+        //     PX4_INFO("CRITICAL: Calling _simulink_model.step()...");
+        // }
+
         // Execute the generated algorithm code
         _simulink_model.step();
 
-        // // Increment loop tick counter
-        // iteration_counter++;
-
-        // // This block runs exactly every 1 seconds (200 cycles @ 200Hz)
-        // if (iteration_counter >= 200) {
-        //     PX4_INFO("[Simulink Test] Class is ticking healthy! Running background steps...");
-
-        //     // Query fields out of the generated model's global Output variable structure (Test_Y).
-        //     // Extract a read-only handle reference to the private data structure
-        //     const ExtY_HardwareModel_T &outputs = _simulink_model.getExternalOutputs();
-        //     PX4_INFO("\n");
-        //     print_pilot_input(outputs.PilotInput);
-        //     print_states(outputs.States_c);
-        //     print_control_references(outputs.ControlOutputs);
-        //     print_actuator_commands(outputs.ActuatorCommands);
-        //     PX4_INFO("\n");
-
-        //     iteration_counter = 0; // Reset counter
+        // // CRITICAL CHECKPOINT 2: Right after execution
+        // if (iteration_counter % 200 == 1) {
+        //     PX4_INFO("SUCCESS: _simulink_model.step() executed safely.");
         // }
 
-        // Check for runtime system parameters updates
-        parameters_update();
+        // This block runs exactly every 1 second (200 cycles @ 200Hz)
+        if (iteration_counter >= 200) {
+            // PX4_INFO("Class is ticking healthy! Accessing external output structures...");
+
+            // // Query fields out of the generated model's global Output variable structure (Test_Y).
+            // PX4_INFO("Fetching external outputs pointer...");
+            // const ExtY_HardwareModel_T &outputs = _simulink_model.getExternalOutputs();
+
+            // PX4_INFO("Outputs fetched successfully. Printing sub-structures...");
+            // PX4_INFO("\n--- Simulink Data Dump ---");
+
+            // // Separated to isolate exactly which sub-struct causes a fault
+            // PX4_INFO("Printing Pilot Input...");
+            // print_pilot_input(outputs.PilotInput);
+
+            // PX4_INFO("Printing States...");
+            // print_states(outputs.States_c);
+
+            // PX4_INFO("Printing Control References...");
+            // print_control_references(outputs.ControlOutputs);
+
+            // PX4_INFO("Printing Actuator Commands...");
+            // print_actuator_commands(outputs.ActuatorCommands);
+            // PX4_INFO("---------------------------\n");
+
+            iteration_counter = 0; // Reset counter
+        }
 
         // High-precision block sleep calculating the true drift remaining
         hrt_abstime current_time = hrt_absolute_time();
         if (loop_time_reference > current_time) {
             px4_usleep(loop_time_reference - current_time);
         } else {
-            // Loop overrun safe fallback: Reset reference timing baseline to catch up
+            // Loop overrun safe fallback
+            // PX4_WARN("Timing Overrun Detected! Catching up baseline...");
             loop_time_reference = current_time;
         }
     }
-}
 
-
-
-void SimulinkIO::parameters_update(bool force)
-{
-    if (_parameter_update_sub.updated() || force) {
-        parameter_update_s update;
-        _parameter_update_sub.copy(&update);
-        updateParams();
-    }
+    PX4_INFO("Thread exiting cleanly via should_exit().");
 }
 
 int SimulinkIO::print_status()
@@ -423,7 +438,7 @@ int SimulinkIO::task_spawn(int argc, char *argv[])
     _task_id = px4_task_spawn_cmd("simulink_io",
                                   SCHED_DEFAULT,
                                   SCHED_PRIORITY_DEFAULT,
-                                  2500,
+                                  8192,
                                   (px4_main_t)&run_trampoline,
                                   (char *const *)argv);
 
