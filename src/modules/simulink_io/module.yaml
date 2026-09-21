@@ -343,7 +343,7 @@ parameters:
               default: [0.2000, 0.2000, 0.2000]
               min: 0.0000
               decimal: 4
-          SM_STK_TRDES_CT${i}:
+          SM_STK_TRDS_CUT${i}:
               description:
                   short: Cuttoff fraction for desired transition logic
               type: float
@@ -354,7 +354,7 @@ parameters:
               min: 0.0000
               max: 1.0000
               decimal: 4
-          SM_STK_HWDES_CT${i}:
+          SM_STK_HWDS_CUT${i}:
               description:
                   short: Cuttoff fraction for desired hover logic
               type: float
@@ -365,7 +365,7 @@ parameters:
               min: 0.0000
               max: 1.0000
               decimal: 4
-          SM_STK_TRDES_T${i}:
+          SM_STK_TRDS_T${i}:
               description:
                   short: Time delay for desired transition logic
               type: float
@@ -375,7 +375,7 @@ parameters:
               default: [2.0000, 2.0000, 2.0000]
               min: 0.0000
               decimal: 4
-          SM_STK_HVDES_T${i}:
+          SM_STK_HVDS_T${i}:
               description:
                   short: Time delay for desired hover logic
               type: float
