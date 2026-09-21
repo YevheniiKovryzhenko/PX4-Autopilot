@@ -364,13 +364,6 @@ void SimulinkIO::run()
         // Increment loop tick counter
         iteration_counter++;
 
-        update_simulink_params();
-
-        // Low-frequency heartbeat print so you know the loop is alive without spamming
-        // if (iteration_counter % 200 == 1) {
-        //     PX4_INFO("Loop Heartbeat Active. Preparing for next step()...");
-        // }
-
         // CRITICAL CHECKPOINT 1: Right before memory evaluation
         // if (iteration_counter % 200 == 1) {
         //     PX4_INFO("CRITICAL: Calling _simulink_model.step()...");
@@ -379,38 +372,47 @@ void SimulinkIO::run()
         // Execute the generated algorithm code
         _simulink_model.step();
 
-        // // CRITICAL CHECKPOINT 2: Right after execution
+        // CRITICAL CHECKPOINT 2: Right after execution
         // if (iteration_counter % 200 == 1) {
         //     PX4_INFO("SUCCESS: _simulink_model.step() executed safely.");
         // }
 
-        // This block runs exactly every 1 second (200 cycles @ 200Hz)
-        if (iteration_counter >= 200) {
-            // PX4_INFO("Class is ticking healthy! Accessing external output structures...");
+        // // This block runs exactly every 1 second (200 cycles @ 200Hz)
+        // if (iteration_counter >= 200) {
+        //     const ExtY_Test_T &outputs = _simulink_model.getExternalOutputs();
 
-            // // Query fields out of the generated model's global Output variable structure (Test_Y).
-            // PX4_INFO("Fetching external outputs pointer...");
-            // const ExtY_HardwareModel_T &outputs = _simulink_model.getExternalOutputs();
+        //     PX4_INFO("%-7.3f | %-7.3f", static_cast<double>(outputs.Out3), static_cast<double>(outputs.Out5));
 
-            // PX4_INFO("Outputs fetched successfully. Printing sub-structures...");
-            // PX4_INFO("\n--- Simulink Data Dump ---");
+        //     iteration_counter = 0; // Reset counter
+        // }
 
-            // // Separated to isolate exactly which sub-struct causes a fault
-            // PX4_INFO("Printing Pilot Input...");
-            // print_pilot_input(outputs.PilotInput);
+        // // This block runs exactly every 1 second (200 cycles @ 200Hz)
+        // if (iteration_counter >= 200) {
+        //     PX4_INFO("Class is ticking healthy! Accessing external output structures...");
 
-            // PX4_INFO("Printing States...");
-            // print_states(outputs.States_c);
+        //     // Query fields out of the generated model's global Output variable structure (Test_Y).
+        //     PX4_INFO("Fetching external outputs pointer...");
+        //     const ExtY_HardwareModel_T &outputs = _simulink_model.getExternalOutputs();
 
-            // PX4_INFO("Printing Control References...");
-            // print_control_references(outputs.ControlOutputs);
+        //     PX4_INFO("Outputs fetched successfully. Printing sub-structures...");
+        //     PX4_INFO("\n--- Simulink Data Dump ---");
 
-            // PX4_INFO("Printing Actuator Commands...");
-            // print_actuator_commands(outputs.ActuatorCommands);
-            // PX4_INFO("---------------------------\n");
+        //     // Separated to isolate exactly which sub-struct causes a fault
+        //     PX4_INFO("Printing Pilot Input...");
+        //     print_pilot_input(outputs.PilotInput);
 
-            iteration_counter = 0; // Reset counter
-        }
+        //     PX4_INFO("Printing States...");
+        //     print_states(outputs.States_c);
+
+        //     // PX4_INFO("Printing Control References...");
+        //     print_control_references(outputs.ControlOutputs);
+
+        //     PX4_INFO("Printing Actuator Commands...");
+        //     print_actuator_commands(outputs.ActuatorCommands);
+        //     PX4_INFO("---------------------------\n");
+
+        //     iteration_counter = 0; // Reset counter
+        // }
 
         // High-precision block sleep calculating the true drift remaining
         hrt_abstime current_time = hrt_absolute_time();
