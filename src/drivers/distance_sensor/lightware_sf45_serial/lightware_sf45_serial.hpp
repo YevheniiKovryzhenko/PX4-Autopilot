@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 
 #include "sf45_commands.h"
+#include "SF45ObstacleMap.hpp"
 
 enum SF_SERIAL_STATE {
 	STATE_UNINIT = 0,
@@ -97,7 +98,7 @@ private:
 	uORB::Publication<obstacle_distance_s>	_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
 	static constexpr uint8_t 	BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
 				obstacle_distance_s::distances[0]);
-	static constexpr uint64_t 	SF45_MEAS_TIMEOUT{100_ms};
+	uint64_t				_measurement_timeout{100_ms};
 	static constexpr float 		SF45_SCALE_FACTOR = 0.01f;
 	static constexpr float		SF45_FIELDOF_VIEW = 320.f; // degrees
 
@@ -108,10 +109,9 @@ private:
 	int				collect();
 	bool				_crc_valid{false};
 
-	void 				_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement, hrt_abstime now);
 	void 				_publish_obstacle_msg(hrt_abstime now);
 	uORB::Subscription 		_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uint64_t			_data_timestamps[BIN_COUNT];
+	SF45ObstacleMap		_scan;
 
 
 	char 				_port[20] {};
@@ -125,7 +125,7 @@ private:
 	// message ID, payload, and checksum
 	bool				_is_sf45{false};
 	SF_SERIAL_STATE			_sensor_state{STATE_UNINIT};
-	int				_baud_rate{0};
+	int32_t				_baud_rate{921600};
 	int32_t				_product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	int32_t				_stream_data{0};
 	int32_t				_update_rate{0};
@@ -137,8 +137,6 @@ private:
 	uint16_t			_calc_crc{0};
 	int32_t				_yaw_cfg{0};
 	int32_t				_orient_cfg{0};
-	uint8_t				_previous_bin{0};
-	uint16_t			_current_bin_dist{UINT16_MAX};
 	matrix::Quatf			_vehicle_attitude{};
 
 	// end of SF45/B data members

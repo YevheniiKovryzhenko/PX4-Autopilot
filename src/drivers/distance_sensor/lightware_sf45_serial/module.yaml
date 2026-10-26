@@ -10,6 +10,43 @@ serial_config:
 parameters:
     - group: Sensors
       definitions:
+          SF45_TIMEOUT:
+              description:
+                  short: SF45 obstacle observation timeout
+                  long: |
+                      Maximum age of a measured angular bin before it becomes
+                      unknown. Choose according to the scan revisit interval and
+                      acceptable obstacle latency. Increasing this value retains
+                      old obstacle measurements longer. Unmeasured directions
+                      always remain unknown; scan limits do not change the 5 degree
+                      map spacing.
+              type: int32
+              unit: ms
+              min: 20
+              max: 5000
+              default: 100
+              reboot_required: true
+
+          SF45_BAUD_CFG:
+              description:
+                  short: SF45 UART baud rate
+                  long: |
+                      Host UART baud rate. Must match the baud rate stored in the
+                      SF45 sensor. This parameter does not reprogram the sensor.
+                      Applies to the direct serial driver, not DroneCAN reception.
+              type: enum
+              values:
+                  9600: 9600 baud
+                  19200: 19200 baud
+                  38400: 38400 baud
+                  57600: 57600 baud
+                  115200: 115200 baud
+                  230400: 230400 baud
+                  460800: 460800 baud
+                  921600: 921600 baud
+              reboot_required: true
+              default: 921600
+
           SF45_UPDATE_CFG:
               description:
                   short: Update rate in Hz

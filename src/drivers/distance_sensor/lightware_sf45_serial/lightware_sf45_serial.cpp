@@ -41,7 +41,6 @@
 #include <lib/crc/crc.h>
 #include <lib/mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
-#include <ObstacleMath.hpp>
 
 using namespace time_literals;
 
@@ -88,7 +87,22 @@ SF45LaserSerial::~SF45LaserSerial()
 
 int SF45LaserSerial::init()
 {
+	int32_t timeout_ms = 100;
+	param_get(param_find("SF45_TIMEOUT"), &timeout_ms);
+	_measurement_timeout = uint64_t(math::constrain<int32_t>(timeout_ms, 20, 5000)) * 1000;
+	param_get(param_find("SF45_BAUD_CFG"), &_baud_rate);
 	param_get(param_find("SF45_UPDATE_CFG"), &_update_rate);
+
+	switch (_baud_rate) {
+	case 9600: case 19200: case 38400: case 57600:
+	case 115200: case 230400: case 460800: case 921600:
+		break;
+
+	default:
+		PX4_ERR("unsupported baud rate: %ld", (long)_baud_rate);
+		return PX4_ERROR;
+	}
+
 	param_get(param_find("SF45_ORIENT_CFG"), &_orient_cfg);
 	param_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
 
@@ -97,6 +111,7 @@ int SF45LaserSerial::init()
 				    (_yaw_cfg));
 	_obstacle_distance.angle_offset = math::degrees(matrix::wrap_2pi(yaw_cfg_angle));
 
+	_scan.configure(_yaw_cfg, _orient_cfg, _measurement_timeout);
 	start();
 	return PX4_OK;
 }
@@ -209,6 +224,9 @@ int SF45LaserSerial::collect()
 
 void SF45LaserSerial::start()
 {
+	_scan.reset();
+	_publish_obstacle_msg(hrt_absolute_time());
+
 	/* reset the sensor state */
 	_sensor_state = STATE_UNINIT;
 
@@ -242,33 +260,52 @@ void SF45LaserSerial::Run()
 			return;
 		}
 
-		struct termios uart_config;
+		struct termios uart_config {};
 
-		int termios_state;
-
-		/* fill the struct for the new configuration */
-		tcgetattr(_fd, &uart_config);
-
-		/* clear ONLCR flag (which appends a CR for every LF) */
-		uart_config.c_oflag &= ~ONLCR;
-
-		/* no parity, one stop bit */
-		uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-		unsigned speed = B921600;
-
-		/* set baud rate */
-		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-			PX4_ERR("CFG: %d ISPD", termios_state);
+		if (tcgetattr(_fd, &uart_config) < 0) {
+			PX4_ERR("UART configuration read failed (%i)", errno);
+			::close(_fd);
+			_fd = -1;
+			return;
 		}
 
-		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-			PX4_ERR("CFG: %d OSPD", termios_state);
+		cfmakeraw(&uart_config);
+		uart_config.c_cflag &= ~(CSTOPB | PARENB | CSIZE | CRTSCTS);
+		uart_config.c_cflag |= CS8 | CLOCAL | CREAD;
+
+		speed_t speed = B921600;
+
+		switch (_baud_rate) {
+		case 9600: speed = B9600; break;
+
+		case 19200: speed = B19200; break;
+
+		case 38400: speed = B38400; break;
+
+		case 57600: speed = B57600; break;
+
+		case 115200: speed = B115200; break;
+
+		case 230400: speed = B230400; break;
+
+		case 460800: speed = B460800; break;
+
+		case 921600: speed = B921600; break;
 		}
 
-		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-			PX4_ERR("baud %d ATTR", termios_state);
+		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0
+		    || tcsetattr(_fd, TCSANOW, &uart_config) < 0) {
+			PX4_ERR("UART configuration failed (%i)", errno);
+			::close(_fd);
+			_fd = -1;
+			return;
 		}
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_scan.expire(now)) {
+		_publish_obstacle_msg(now);
 	}
 
 	if (_collect_phase) {
@@ -304,6 +341,7 @@ void SF45LaserSerial::Run()
 
 void SF45LaserSerial::print_info()
 {
+	PX4_INFO("port: %s, baud: %ld, map increment: 5 deg", _port, (long)_baud_rate);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
@@ -595,129 +633,30 @@ void SF45LaserSerial::sf45_send(uint8_t msg_id, bool write, int32_t *data, uint8
 
 void SF45LaserSerial::sf45_process_replies()
 {
-	const int16_t YAW_THRESHOLD  = 32000;
-	const int16_t YAW_ADJUSTMENT = 65535;
-
-	switch (rx_field.msg_id) {
-	case SF_DISTANCE_DATA_CM: {
-			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
-			int16_t raw_yaw = ((rx_field.data[2] << 0) | (rx_field.data[3] << 8));
-
-			// The sensor scans from 0 to -160, so extract negative angle from int16 and represent as if a float
-			if (raw_yaw > YAW_THRESHOLD) {
-				raw_yaw -= YAW_ADJUSTMENT;
-			}
-
-			// Adjust yaw for downward facing sensor
-			if (_orient_cfg == ROTATION_DOWNWARD_FACING) {
-				raw_yaw = -raw_yaw;
-			}
-
-			// SF45/B product guide {Data output bit: 8 Description: "Yaw angle [1/100 deg] size: int16}"
-			float scaled_yaw_sensor_frame = raw_yaw * SF45_SCALE_FACTOR;
-			float scaled_yaw_frd          = ObstacleMath::wrap_360(scaled_yaw_sensor_frame + _obstacle_distance.angle_offset);
-			float distance_m              = raw_distance * SF45_SCALE_FACTOR;
-
-			// Update the current bin distance
-			_current_bin_dist = ((uint16_t)raw_distance < _current_bin_dist) ? (uint16_t)raw_distance : _current_bin_dist;
-
-			// Find bin index for the current sensor yaw angle (in sensor frame)
-			const int current_bin = ObstacleMath::get_bin_at_angle(_obstacle_distance.increment, scaled_yaw_sensor_frame);
-
-			if (current_bin != _previous_bin) {
-				PX4_DEBUG("scaled_yaw: \t %f, \t current_bin: \t %d, \t distance: \t %8.4f\n", (double)scaled_yaw_frd, current_bin,
-					  (double)distance_m);
-
-				if (_vehicle_attitude_sub.updated()) {
-					vehicle_attitude_s vehicle_attitude;
-
-					if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
-						_vehicle_attitude = matrix::Quatf(vehicle_attitude.q);
-					}
-				}
-
-				// Scale distance with vehicle rotation
-				float current_bin_dist = static_cast<float>(_current_bin_dist);
-				float scaled_yaw_frd_rad = math::radians(static_cast<float>(scaled_yaw_frd));
-				ObstacleMath::project_distance_on_horizontal_plane(current_bin_dist, scaled_yaw_frd_rad, _vehicle_attitude);
-				_current_bin_dist = static_cast<uint16_t>(current_bin_dist);
-
-				if (_current_bin_dist > _obstacle_distance.max_distance) {
-					_current_bin_dist = _obstacle_distance.max_distance + 1; // As per ObstacleDistance.msg definition
-				}
-
-				hrt_abstime now = hrt_absolute_time();
-
-				_obstacle_distance.distances[current_bin] = _current_bin_dist;
-				_handle_missed_bins(current_bin, _previous_bin, _current_bin_dist, now);
-
-				_publish_obstacle_msg(now);
-
-				// reset the values for the next measurement
-				_current_bin_dist = UINT16_MAX;
-				_previous_bin = current_bin;
-			}
-
-			break;
-		}
-
-	default:
-		// add case for future use
-		break;
+	if (rx_field.msg_id != SF_DISTANCE_DATA_CM) {
+		return;
 	}
+
+	const uint16_t raw_distance = uint16_t(rx_field.data[0]) | (uint16_t(rx_field.data[1]) << 8);
+	const int16_t raw_yaw = int16_t(uint16_t(rx_field.data[2]) | (uint16_t(rx_field.data[3]) << 8));
+
+	if (_vehicle_attitude_sub.updated()) {
+		vehicle_attitude_s attitude;
+
+		if (_vehicle_attitude_sub.copy(&attitude)) {
+			_vehicle_attitude = matrix::Quatf(attitude.q);
+		}
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+	_scan.update(float(raw_yaw) * SF45_SCALE_FACTOR, raw_distance, now, _vehicle_attitude);
+	_publish_obstacle_msg(now);
 }
+
 void SF45LaserSerial::_publish_obstacle_msg(hrt_abstime now)
 {
-	// This whole logic is in place because CollisionPrevention, just reads in the last published message on the topic, and not every message,
-	// This can result in messages being misssed if the sensor is publishing at a faster rate than the CollisionPrevention module is reading.
-	for (uint8_t i = 0; i < BIN_COUNT; i++) {
-		if (now - _data_timestamps[i] > SF45_MEAS_TIMEOUT) {
-			// If the data is older than SF45_MEAS_TIMEOUT, we discard the value (UINT16_MAX means no valid data)
-			_obstacle_distance.distances[i] = UINT16_MAX;
-		}
-	}
-
-	_obstacle_distance.timestamp = now;
+	_obstacle_distance = _scan.report(now);
 	_obstacle_distance_pub.publish(_obstacle_distance);
-}
-
-void SF45LaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement,
-		hrt_abstime now)
-{
-	// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
-	// in this case we assume the measurement to be valid for all bins between the previous and the current bin.
-	uint8_t start = current_bin;
-	uint8_t end = previous_bin - 1;
-
-	if (abs(current_bin - previous_bin) > BIN_COUNT / 4) {
-		// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
-		// This is simplyfied as we are not considering the scaning direction
-		start = math::max(previous_bin, current_bin);
-		end = math::min(previous_bin, current_bin);
-
-	} else if (previous_bin < current_bin) {	// Scanning clockwise
-		start = previous_bin + 1;
-		end = current_bin;
-
-	}
-
-	if (start <= end) {
-		for (uint8_t i = start; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-
-	} else { // wrap-around case
-		for (uint8_t i = start; i < BIN_COUNT; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-
-		for (uint8_t i = 0; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-	}
 }
 
 uint16_t SF45LaserSerial::sf45_format_crc(uint16_t crc, uint8_t data_val)

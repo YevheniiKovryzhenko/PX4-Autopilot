@@ -37,6 +37,9 @@
 
 #include "sensor_bridge.hpp"
 #include <cassert>
+#if defined(CONFIG_DRIVERS_DISTANCE_SENSOR_LIGHTWARE_SF45_CAN)
+#include "sf45.hpp"
+#endif
 
 #if defined(CONFIG_UAVCAN_SENSOR_ACCEL)
 #include "accel.hpp"
@@ -87,6 +90,13 @@
  */
 void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
 {
+#if defined(CONFIG_DRIVERS_DISTANCE_SENSOR_LIGHTWARE_SF45_CAN)
+	int32_t sf45_enabled = 0;
+	param_get(param_find("SF45C_ENABLE"), &sf45_enabled);
+
+	if (sf45_enabled) { list.add(new UavcanSF45Bridge(node)); }
+
+#endif
 	// airspeed
 #if defined(CONFIG_UAVCAN_SENSOR_AIRSPEED)
 	int32_t uavcan_sub_aspd = 1;

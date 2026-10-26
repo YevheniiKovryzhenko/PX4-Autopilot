@@ -242,3 +242,9 @@ then
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
+
+# SF45 sensor-frame observations delivered by the shared DroneCAN stack.
+if param compare -s SF45C_ENABLE 1
+then
+    lightware_sf45_can start
+fi
