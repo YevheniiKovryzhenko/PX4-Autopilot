@@ -1361,6 +1361,179 @@ Mavlink::update_rate_mult()
 	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
 }
 
+template <typename Func>
+void add_std_topics_minimal(Func&& configure_stream_local)
+{
+	configure_stream_local("PING", 0.1f);
+	configure_stream_local("SYS_STATUS", 1.0f);
+	configure_stream_local("TIMESYNC", 5.0f);
+	configure_stream_local("BATTERY_STATUS", 0.5f);
+	configure_stream_local("CURRENT_MODE", 0.5f);
+	configure_stream_local("AVAILABLE_MODES", 0.3f);
+	configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
+	configure_stream_local("HOME_POSITION", 0.5f);
+	configure_stream_local("RC_CHANNELS", 5.0f);
+	configure_stream_local("VFR_HUD", 4.0f);
+	configure_stream_local("ESTIMATOR_STATUS", 0.5f);
+	configure_stream_local("VIBRATION", 0.1f);
+	configure_stream_local("GPS_RAW_INT", 5.0f);
+	configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
+	configure_stream_local("ALTITUDE", 1.0f);
+}
+
+template <typename Func>
+void add_std_topics_custom_rates(Func&& configure_stream_local)
+{
+	static param_t sm_std_handle = param_find("SM_MAVSTD");
+	int32_t sm_std_mask = 0;
+
+	if (sm_std_handle != PARAM_INVALID && param_get(sm_std_handle, &sm_std_mask) == OK) {
+		// Bit 0: ATTITUDE
+		if (sm_std_mask & (1 << 0)) {
+			static param_t h = param_find("SM_MAV_ATT_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("ATTITUDE", rate);
+		}
+		// Bit 1: ATTITUDE_QUATERNION
+		if (sm_std_mask & (1 << 1)) {
+			static param_t h = param_find("SM_MAV_ATTQ_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("ATTITUDE_QUATERNION", rate);
+		}
+		// Bit 2: ATTITUDE_TARGET
+		if (sm_std_mask & (1 << 2)) {
+			static param_t h = param_find("SM_MAV_ATTT_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("ATTITUDE_TARGET", rate);
+		}
+		// Bit 3: LOCAL_POSITION_NED
+		if (sm_std_mask & (1 << 3)) {
+			static param_t h = param_find("SM_MAV_LP_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("LOCAL_POSITION_NED", rate);
+		}
+		// Bit 4: POSITION_TARGET_LOCAL_NED
+		if (sm_std_mask & (1 << 4)) {
+			static param_t h = param_find("SM_MAV_LPT_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("POSITION_TARGET_LOCAL_NED", rate);
+		}
+		// Bit 5: GLOBAL_POSITION
+		if (sm_std_mask & (1 << 5)) {
+			static param_t h = param_find("SM_MAV_GP_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("GLOBAL_POSITION", rate);
+		}
+		// Bit 6: GLOBAL_POSITION_INT
+		if (sm_std_mask & (1 << 6)) {
+			static param_t h = param_find("SM_MAV_GPI_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("GLOBAL_POSITION_INT", rate);
+		}
+		// Bit 7: POSITION_TARGET_GLOBAL_INT
+		if (sm_std_mask & (1 << 7)) {
+			static param_t h = param_find("SM_MAV_GPT_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("POSITION_TARGET_GLOBAL_INT", rate);
+		}
+		// Bit 8: SERVO_OUTPUT_RAW_0
+		if (sm_std_mask & (1 << 8)) {
+			static param_t h = param_find("SM_MAV_SRV_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SERVO_OUTPUT_RAW_0", rate);
+		}
+		// Bit 9: ESC_STATUS
+		if (sm_std_mask & (1 << 9)) {
+			static param_t h = param_find("SM_MAV_ESC_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("ESC_STATUS", rate);
+		}
+		// Bit 10: RAW_RPM
+		if (sm_std_mask & (1 << 10)) {
+			static param_t h = param_find("SM_MAV_RPM_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("RAW_RPM", rate);
+		}
+	}
+}
+
+template <typename Func>
+void add_simulink_topics(Func&& configure_stream_local)
+{
+	static param_t sm_mav_log_handle = param_find("SM_MAV");
+	int32_t sm_mav_mask = 0;
+
+	if (sm_mav_log_handle != PARAM_INVALID && param_get(sm_mav_log_handle, &sm_mav_mask) == OK) {
+		// Bit 0: companion_guidance_outbound
+		if (sm_mav_mask & (1 << 0)) {
+			static param_t h = param_find("SMG_MAVOUT_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("COMPANION_GUIDANCE_OUTBOUND", rate);
+		}
+		// Bit 1: companion_guidance_inbound
+		if (sm_mav_mask & (1 << 1)) {
+			static param_t h = param_find("SMG_MAVIN_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("COMPANION_GUIDANCE_INBOUND", rate);
+		}
+		// Bit 2: simulink_inbound
+		if (sm_mav_mask & (1 << 2)) {
+			static param_t h = param_find("SM_MAVIN_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SIMULINK_INBOUND", rate);
+		}
+		// Bit 3: simulink_outbound (Base)
+		if (sm_mav_mask & (1 << 3)) {
+			static param_t h = param_find("SM_MAVOUT_0_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND", rate);
+		}
+		// Bit 4: simulink_outbound_1
+		if (sm_mav_mask & (1 << 4)) {
+			static param_t h = param_find("SM_MAVOUT_1_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND_1", rate);
+		}
+		// Bit 5: simulink_outbound_2
+		if (sm_mav_mask & (1 << 5)) {
+			static param_t h = param_find("SM_MAVOUT_2_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND_2", rate);
+		}
+		// Bit 6: simulink_outbound_3
+		if (sm_mav_mask & (1 << 6)) {
+			static param_t h = param_find("SM_MAVOUT_3_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND_3", rate);
+		}
+		// Bit 7: simulink_guidance
+		if (sm_mav_mask & (1 << 7)) {
+			static param_t h = param_find("SMG_MAV_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SIMULINK_GUIDANCE", rate);
+		}
+	}
+}
+
 void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
@@ -1490,7 +1663,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESC_INFO", 10.0f);
 		configure_stream_local("ESC_STATUS", 10.0f);
 		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
+		configure_stream_local("OBSTACLE_DISTANCE", 30.0f);
 		configure_stream_local("ODOMETRY", 30.0f);
 
 		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
@@ -1644,6 +1817,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
+		add_simulink_topics(configure_stream_local);
 		// Note: streams requiring low latency come first
 		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
@@ -1855,6 +2029,43 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UAVIONIX_ADSB_OUT_CFG", 0.1f);
 		configure_stream_local("UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f);
 		break;
+
+	case MAVLINK_MODE_DISTANCE_SENSOR:
+		configure_stream_local("DISTANCE_SENSOR", unlimited_rate);
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("DEBUG", 1.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
+		configure_stream_local("DEBUG_VECT", 1.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+#endif // !CONSTRAINED_FLASH
+		break;
+
+	case MAVLINK_MODE_SIMULINK:
+	{
+		add_std_topics_minimal(configure_stream_local);
+		add_std_topics_custom_rates(configure_stream_local);
+		add_simulink_topics(configure_stream_local);
+		break;
+	}
+
+	case MAVLINK_MODE_COMPANION:
+	{
+		static param_t h = param_find("SMG_MAVIN_R");
+		float compg_in_mav_rate = 0.f;
+
+		if (h != PARAM_INVALID) {
+			param_get(h, &compg_in_mav_rate);
+		}
+
+		if (compg_in_mav_rate > 0.f) {
+			configure_stream_local("COMPANION_GUIDANCE_INBOUND", compg_in_mav_rate);
+		}
+
+		configure_stream_local("PING", 0.1f);
+		configure_stream_local("SYS_STATUS", 5.0f);
+		configure_stream_local("TIMESYNC", 5.0f);
+		break;
+	}
 
 	default:
 		ret = -1;
@@ -2098,6 +2309,15 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "uavionix") == 0) {
 						_mode = MAVLINK_MODE_UAVIONIX;
+
+					} else if (strcmp(myoptarg, "distance_sensor") == 0) {
+						_mode = MAVLINK_MODE_DISTANCE_SENSOR;
+
+					} else if (strcmp(myoptarg, "simulink") == 0) {
+						_mode = MAVLINK_MODE_SIMULINK;
+
+					} else if (strcmp(myoptarg, "companion") == 0) {
+						_mode = MAVLINK_MODE_COMPANION;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -3382,7 +3602,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix|distance_sensor|simulink|companion",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)

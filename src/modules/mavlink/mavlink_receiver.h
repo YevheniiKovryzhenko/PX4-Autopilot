@@ -328,6 +328,15 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 
 #if !defined(CONSTRAINED_FLASH)
+	uORB::Publication<debug_array_s>			_simulink_inbound_pub {ORB_ID(simulink_inbound)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_pub {ORB_ID(simulink_outbound)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_1_pub {ORB_ID(simulink_outbound_1)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_2_pub {ORB_ID(simulink_outbound_2)};
+	uORB::Publication<debug_array_s>			_simulink_outbound_3_pub {ORB_ID(simulink_outbound_3)};
+	uORB::Publication<debug_array_s>			_simulink_inbound_ctrl_pub {ORB_ID(simulink_inbound_ctrl)};
+	uORB::Publication<debug_array_s>			_companion_guidance_inbound_pub {ORB_ID(companion_guidance_inbound)};
+	uORB::Publication<debug_array_s>			_companion_guidance_outbound_pub {ORB_ID(companion_guidance_outbound)};
+	uORB::Publication<debug_array_s>			_simulink_guidance_pub {ORB_ID(simulink_guidance)};
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
 	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
 	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};

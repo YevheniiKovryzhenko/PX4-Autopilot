@@ -204,6 +204,11 @@ set(msg_files
 	SensorsStatusImu.msg
 	SensorUwb.msg
 	SensorAirflow.msg
+	Sf45Sample.msg
+	SimControlStatus.msg
+	SimGuidanceRequest.msg
+	SimGuidanceStatus.msg
+	SimGuidanceTrajectory.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
