@@ -1423,13 +1423,6 @@ void add_std_topics_custom_rates(Func&& configure_stream_local)
 			if (h != PARAM_INVALID) param_get(h, &rate);
 			if (rate > 0.f) configure_stream_local("POSITION_TARGET_LOCAL_NED", rate);
 		}
-		// Bit 5: GLOBAL_POSITION
-		if (sm_std_mask & (1 << 5)) {
-			static param_t h = param_find("SM_MAV_GP_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("GLOBAL_POSITION", rate);
-		}
 		// Bit 6: GLOBAL_POSITION_INT
 		if (sm_std_mask & (1 << 6)) {
 			static param_t h = param_find("SM_MAV_GPI_R");

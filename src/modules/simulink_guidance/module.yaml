@@ -1,0 +1,69 @@
+module_name: SIMULINK_GUIDANCE
+parameters:
+    - group: SIM Guidance
+      definitions:
+        SMG_EN:
+            description:
+                short: Enable SIMULINK guidance
+                long: |
+                    Enable/Disable SIMULINK guidance update routine.
+
+            type: enum
+            values:
+                0: DISABLE
+                1: ENABLE
+                2: ENABLE_COMPANION
+            default: 0
+
+        SMG_IN_TYPE:
+            description:
+                short: Choose Guidance Input Type
+                long: |
+                    Select the type of uORB message to subscribe to for feeding in
+                    the current state of the vehicle.
+            type: enum
+            values:
+                0: VEHICLE_LOCAL_POSITION
+                1: DEBUG_FLOAT_ARRAY
+            default: 0
+
+        SMG_OUT_TYPE:
+            description:
+                short: Choose Guidance Output Type
+                long: |
+                    Select the type of uORB message to publish data to. Note that
+                    standard px4 messages do not support snap-level inputs.
+                    You can select multiple options simultaneously.
+            type: bitmask
+            bit:
+                0: TRAJECTORY_SETPOINT
+                1: SIM_GUIDANCE_TRAJECTORY
+                2: DEBUG_FLOAT_ARRAY
+            default: 1
+
+        SMG_TRAJ_DIR:
+            description:
+                short: Choose Location of Trajectories
+                long: |
+                    Select where you have stored all trajectories. If running in SITL,
+                    then local ./Trajectories should work (rootfs/Trajectories folder). If
+                    running on hardware, you need to copy the "Trajectories" folder to the
+                    root of the SD-card.
+            type: enum
+            values:
+                0: LOCAL
+                1: SD_CARD
+            default: 1
+
+        SMG_TRAJ_ID:
+            description:
+                short: Set Trajectory ID
+                long: |
+                    You should place properly formatted trajectory file into SMG_TRAJ_DIR
+                    with unique id in the name of the file like ID0001_name.traj where
+                    SMG_TRAJ_ID = 1.
+            type: int32
+            default: 0
+
+
+

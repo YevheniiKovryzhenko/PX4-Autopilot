@@ -57,6 +57,9 @@ parameters:
                 long: |
                     The MAVLink Mode defines the set of streamed messages (for example the
                     vehicle's attitude) and their sending rates.
+                    Simulink uses SM_MAVSTD and SM_MAV to select stock and debug-array
+                    streams at the configured rates. Companion sends basic link
+                    telemetry and the companion guidance input stream.
 
             type: enum
             values:
@@ -224,6 +227,7 @@ parameters:
                     6: simulink_outbound_3
                     7: simulink_guidance
                 default: 255
+                reboot_required: true
 
         SMG_MAVOUT_R:
                 description:
@@ -235,6 +239,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 20.0
+                reboot_required: true
 
         SMG_MAVIN_R:
                 description:
@@ -246,6 +251,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 20.0
+                reboot_required: true
 
         SM_MAVIN_R:
                 description:
@@ -257,6 +263,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 20.0
+                reboot_required: true
 
         SM_MAVOUT_${i}_R:
                 description:
@@ -288,6 +295,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 20.0
+                reboot_required: true
 
         SM_MAVSTD:
                 description:
@@ -302,13 +310,13 @@ parameters:
                     2: ATTITUDE_TARGET
                     3: LOCAL_POSITION_NED
                     4: POSITION_TARGET_LOCAL_NED
-                    5: GLOBAL_POSITION
                     6: GLOBAL_POSITION_INT
                     7: POSITION_TARGET_GLOBAL_INT
                     8: SERVO_OUTPUT_RAW_0
                     9: ESC_STATUS
                     10: RAW_RPM
-                default: 2047
+                default: 2015
+                reboot_required: true
 
         SM_MAV_ATT_R:
                 description:
@@ -320,6 +328,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 15.0
+                reboot_required: true
 
         SM_MAV_ATTQ_R:
                 description:
@@ -331,6 +340,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 10.0
+                reboot_required: true
 
         SM_MAV_ATTT_R:
                 description:
@@ -342,6 +352,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 2.0
+                reboot_required: true
 
         SM_MAV_LP_R:
                 description:
@@ -353,6 +364,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 10.0
+                reboot_required: true
 
         SM_MAV_LPT_R:
                 description:
@@ -364,17 +376,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 10.0
-
-        SM_MAV_GP_R:
-                description:
-                    short: Rate for GLOBAL_POSITION
-                    long: |
-                        Transmission frequency for base global latitude, longitude, and altitude variables.
-                type: float
-                unit: Hz
-                min: 0.0
-                max: 50.0
-                default: 5.0
+                reboot_required: true
 
         SM_MAV_GPI_R:
                 description:
@@ -386,6 +388,7 @@ parameters:
                 min: 0.0
                 max: 50.0
                 default: 5.0
+                reboot_required: true
 
         SM_MAV_GPT_R:
                 description:
@@ -397,6 +400,7 @@ parameters:
                 min: 0.0
                 max: 50.0
                 default: 1.0
+                reboot_required: true
 
         SM_MAV_SRV_R:
                 description:
@@ -408,6 +412,7 @@ parameters:
                 min: 0.0
                 max: 250.0
                 default: 10.0
+                reboot_required: true
 
         SM_MAV_ESC_R:
                 description:
@@ -419,6 +424,7 @@ parameters:
                 min: 0.0
                 max: 50.0
                 default: 1.0
+                reboot_required: true
 
         SM_MAV_RPM_R:
                 description:
@@ -430,3 +436,4 @@ parameters:
                 min: 0.0
                 max: 100.0
                 default: 2.0
+                reboot_required: true

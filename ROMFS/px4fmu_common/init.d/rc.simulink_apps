@@ -1,0 +1,3 @@
+#!/bin/sh
+
+simulink_guidance start

@@ -27,6 +27,7 @@ fi
 
 # initialize script variables
 set VEHICLE_TYPE                none
+set SIMULINK_MODE 0
 set LOGGER_ARGS                 ""
 set LOGGER_BUF                  1000
 
@@ -288,6 +289,11 @@ fi
 # Configure vehicle type specific parameters.
 # Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 . ${R}etc/init.d/rc.vehicle_setup
+
+if [ "${SIMULINK_MODE}" = "1" ] && [ -f "${R}etc/init.d/rc.simulink_apps" ]
+then
+	. ${R}etc/init.d/rc.simulink_apps
+fi
 
 navigator start
 

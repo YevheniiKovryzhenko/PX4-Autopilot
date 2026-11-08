@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# @name Holybro X500 V2 - Simulink Guidance
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Yevhenii Kovryzhenko <yevhenii.kovryzhenko@okstate.edu>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/airframes/4019_x500_v2
+
+
+set SIMULINK_MODE 1
+
+param set-default SMG_EN 1
+param set-default SMG_OUT_TYPE 3
+param set-default SMG_TRAJ_DIR 1
+param set-default SDLOG_PROFILE 4097
+param set-default MPC_THR_HOVER 0.375

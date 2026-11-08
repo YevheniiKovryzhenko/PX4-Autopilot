@@ -6,6 +6,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_simulink:
+      short: px4_sitl_simulink
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_simulink
     px4_sitl_nolockstep:
       short: px4_sitl_nolockstep
       buildType: RelWithDebInfo
@@ -76,6 +81,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v6c_default
+    px4_fmu-v6c_simulink:
+      short: px4_fmu-v6c_simulink
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6c_simulink
     px4_fmu-v6c_bootloader:
       short: px4_fmu-v6c_bootloader
       buildType: MinSizeRel
@@ -266,11 +276,36 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cubepilot_cubeorange_test
+    cubepilot_cubeorange_default:
+      short: cubepilot_cubeorange_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubeorange_default
+    cubepilot_cubeorange_simulink:
+      short: cubepilot_cubeorange_simulink
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubeorange_simulink
     cubepilot_cubeorangeplus_test:
       short: cubepilot_cubeorangeplus
       buildType: MinSizeRel
       settings:
         CONFIG: cubepilot_cubeorangeplus_test
+    cubepilot_cubeorangeplus_default:
+      short: cubepilot_cubeorangeplus_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubeorangeplus_default
+    cubepilot_cubeorangeplus_surgeon:
+      short: cubepilot_cubeorangeplus_surgeon
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubeorangeplus_surgeon
+    cubepilot_cubeorangeplus_simulink:
+      short: cubepilot_cubeorangeplus_simulink
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubeorangeplus_simulink
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel

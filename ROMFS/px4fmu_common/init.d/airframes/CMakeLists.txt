@@ -174,3 +174,7 @@ if(CONFIG_MODULES_UUV_ATT_CONTROL)
 		60002_uuv_bluerov2_heavy
 	)
 endif()
+
+if(CONFIG_MODULES_SIMULINK_GUIDANCE)
+	px4_add_romfs_files(4030_x500_v2_simulink)
+endif()
