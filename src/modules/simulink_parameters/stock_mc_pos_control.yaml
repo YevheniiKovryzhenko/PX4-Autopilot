@@ -1,0 +1,219 @@
+module_name: Simulink Parameters
+parameters:
+- group: SIM Parameter Re-Defines
+  definitions:
+    MPC_MANTHR_MIN:
+      description:
+        short: Minimum collective thrust in Stabilized mode
+        long: The value is mapped to the lowest throttle stick position in Stabilized mode. Too low collective thrust leads
+          to loss of roll/pitch/yaw torque control authority. Airmode is used to keep torque authority with zero thrust (see
+          MC_AIRMODE).
+      type: float
+      default: 0.08
+      min: 0.0
+      max: 1.0
+      increment: 0.01
+      decimal: 2
+      unit: norm
+    MPC_THR_MIN:
+      description:
+        short: Minimum collective thrust in climb rate controlled modes
+        long: Too low thrust leads to loss of roll/pitch/yaw torque control authority. With airmode enabled this parameters
+          can be set to 0 while still keeping torque authority (see MC_AIRMODE).
+      type: float
+      default: 0.12
+      min: 0.05
+      max: 0.5
+      increment: 0.01
+      decimal: 2
+      unit: norm
+    MPC_USE_HTE:
+      description:
+        short: Use hover thrust estimate for altitude control
+        long: Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller.
+          This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
+      type: boolean
+      default: 1
+    MPC_THR_HOVER:
+      description:
+        short: Vertical thrust required to hover
+        long: Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE). Used for initialization of the hover
+          thrust estimator (see MPC_USE_HTE). The estimated hover thrust is used as base for zero vertical acceleration in
+          altitude control. The hover thrust is important for land detection to work correctly.
+      type: float
+      default: 0.5
+      min: 0.1
+      max: 0.8
+      increment: 0.01
+      decimal: 2
+      unit: norm
+    MPC_LAND_SPEED:
+      description:
+        short: Landing descend rate
+      type: float
+      default: 0.7
+      min: 0.6
+      decimal: 1
+      unit: m/s
+    MPC_LAND_CRWL:
+      description:
+        short: Land crawl descend rate
+        long: Used below MPC_LAND_ALT3 if distance sensor data is availabe.
+      type: float
+      default: 0.3
+      min: 0.1
+      decimal: 1
+      unit: m/s
+    MPC_ACC_HOR_MAX:
+      description:
+        short: Maximum horizontal acceleration
+        long: MPC_POS_MODE 1 just deceleration 4 not used, use MPC_ACC_HOR instead
+      type: float
+      default: 5.0
+      min: 2.0
+      max: 15.0
+      increment: 1.0
+      decimal: 2
+      unit: m/s^2
+    MPC_JERK_MAX:
+      description:
+        short: Maximum horizontal and vertical jerk in Position/Altitude mode
+        long: Limit the maximum jerk (acceleration change) of the vehicle. A lower value leads to smoother motions but limits
+          agility. Setting this to the maximum value essentially disables the limit. Only used with MPC_POS_MODE Acceleration
+          based.
+      type: float
+      default: 8.0
+      min: 0.5
+      max: 500.0
+      increment: 1.0
+      decimal: 0
+      unit: m/s^3
+    MPC_ACC_HOR:
+      description:
+        short: Acceleration for autonomous and for manual modes
+        long: When piloting manually, this parameter is only used in MPC_POS_MODE Acceleration based.
+      type: float
+      default: 3.0
+      min: 2.0
+      max: 15.0
+      increment: 1.0
+      decimal: 1
+      unit: m/s^2
+    MPC_JERK_AUTO:
+      description:
+        short: Jerk limit in autonomous modes
+        long: Limit the maximum jerk of the vehicle (how fast the acceleration can change). A lower value leads to smoother
+          vehicle motions but also limited agility.
+      type: float
+      default: 4.0
+      min: 1.0
+      max: 80.0
+      increment: 1.0
+      decimal: 1
+      unit: m/s^3
+    MPC_ACC_UP_MAX:
+      description:
+        short: Maximum upwards acceleration in climb rate controlled modes
+      type: float
+      default: 4.0
+      min: 2.0
+      max: 15.0
+      increment: 1.0
+      decimal: 1
+      unit: m/s^2
+    MPC_ACC_DOWN_MAX:
+      description:
+        short: Maximum downwards acceleration in climb rate controlled modes
+      type: float
+      default: 3.0
+      min: 2.0
+      max: 15.0
+      increment: 1.0
+      decimal: 1
+      unit: m/s^2
+    MPC_VEL_MANUAL:
+      description:
+        short: Maximum horizontal velocity setpoint in Position mode
+        long: Must be smaller than MPC_XY_VEL_MAX. The maximum sideways and backward speed can be set differently using MPC_VEL_MAN_SIDE
+          and MPC_VEL_MAN_BACK, respectively.
+      type: float
+      default: 10.0
+      min: 3.0
+      max: 20.0
+      increment: 1.0
+      decimal: 1
+      unit: m/s
+    MPC_XY_P:
+      description:
+        short: Proportional gain for horizontal position error
+        long: Defined as corrective velocity in m/s per m position error
+      type: float
+      default: 0.95
+      min: 0.0
+      max: 2.0
+      increment: 0.1
+      decimal: 2
+    MPC_XY_VEL_P_ACC:
+      description:
+        short: Proportional gain for horizontal velocity error
+        long: Defined as corrective acceleration in m/s^2 per m/s velocity error
+      type: float
+      default: 1.8
+      min: 1.2
+      max: 5.0
+      increment: 0.1
+      decimal: 2
+    MPC_XY_CRUISE:
+      description:
+        short: Default horizontal velocity in autonomous modes
+        long: e.g. in Missions, RTL, Goto if the waypoint does not specify differently
+      type: float
+      default: 5.0
+      min: 3.0
+      max: 20.0
+      increment: 1.0
+      decimal: 0
+      unit: m/s
+    MPC_Z_V_AUTO_DN:
+      description:
+        short: Descent velocity in autonomous modes
+        long: For manual modes and offboard, see MPC_Z_VEL_MAX_DN
+      type: float
+      default: 1.5
+      min: 0.5
+      max: 4.0
+      increment: 0.5
+      decimal: 1
+      unit: m/s
+    MPC_Z_V_AUTO_UP:
+      description:
+        short: Ascent velocity in autonomous modes
+        long: For manually controlled modes and offboard see MPC_Z_VEL_MAX_UP
+      type: float
+      default: 3.0
+      min: 0.5
+      max: 8.0
+      increment: 0.5
+      decimal: 1
+      unit: m/s
+    MPC_MAN_Y_MAX:
+      description:
+        short: Max manual yaw rate for Stabilized, Altitude, Position mode
+      type: float
+      default: 150.0
+      min: 0.0
+      max: 400.0
+      increment: 10.0
+      decimal: 0
+      unit: deg/s
+    MPC_MAN_Y_TAU:
+      description:
+        short: Manual yaw rate input filter time constant
+        long: Not used in Stabilized mode Setting this parameter to 0 disables the filter
+      type: float
+      default: 0.08
+      min: 0.0
+      max: 5.0
+      increment: 0.01
+      decimal: 2
+      unit: s

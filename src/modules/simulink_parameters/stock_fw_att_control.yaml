@@ -1,0 +1,16 @@
+module_name: Simulink Parameters
+parameters:
+- group: SIM Parameter Re-Defines
+  definitions:
+    FW_PSP_OFF:
+      description:
+        short: Pitch setpoint offset (pitch at level flight)
+        long: An airframe specific offset of the pitch setpoint in degrees, the value is added to the pitch setpoint and should
+          correspond to the pitch at typical cruise speed of the airframe.
+      type: float
+      default: 0.0
+      min: -90.0
+      max: 90.0
+      increment: 0.5
+      decimal: 1
+      unit: deg

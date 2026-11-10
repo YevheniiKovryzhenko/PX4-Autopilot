@@ -1,0 +1,140 @@
+module_name: Simulink Parameters
+
+parameters:
+    - group: NAV
+      definitions:
+        SM_NAV_VCMD:
+            description:
+                short: NAV VCMD override
+                long: |
+                    SIMULINK NAV override
+
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_NAV_HCMD:
+            description:
+                short: NAV HCMD override
+                long: |
+                    SIMULINK NAV override
+
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_NAV_VAGGR:
+            description:
+                short: NAV VAGGR gain
+                long: |
+                    SIMULINK NAV Gains
+
+            type: float
+            decimal: 2
+            default: 50
+
+        SM_NAV_ALT0:
+            description:
+                short: NAV ALT0 offset
+                long: |
+                    SIMULINK NAV Gains
+
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_NAV_LAF:
+            description:
+                short: NAV LAF gain
+                long: |
+                    SIMULINK NAV Gains
+
+            type: float
+            decimal: 2
+            default: 4
+
+        SM_NAV_SAFETY:
+            description:
+                short: NAV SAFETY selector
+                long: |
+                    NAV SAFETY selector
+
+            type: enum
+            values:
+              0: NAV Disabled
+              1: NAV Enabled
+            default: 0
+    - group: SWEEP
+      definitions:
+        SM_SWEEP_MODE:
+            description:
+                short: Frequency sweep axis/mode selection
+                long: |
+                    Frequency sweep axis/mode selection
+
+            type: enum
+            values:
+              0: None
+              1: Aileron
+              2: ULAT
+            default: 0
+
+        SM_SWEEP_A:
+            description:
+                short: Frequency sweep amplitude
+                long: |
+                    Frequency sweep amplitude
+
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_SWEEP_WMIN:
+            description:
+                short: Frequency sweep minimum frequency (rad/s)
+                long: |
+                    Frequency sweep minimum frequency (rad/s)
+
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_SWEEP_WMAX:
+            description:
+                short: Frequency sweep maximum frequency (rad/s)
+                long: |
+                    Frequency sweep maximum frequency (rad/s)
+
+            type: float
+            decimal: 2
+            default: 20
+
+        SM_SWEEP_T:
+            description:
+                short: Frequency sweep time span (sec)
+                long: |
+                    Frequency sweep time span (sec)
+
+            type: float
+            decimal: 2
+            default: 100
+
+        SM_SWEEP_DAIL:
+            description:
+                short: Direct aileron commands (added after the mixer)
+                long: |
+                    Direct aileron commands (added after the mixer)
+
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_SWEEP_DULAT:
+            description:
+                short: Direct ULAT commands (added before the mixer, and after EMF)
+                long: |
+                    Direct ULAT commands (added before the mixer, and after EMF)
+
+            type: float
+            decimal: 2
+            default: 0

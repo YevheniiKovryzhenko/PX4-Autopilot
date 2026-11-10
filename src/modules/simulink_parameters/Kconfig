@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULINK_PARAMETERS
+	bool "simulink_parameters"
+	default n
+	---help---
+		Include parameter definitions for the Simulink flight application.

@@ -1,0 +1,205 @@
+module_name: Simulink Parameters
+
+parameters:
+    - group: Pilot Commands
+      definitions:
+        SM_PI_BREAKOUT:
+            description:
+                short: Pilot override breakout value to override GCS commands
+                long: |
+                    Pilot override breakout value to override GCS commands
+
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_PI_MODE:
+            description:
+                short: Pilot command modes
+                long: |
+                    Pilot command modes
+
+            type: enum
+            values:
+              1: Transmitter
+              2: GCS Online
+              3: Trainer Mode
+              4: HITL
+            default: 1
+
+        SM_PI_ROT_DIAL:
+            description:
+                short: Synthetic rotary dial value [-1,+1] if one is not present
+                long: |
+                    Synthetic rotary dial value [-1,+1] if one is not present
+
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_AP_SOURCE:
+            description:
+                short: AP left transmitter switch control selector
+                long: |
+                    AP left transmitter switch control selector
+
+            type: enum
+            values:
+              0: Disabled
+              1: AP TKO
+              2: AP DXN
+              3: AP NAV
+              4: AP AXN
+              5: AP LND
+              6: AP M1
+              7: AP M2
+              8: AP M3
+              9: AP M4
+              10: AP M5
+              11: PI Source
+              12: RTH
+              13: SWEEP
+            default: 0
+
+        SM_PI_VIEWER:
+            description:
+                short: Determine which set of data to view on the GCS
+                long: |
+                    Determine which set of data to view on the GCS
+
+            type: enum
+            values:
+              0: DebugVect
+              1: Pilot Inputs
+            default: 0
+    - group: Flight Safety
+      definitions:
+        SM_RTH_EN:
+            description:
+                short: Return to home loiter force enable/disable
+                long: |
+                    Return to home loiter force enable/disable
+
+            type: enum
+            values:
+              0: Disabled
+              1: Enabled
+            default: 0
+
+        SM_RTH_LOC:
+            description:
+                short: Return to home loiter location selection
+                long: |
+                    Return to home loiter location selection
+
+            type: enum
+            values:
+              0: Skyway36
+              1: Home
+            default: 0
+
+        SM_RTH_RLOIT:
+            description:
+                short: Return to home loiter radius (m)
+                long: |
+                    Return to home loiter radius (m)
+
+            type: float
+            decimal: 2
+            default: 100
+
+        SM_RTH_RENG:
+            description:
+                short: Return to home loiter engagement distance (m)
+                long: |
+                    Return to home loiter engagement distance (m)
+
+            type: float
+            decimal: 2
+            default: 30
+
+        SM_RTH_MODE:
+            description:
+                short: Return to home loiter force enable/disable
+                long: |
+                    Return to home loiter force enable/disable
+
+            type: enum
+            values:
+              0: Aim for Center
+              1: Right Turn
+              2: Left Turn
+            default: 2
+
+        SM_RTH_KP:
+            description:
+                short: Loiter radius hold KP gain
+                long: |
+                    Loiter radius hold KP gain
+
+            type: float
+            decimal: 2
+            default: 0.5
+
+        SM_RTH_KI:
+            description:
+                short: Loiter radius hold KI gain
+                long: |
+                    Loiter radius hold KI gain
+
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_RTH_KD:
+            description:
+                short: Loiter radius hold KD gain
+                long: |
+                    Loiter radius hold KD gain
+
+            type: float
+            decimal: 2
+            default: 3
+
+        SM_RTH_KPTRK:
+            description:
+                short: Return to home TRK KP gain
+                long: |
+                    Return to home TRK KP gain
+
+            type: float
+            decimal: 2
+            default: 0.5
+
+        SM_RTH_KITRK:
+            description:
+                short: Return to home TRK KI gain
+                long: |
+                    Return to home TRK KI gain
+
+            type: float
+            decimal: 2
+            default: 0.05
+
+        SM_GCS_TDIS:
+            description:
+                short: Maximum allowable time (sec) for the GCS to lose connection to the Pixhawk
+                long: |
+                    Maximum allowable time (sec) for the GCS to lose connection to the Pixhawk
+
+            type: float
+            decimal: 2
+            default: 3
+    - group: PII Lateral
+      definitions:
+        SM_PII_LAT_${i}:
+            description:
+                short: Lat parameters for PII
+                long: |
+                    Lateral inceptor parameters for PII
+
+            type: float
+            decimal: 2
+            num_instances: 9
+            instance_start: 1
+            default: [2,0.15,0.02,3,15,30,0.02,6,10]

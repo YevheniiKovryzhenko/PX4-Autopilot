@@ -1,0 +1,16 @@
+module_name: Simulink Parameters
+parameters:
+- group: SIM Parameter Re-Defines
+  definitions:
+    VT_B_DEC_MSS:
+      description:
+        short: Approximate deceleration during back transition
+        long: Used to calculate back transition distance in an auto mode. For standard vtol and tiltrotors a controller is
+          used to track this value during the transition.
+      type: float
+      default: 2.0
+      min: 0.5
+      max: 10.0
+      increment: 0.1
+      decimal: 2
+      unit: m/s^2
