@@ -1,8 +1,5 @@
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES
-	${CMAKE_CURRENT_SOURCE_DIR}/control.yaml
-	${CMAKE_CURRENT_SOURCE_DIR}/pilot_and_safety.yaml
-	${CMAKE_CURRENT_SOURCE_DIR}/sensors.yaml
-	${CMAKE_CURRENT_SOURCE_DIR}/navigation.yaml
+	${CMAKE_CURRENT_SOURCE_DIR}/parameters.yaml
 )
 
 # Keep stock parameters that are still used when their owning controller is disabled.

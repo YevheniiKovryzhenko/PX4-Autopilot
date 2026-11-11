@@ -109,3 +109,8 @@ src/systemcmds/topic_listener/listener_generated.cpp
 # colcon
 log/
 keys/
+
+# Matlab:
+#*.original
+#msg/SimulinkCustomMessage.msg
+#src/modules/px4_simulink_app

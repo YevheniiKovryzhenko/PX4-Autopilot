@@ -14,6 +14,7 @@
         "cmake.buildBeforeRun": true,
         "cmake.buildDirectory": "${workspaceFolder}/build/${variant:CONFIG}",
         "cmake.configureOnOpen": true,
+        "cmake.useCMakePresets": "never",
         "cmake.ctest.parallelJobs": 1,
         "cmake.options.statusBarVisibility": "compact",
         "cmake.skipConfigureIfCachePresent": true,

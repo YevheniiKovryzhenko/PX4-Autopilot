@@ -136,3 +136,15 @@ endif()
 if(CONFIG_MODULES_SIMULINK_GUIDANCE)
 	px4_add_romfs_files(rc.simulink_apps)
 endif()
+
+if(CONFIG_MODULES_SIMULINK_PARAMETERS)
+	# Simulink airframes still need vehicle defaults without stock controllers.
+	px4_add_romfs_files(
+		rc.mc_defaults
+		rc.mc_apps
+		rc.vtol_defaults
+		rc.vtol_apps
+		rc.fw_defaults
+		rc.fw_apps
+	)
+endif()

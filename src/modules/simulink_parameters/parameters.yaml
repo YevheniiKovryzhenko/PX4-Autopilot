@@ -1,0 +1,1090 @@
+module_name: Simulink Parameters
+
+parameters:
+    - group: EMF Controllers
+      definitions:
+        SM_EMF_LAT_${i}:
+            description:
+                short: Lateral EMF params (Lp,Lulat,Kry,Kp,Kph,Kphi)
+                long: |
+                    Lateral EMF params (Lp,Lulat,Kry,Kp,Kph,Kphi)
+
+            type: float
+            decimal: 2
+            num_instances: 6
+            instance_start: 1
+            default: [-0.34,50,0,0.2,1.0,1.0] 
+
+        SM_EMF_LON_${i}:
+            description:
+                short: Longitudinal EMF params (Mq,Mulon,Kq,Kth,Kthi)
+                long: |
+                    Longitudinal EMF params (Mq,Mulon,Kq,Kth,Kthi)
+
+            type: float
+            decimal: 2
+            num_instances: 5
+            instance_start: 1
+            default: [-0.15,10,0.2,1.0,1.0]
+
+        SM_EMF_DIR_${i}:
+            description:
+                short: Directional EMF params (Nr,Nudir,Kyr,Kr,Kri)
+                long: |
+                    Directional EMF params (Nr,Nudir,Kyr,Kr,Kri)
+
+            type: float
+            decimal: 2
+            num_instances: 5
+            instance_start: 1
+            default: [-0.9,3.0,0.0,1.5,0.2]
+    - group: Pilot Commands
+      definitions:
+        SM_PI_BREAKOUT:
+            description:
+                short: Pilot override breakout value to override GCS commands
+                long: |
+                    Pilot override breakout value to override GCS commands
+
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_PI_MODE:
+            description:
+                short: Pilot command modes
+                long: |
+                    Pilot command modes
+
+            type: enum
+            values:
+              1: Transmitter
+              2: GCS Online
+              3: Trainer Mode
+              4: HITL
+            default: 1
+
+        SM_PI_ROT_DIAL:
+            description:
+                short: Synthetic rotary dial value [-1,+1] if one is not present
+                long: |
+                    Synthetic rotary dial value [-1,+1] if one is not present
+
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_AP_SOURCE:
+            description:
+                short: AP left transmitter switch control selector
+                long: |
+                    AP left transmitter switch control selector
+         
+            type: enum
+            values:
+              0: Disabled
+              1: AP TKO
+              2: AP DXN
+              3: AP NAV
+              4: AP AXN
+              5: AP LND
+              6: AP M1
+              7: AP M2
+              8: AP M3
+              9: AP M4
+              10: AP M5
+              11: PI Source
+              12: RTH
+              13: SWEEP
+            default: 0
+
+        SM_PI_VIEWER:
+            description:
+                short: Determine which set of data to view on the GCS
+                long: |
+                    Determine which set of data to view on the GCS
+
+            type: enum
+            values:
+              0: DebugVect
+              1: Pilot Inputs
+            default: 0
+
+        SM_DVER_ID:
+            description:
+                short: Radio controller mapping mode for the normal dver input (see sim for details)
+                long: |
+                    Radio controller mapping mode for the normal dver input (see sim for details)
+
+            type: enum
+            values:
+              0: Standard TCS
+              1: LHS Throttle Up
+              2: LHS Throttle Down
+              3: RHS Throttle Up
+              4: RHS Throttle Down
+            default: 0
+
+        SM_DACC_ID:
+            description:
+                short: Radio controller mapping mode for the normal dacc input (see sim for details)
+                long: |
+                    Radio controller mapping mode for the normal dacc input (see sim for details)
+
+            type: enum
+            values:
+              0: Standard TCS
+              1: LHS Pitch Forward
+              2: LHS Pitch Back
+              3: RHS Pitch Forward
+              4: RHS Pitch Back
+            default: 0
+    - group: TCS
+      definitions:
+        SM_TCS_K${i}:
+            description:
+                short: Trajectory Control System gains (KTIH,KTPH,KTIV,KTPV,Kh,Kv)
+                long: |
+                    Trajectory Control System gains (KTIH,KTPH,KTIV,KTPV,Kh,Kv)
+
+            type: float
+            decimal: 2
+            num_instances: 6
+            instance_start: 1
+            default: [0.4,0.3,0.6,0.6,0.2,0.5] 
+
+        SM_TCS_V${i}:
+            description:
+                short: TCS speed group
+                long: |
+                    TCS speed group
+
+            type: float
+            decimal: 2
+            num_instances: 4
+            instance_start: 1
+            default: [3,5,25,35]
+
+        SM_TCS_DL${i}:
+            description:
+                short: TCS DeckLev group
+                long: |
+                    TCS DeckLev group
+
+            type: float
+            decimal: 2
+            num_instances: 6
+            instance_start: 1
+            default: [0.1,1.1,1.9,2.0,1.7,0.9]
+
+        SM_TCS_TKO${i}:
+            description:
+                short: TCS takeoff group (and accdead)
+                long: |
+                    TCS takeoff group (and accdead)
+
+            type: float
+            decimal: 2
+            num_instances: 5
+            instance_start: 1
+            default: [0.1,1.0,3,0.1,3]
+
+        SM_TCS_PITCH${i}:
+            description:
+                short: TCS pitch limits group
+                long: |
+                    TCS pitch limits group
+
+            type: float
+            decimal: 2
+            num_instances: 3
+            instance_start: 1
+            default: [15,-15,3]
+
+        SM_TCS_SAFETY${i}:
+            description:
+                short: TCS propulsor safety limit group
+                long: |
+                    TCS propulsor safety limit group
+
+            type: float
+            decimal: 2
+            num_instances: 2
+            instance_start: 1
+            default: [1.5,0.35]
+
+        SM_TCS_TAI${i}:
+            description:
+                short: TCS TAI mode switch logic group
+                long: |
+                    TCS TAI mode switch logic group
+
+            type: float
+            decimal: 2
+            num_instances: 4
+            instance_start: 1
+            default: [30,5,10,80]
+
+        SM_TCS_RATE${i}:
+            description:
+                short: TCS rate limiting group
+                long: |
+                    TCS rate limiting group
+
+            type: float
+            decimal: 2
+            num_instances: 7
+            instance_start: 1
+            default: [0.02,-0.25,0,0.1,0.05,5,4]
+
+        SM_TCS_NMP:
+            description:
+                short: number of main propulsors
+                long: |
+                    TCS number of main (tilting) propulsors or forward (fixed-wing) propulsors
+         
+            type: float
+            decimal: 2
+            default: 4
+
+        SM_TCS_NLP:
+            description:
+                short: number of lift propulsors
+                long: |
+                    TCS number of lift (vertical) propulsors
+         
+            type: float
+            decimal: 2
+            default: 4
+
+        SM_TCS_CANT:
+            description:
+                short: cant angle of lift propulsors from vertical (deg)
+                long: |
+                    cant angle of lift propulsors from vertical (deg)
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_TCS_TKO_MD:
+            description:
+                short: TCS takeoff mode (VTOL,STOL,CTOL)
+                long: |
+                    TCS takeoff mode (VTOL,STOL,CTOL)
+
+            type: enum
+            values:
+                1: VTOL
+                2: STOL
+                3: CTOL
+            default: 1
+
+        SM_TCS_OPS${i}:
+            description:
+                short: TCS takeoff and landing operational parameters
+                long: |
+                    TCS takeoff and landing operational parameters
+
+            type: float
+            decimal: 2
+            num_instances: 8
+            instance_start: 1
+            default: [45,0.5,2,0.02,0.1,7.5,10,30]
+    - group: NACELLES
+      definitions:
+        SM_NAC_${i}:
+            description:
+                short: SIMULINK nacelle parameters
+                long: |
+                    SIMULINK nacelle parameters
+
+            type: float
+            decimal: 2
+            num_instances: 3
+            instance_start: 1
+            default: [0, 10, -10]
+
+        SM_NAC_AUTO:
+            description:
+                short: Enable or disable automatic nacelle
+                long: |
+                    Enable or disable automatic nacelle
+
+            type: enum
+            values:
+                0: MANUAL
+                1: AUTOMATIC
+            default: 1
+
+        SM_NAC_CMD:
+            description:
+                short: nacelle manual control command
+                long: |
+                    SIMULINK IPPM parameter values
+         
+            type: float
+            decimal: 2
+            default: 90
+    - group: LATCS
+      definitions:
+        SM_LATCS_K${i}:
+            description:
+                short: Lateral-directional control system gains (Kv,Kpsi,KTRK)
+                long: |
+                    Lateral-directional control system gains (Kv,Kpsi,KTRK)
+
+            type: float
+            decimal: 2
+            num_instances: 3
+            instance_start: 1
+            default: [0.08,0.5,3.5]
+    - group: IPPM
+      definitions:
+        SM_IPPM_RHO:
+            description:
+                short: Density for IPPM model
+                long: |
+                    Density for IPPM model
+         
+            type: float
+            decimal: 3
+            default: 1.225
+
+        SM_IPPM_DMP:
+            description:
+                short: Delta RPM for main props (MP)
+                long: |
+                    Delta RPM for main props (MP)
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_IPPM_DLP:
+            description:
+                short: Delta RPM for lift props (LP)
+                long: |
+                    Delta RPM for lift props (LP)
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_IPPM_LP0:
+            description:
+                short: Offset PWM to start LP spool during idle
+                long: |
+                    Offset PWM to start LP spool during idle
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_IPPM_MP0:
+            description:
+                short: Offset PWM to start MP spool during idle
+                long: |
+                    Offset PWM to start MP spool during idle
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_IPPM_MASS:
+            description:
+                short: Mass of vehicle in kg
+                long: |
+                    Mass of vehicle in kg
+         
+            type: float
+            decimal: 2
+            default: 7.39
+    - group: FCS
+      definitions:
+        SM_GAIN_INDEX:
+            description:
+                short: Gain index (-1 for internal/fixed, 0 for live-tuning)
+                long: |
+                    SIMULINK gain index
+
+            type: float
+            decimal: 2
+            default: -1
+
+        SM_PARAM_INDEX:
+            description:
+                short: FCS parameter source selection
+                long: |
+                    FCS parameter source selection
+
+            type: enum
+            values:
+              -1: Fixed (Internal)
+              0: Manual (Live)
+            default: 0
+
+        SM_FCS_DFLAP:
+            description:
+                short: Flap setting
+                long: |
+                    Flap setting
+         
+            type: float
+            decimal: 2
+            default: -1
+
+        SM_FCS_VTXN:
+            description:
+                short: Control allocator transition speed (kts)
+                long: |
+                    SIMULINK IPPM parameter values
+         
+            type: float
+            decimal: 2
+            default: 30
+
+        SM_FCS_NPROP:
+            description:
+                short: Propeller setting for failure setting
+                long: |
+                    Propeller setting for failure setting
+
+            type: enum
+            values:
+              0: All Props ON
+              1: Fail Prop 1
+              2: Fail Prop 2
+              3: Fail Prop 3
+              4: Fail Prop 4
+              5: Fail Prop 5
+              6: Fail Prop 6
+              7: Fail Lift Props
+              8: Fail Main Props
+            default: 0
+
+        SM_FCS_TFLAP:
+            description:
+                short: Flap tau setting
+                long: |
+                    Flap tau setting
+         
+            type: float
+            decimal: 2
+            default: 2
+
+        SM_FCS_RFLAP:
+            description:
+                short: Flap maximum rate (always negative)
+                long: |
+                    Flap maximum rate (always negative)
+         
+            type: float
+            decimal: 2
+            default: -4
+
+        SM_FCS_KFLAP:
+            description:
+                short: Flap aggressiveness controller
+                long: |
+                    Flap aggressiveness controller
+         
+            type: float
+            decimal: 2
+            default: 0.2
+    - group: Flight Safety
+      definitions:
+        SM_RTH_EN:
+            description:
+                short: Return to home loiter force enable/disable
+                long: |
+                    Return to home loiter force enable/disable
+
+            type: enum
+            values:
+              0: Disabled
+              1: Enabled
+            default: 0
+
+        SM_RTH_LOC:
+            description:
+                short: Return to home loiter location selection
+                long: |
+                    Return to home loiter location selection
+
+            type: enum
+            values:
+              0: Skyway36
+              1: Home
+            default: 0
+
+        SM_RTH_RLOIT:
+            description:
+                short: Return to home loiter radius (m)
+                long: |
+                    Return to home loiter radius (m)
+
+            type: float
+            decimal: 2
+            default: 100
+
+        SM_RTH_RENG:
+            description:
+                short: Return to home loiter engagement distance (m)
+                long: |
+                    Return to home loiter engagement distance (m)
+
+            type: float
+            decimal: 2
+            default: 30
+
+        SM_RTH_MODE:
+            description:
+                short: Return to home loiter force enable/disable
+                long: |
+                    Return to home loiter force enable/disable
+
+            type: enum
+            values:
+              0: Aim for Center
+              1: Right Turn
+              2: Left Turn
+            default: 2
+
+        SM_RTH_KP:
+            description:
+                short: Loiter radius hold KP gain
+                long: |
+                    Loiter radius hold KP gain
+
+            type: float
+            decimal: 2
+            default: 0.5
+
+        SM_RTH_KI:
+            description:
+                short: Loiter radius hold KI gain
+                long: |
+                    Loiter radius hold KI gain
+
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_RTH_KD:
+            description:
+                short: Loiter radius hold KD gain
+                long: |
+                    Loiter radius hold KD gain
+
+            type: float
+            decimal: 2
+            default: 3
+
+        SM_RTH_KPTRK:
+            description:
+                short: Return to home TRK KP gain
+                long: |
+                    Return to home TRK KP gain
+
+            type: float
+            decimal: 2
+            default: 0.5
+
+        SM_RTH_KITRK:
+            description:
+                short: Return to home TRK KI gain
+                long: |
+                    Return to home TRK KI gain
+
+            type: float
+            decimal: 2
+            default: 0.05
+
+        SM_GCS_TDIS:
+            description:
+                short: Maximum allowable time (sec) for the GCS to lose connection to the Pixhawk
+                long: |
+                    Maximum allowable time (sec) for the GCS to lose connection to the Pixhawk
+
+            type: float
+            decimal: 2
+            default: 3
+    - group: PII Lateral
+      definitions:
+        SM_PII_LAT_${i}:
+            description:
+                short: Lat parameters for PII
+                long: |
+                    Lateral inceptor parameters for PII
+
+            type: float
+            decimal: 2
+            num_instances: 9
+            instance_start: 1
+            default: [2,0.15,0.02,3,15,30,0.02,6,10]
+    - group: PII Longitudinal
+      definitions:
+        SM_PII_LON_${i}:
+            description:
+                short: Ver parameters for PII (tau,deadz,VVmax)
+                long: |
+                    Longitudinal inceptor parameters for PII
+
+            type: float
+            decimal: 2
+            num_instances: 3
+            instance_start: 1
+            default: [0.1, 0.02, 200]
+    - group: PII Directional
+      definitions:
+        SM_PII_DIR_${i}:
+            description:
+                short: Dir parameters for PII (tau,deadz,rmax,NWS)
+                long: |
+                    Directional parameters for PII (tau,deadz,rmax,NWS,Kbeta,Kr_SAS)
+
+            type: float
+            decimal: 2
+            num_instances: 6
+            instance_start: 1
+            default: [0.1, 0.02, 30, 5, 1, 2]
+    - group: PII Acceleration
+      definitions:
+        SM_PII_ACC_${i}:
+            description:
+                short: Acc parameters for PII
+                long: |
+                    Acceleration inceptor parameters for PII
+
+            type: float
+            decimal: 2
+            num_instances: 5
+            instance_start: 1
+            default: [0.1, 0.02, 0.1, 10, 15]
+    - group: PII ALT Hold
+      definitions:
+        SM_PII_ALT_${i}:
+            description:
+                short: SIMULINK PII ALT hold parameters
+                long: |
+                    SIMULINK PII ALT hold parameters
+
+            type: float
+            decimal: 2
+            num_instances: 5
+            instance_start: 1
+            default: [1, 0.1, 2, 100, 200]
+    - group: PII HDG Hold
+      definitions:
+        SM_PII_HDG_${i}:
+            description:
+                short: SIMULINK PII HDG hold parameters
+                long: |
+                    SIMULINK PII HDG hold parameters
+
+            type: float
+            decimal: 2
+            num_instances: 5
+            instance_start: 1
+            default: [1, 5, 2, 0.1, 5]
+    - group: PII TRK Hold
+      definitions:
+        SM_PII_TRK_${i}:
+            description:
+                short: SIMULINK PII TRK hold parameters
+                long: |
+                    SIMULINK PII TRK hold parameters
+
+            type: float
+            decimal: 2
+            num_instances: 4
+            instance_start: 1
+            default: [1, 5, 0.05, 10]
+    - group: PII POS Hold
+      definitions:
+        SM_PII_PH_${i}:
+            description:
+                short: SIMULINK PII position hold parameters
+                long: |
+                    SIMULINK PII position hold parameters
+
+            type: float
+            decimal: 2
+            num_instances: 9
+            instance_start: 1
+            default: [1, 3, 0.25, 3, 0.75, 0.1, 3, 3, 2] 
+    - group: PII Autopilot (AP)
+      definitions:
+        SM_PII_AP_${i}:
+            description:
+                short: SIMULINK PII autoflight parameters
+                long: |
+                    SIMULINK PII autoflight parameters
+
+            type: float
+            decimal: 2
+            num_instances: 6
+            instance_start: 1
+            default: [5, 200, 150, 10, 15, 45]
+    - group: SERVO AUX MIX
+      definitions:
+        SM_AUX_MIX_${i}:
+            description:
+                short: servo mixing and scaling parameters for AUX outputs
+                long: |
+                    servo mixing and scaling parameters for AUX outputs
+
+            type: float
+            decimal: 2
+            num_instances: 8
+            instance_start: 1
+            default: [0.5,0.5,0.5,0.5,0.5,0.5,-1.0,1.0]
+
+        SM_AUX_NMIN_${i}:
+            description:
+                short: nacelle servo min PWM mappings
+                long: |
+                    nacelle servo min PWM mappings
+
+            type: float
+            decimal: 2
+            num_instances: 6
+            instance_start: 1
+            default: [1000,1000,1000,1000,1000,1000]
+
+        SM_AUX_NMAX_${i}:
+            description:
+                short: nacelle servo max PWM mappings
+                long: |
+                    nacelle servo max PWM mappings
+
+            type: float
+            decimal: 2
+            num_instances: 6
+            instance_start: 1
+            default: [2000,2000,2000,2000,2000,2000]
+    - group: SENSOR PARAMS
+      definitions:
+        SM_LIDAR_H1:
+            description:
+                short: LiDAR blend start altitude (ft)
+                long: |
+                    LiDAR blend start altitude (ft)
+         
+            type: float
+            decimal: 2
+            default: 5
+
+        SM_LIDAR_H2:
+            description:
+                short: LiDAR blend end altitude (ft)
+                long: |
+                    LiDAR blend end altitude (ft)
+         
+            type: float
+            decimal: 2
+            default: 20
+
+        SM_LIDAR_HMODE:
+            description:
+                short: Altitude source selection
+                long: |
+                    Altitude source selection
+
+            type: enum
+            values:
+              0: Pixhawk
+              1: LiDAR
+              2: Blended
+            default: 2
+
+        SM_LIDAR_VVMODE:
+            description:
+                short: VV source selection
+                long: |
+                    VV source selection
+
+            type: enum
+            values:
+              0: Pixhawk
+              1: LiDAR
+              2: Blended
+            default: 2
+
+        SM_LIDAR_TAU:
+            description:
+                short: LIDAR HMODE gain
+                long: |
+                    SIMULINK sensor parameter values
+         
+            type: float
+            decimal: 2
+            default: 0.3
+
+        SM_HDG_OFFSET:
+            description:
+                short: HDG correction offset (deg)
+                long: |
+                    HDG correction offset (deg)
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_SPD_MODE:
+            description:
+                short: Velocity source selection
+                long: |
+                    Velocity source selection
+
+            type: enum
+            values:
+              0: Ground Speed
+              1: Blended (VFWD)
+              2: Blended (KEAS)
+            default: 2
+
+        SM_SPD_V1:
+            description:
+                short: Speed source blending start speed (kts)
+                long: |
+                    Speed source blending start speed (kts)
+         
+            type: float
+            decimal: 2
+            default: 12
+
+        SM_SPD_V2:
+            description:
+                short: Speed source blending end speed (kts)
+                long: |
+                    Speed source blending end speed (kts)
+         
+            type: float
+            decimal: 2
+            default: 16
+
+        SM_VV_SOURCE:
+            description:
+                short: VV sensor source selector
+                long: |
+                    VV sensor source selector
+
+            type: enum
+            values:
+              0: Veh Loc Posn (vz)
+              1: Manual Deriv (zdot)
+              2: Veh Odometry (vz)
+            default: 0
+
+        SM_VEL_SOURCE:
+            description:
+                short: Ground velocity (vx,vy) sensor source selector
+                long: |
+                    Ground velocity (vx,vy) sensor source selector
+
+            type: enum
+            values:
+              1: Raw GPS Data
+              2: Veh Loc Posn
+            default: 1
+
+        SM_GPS_SOURCE:
+            description:
+                short: Vehicle GPS coordinates (Lat,Long) sensor source selector
+                long: |
+                    Vehicle GPS coordinates (Lat,Long) sensor source selector
+
+            type: enum
+            values:
+              1: Raw GPS Data
+              2: Estimator GPS Data
+            default: 1
+
+        SM_VV_MAX:
+            description:
+                short: Maximum allowable VV (m/s) the FCS can see
+                long: |
+                    Maximum allowable VV (m/s) the FCS can see
+         
+            type: float
+            decimal: 2
+            default: 3
+
+        SM_VLAT_MAX:
+            description:
+                short: Maximum allowable VLAT (m/s) the FCS can see
+                long: |
+                    Maximum allowable VLAT (m/s) the FCS can see
+         
+            type: float
+            decimal: 2
+            default: 5
+
+        SM_V_MIN:
+            description:
+                short: Minimum allowable speed (kts) the FCS can see
+                long: |
+                    Minimum allowable speed (kts) the FCS can see
+         
+            type: float
+            decimal: 2
+            default: -5
+
+        SM_GC_SOURCE:
+            description:
+                short: Ground contact source selector
+                long: |
+                    Ground contact source selector
+
+            type: enum
+            values:
+              0: LiDAR
+              1: Forced ON
+              2: Forced OFF
+            default: 0
+    - group: NAV
+      definitions:
+        SM_NAV_VCMD:
+            description:
+                short: NAV VCMD override
+                long: |
+                    SIMULINK NAV override
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_NAV_HCMD:
+            description:
+                short: NAV HCMD override
+                long: |
+                    SIMULINK NAV override
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_NAV_VAGGR:
+            description:
+                short: NAV VAGGR gain
+                long: |
+                    SIMULINK NAV Gains
+         
+            type: float
+            decimal: 2
+            default: 50
+
+        SM_NAV_ALT0:
+            description:
+                short: NAV ALT0 offset
+                long: |
+                    SIMULINK NAV Gains
+         
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_NAV_LAF:
+            description:
+                short: NAV LAF gain
+                long: |
+                    SIMULINK NAV Gains
+         
+            type: float
+            decimal: 2
+            default: 4
+
+        SM_NAV_SAFETY:
+            description:
+                short: NAV SAFETY selector
+                long: |
+                    NAV SAFETY selector
+
+            type: enum
+            values:
+              0: NAV Disabled
+              1: NAV Enabled
+            default: 0
+    - group: SWEEP
+      definitions:
+        SM_SWEEP_MODE:
+            description:
+                short: Frequency sweep axis/mode selection
+                long: |
+                    Frequency sweep axis/mode selection
+
+            type: enum
+            values:
+              0: None
+              1: ULAT
+              2: ULON
+              3: UDIR
+              4: L AIL
+              5: L FLAP
+              6: R FLAP
+              7: R AIL
+              8: L RUD
+              9: R RUD
+            default: 0
+
+        SM_SWEEP_A:
+            description:
+                short: Frequency sweep amplitude
+                long: |
+                    Frequency sweep amplitude
+        
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_SWEEP_WMIN:
+            description:
+                short: Frequency sweep minimum frequency (rad/s)
+                long: |
+                    Frequency sweep minimum frequency (rad/s)
+        
+            type: float
+            decimal: 2
+            default: 0.1
+
+        SM_SWEEP_WMAX:
+            description:
+                short: Frequency sweep maximum frequency (rad/s)
+                long: |
+                    Frequency sweep maximum frequency (rad/s)
+        
+            type: float
+            decimal: 2
+            default: 20
+
+        SM_SWEEP_T:
+            description:
+                short: Frequency sweep time span (sec)
+                long: |
+                    Frequency sweep time span (sec)
+        
+            type: float
+            decimal: 2
+            default: 100
+
+        SM_SWEEP_DCS:
+            description:
+                short: Direct control effector commands (added after the mixer) in deg
+                long: |
+                    Direct control effector commands (added after the mixer) in deg
+
+            type: float
+            decimal: 2
+            default: 0
+
+        SM_SWEEP_DUX:
+            description:
+                short: Direct control group commands (added before the mixer, and after EMF)
+                long: |
+                    Direct control group commands (added before the mixer, and after EMF)
+
+            type: float
+            decimal: 2
+            default: 0
