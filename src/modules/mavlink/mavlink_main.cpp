@@ -1522,6 +1522,13 @@ void add_simulink_topics(Func&& configure_stream_local)
 			if (h != PARAM_INVALID) param_get(h, &rate);
 			if (rate > 0.f) configure_stream_local("SIMULINK_GUIDANCE", rate);
 		}
+		// Bit 8: simulink_inbound_ctrl
+		if (sm_mav_mask & (1 << 8)) {
+			static param_t h = param_find("SM_MAVCTRL_R");
+			float rate = 0.f;
+			if (h != PARAM_INVALID) param_get(h, &rate);
+			if (rate > 0.f) configure_stream_local("SIMULINK_INBOUND_CTRL", rate);
+		}
 	}
 }
 
