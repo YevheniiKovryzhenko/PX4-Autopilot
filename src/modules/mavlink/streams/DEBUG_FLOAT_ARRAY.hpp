@@ -62,6 +62,8 @@ public:
 			return "SIMULINK_OUTBOUND_2";
 		case 8:
 			return "SIMULINK_OUTBOUND_3";
+		case 9:
+			return "SIMULINK_INBOUND_CTRL";
 		default:
 			return "DEBUG_FLOAT_ARRAY";
 		}
@@ -106,6 +108,9 @@ private:
 			break;
 		case 8:
 			_debug_array_sub = new uORB::Subscription{ORB_ID(simulink_outbound_3)};
+			break;
+		case 9:
+			_debug_array_sub = new uORB::Subscription{ORB_ID(simulink_inbound_ctrl)};
 			break;
 
 		default:
@@ -185,6 +190,13 @@ private:
 				char message_name[10] = "outbound3";
 				memcpy(msg.name, message_name, sizeof(message_name));
 				msg.array_id = debug_array_s::SIMULINK_OUTBOUND_3_ID;
+				break;
+			}
+			case 9:
+			{
+				char message_name[10] = "in_ctrl";
+				memcpy(msg.name, message_name, sizeof(message_name));
+				msg.array_id = debug_array_s::SIMULINK_INBOUND_CTRL_ID;
 				break;
 			}
 			default:

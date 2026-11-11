@@ -226,6 +226,7 @@ parameters:
                     5: simulink_outbound_2
                     6: simulink_outbound_3
                     7: simulink_guidance
+                    8: simulink_inbound_ctrl
                 default: 255
                 reboot_required: true
 
@@ -283,6 +284,17 @@ parameters:
                 reboot_required: true
                 num_instances: 4
                 instance_start: 0
+                default: 20.0
+
+        SM_MAVCTRL_R:
+                description:
+                    short: Rate for SIMULINK_INBOUND_CTRL
+                    long: |
+                        Transmission rate for simulink_inbound_ctrl streams.
+                type: float
+                unit: Hz
+                min: 0.0
+                max: 250.0
                 default: 20.0
 
         SMG_MAV_R:

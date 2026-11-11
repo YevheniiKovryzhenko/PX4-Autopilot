@@ -2815,9 +2815,6 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 		debug_topic.data[i] = debug_msg.data[i];
 	}
 
-	// Preserve the generic stream for existing subscribers.
-	_debug_array_pub.publish(debug_topic);
-
 	switch (debug_topic.id) {
 	case debug_array_s::SIMULINK_INBOUND_ID:
 		_simulink_inbound_pub.publish(debug_topic);
@@ -2856,6 +2853,7 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 		break;
 
 	default:
+		_debug_array_pub.publish(debug_topic);
 		break;
 	}
 }

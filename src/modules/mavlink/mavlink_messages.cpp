@@ -403,6 +403,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamDebugFloatArray<6> >(),
 	create_stream_list_item<MavlinkStreamDebugFloatArray<7> >(),
 	create_stream_list_item<MavlinkStreamDebugFloatArray<8> >(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray<9> >(),
 #endif // DEBUG_FLOAT_ARRAY_HPP
 #if defined(NAV_CONTROLLER_OUTPUT_HPP)
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
