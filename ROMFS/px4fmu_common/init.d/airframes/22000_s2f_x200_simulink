@@ -14,6 +14,10 @@
 
 set SIMULINK_MODE 1
 
+# Hardware guidance reads trajectories from the SD card. The SITL wrapper
+# sources this file first, then selects the local trajectory directory.
+param set-default SMG_TRAJ_DIR 1
+
 # Standard-VTOL actuator layout for the QGC actuator configuration page.
 # Simulink publishes these channels directly; this is not an allocation tune.
 param set-default MAV_TYPE 22
@@ -47,3 +51,18 @@ param set-default COM_LKDOWN_TKO 1
 
 # Standard PX4 log profile plus project Simulink/guidance topics.
 param set-default SDLOG_PROFILE 4097
+param set-default SM_LOG 511
+param set-default SM_INBD_LOG_T 20
+param set-default SM_OUTBD_LOG_T 20
+
+# Custom model telemetry on MAVLink 2 links, without per-stream GCS requests.
+# Use the lean Simulink standard-stream preset on the primary telemetry link.
+param set-default MAV_0_MODE 15
+param set-default MAV_PROTO_VER 2
+param set-default SM_MAV 511
+param set-default SM_MAVIN_R 20
+param set-default SM_MAVOUT_0_R 20
+param set-default SM_MAVOUT_1_R 20
+param set-default SM_MAVOUT_2_R 20
+param set-default SM_MAVOUT_3_R 20
+param set-default SM_MAVCTRL_R 20

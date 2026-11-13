@@ -1,184 +1,307 @@
-# S2F-X200 controller integration with PX4 v1.16.1-mod
+# S2F-X200 PX4–Simulink interface
 
-This describes the message contract for the Simulink-controlled S2F-X200
-(`SYS_AUTOSTART=22000` on hardware or external-simulator SITL, `22001` in Gazebo).
-Stock controllers, the allocator, and the hover-thrust estimator are excluded
-from `simulinkctrl`. Commander, EKF2, output drivers, and `land_detector start
-vtol` remain responsible for their normal functions.
+Simulink reads PX4's selected inputs and accepted state, then publishes actuator demands and controller telemetry through uORB.
 
-## What the model publishes
-
-Use PX4's boot-relative microsecond clock for `timestamp` and the corresponding
-measurement/sample time for `timestamp_sample` where present. Publish current
-state, not a constant value chosen to suppress a failsafe.
-
-| Topic | Responsibility and suggested update rate |
+| Component | Responsibility |
 | --- | --- |
-| `actuator_motors` | Required at the controller output rate. Channels 0–4 are lift motors 1–4 and cruise motor 5. Normal non-reversible commands are 0–1. Set unused channels to NaN, and `reversible_flags=0` unless reverse thrust is actually configured. |
-| `actuator_servos` | Required at the controller output rate. Channels 0–6 follow the documented seven-servo order. Use normalized -1–1, with 0 at center; NaN denotes a disarmed/unused channel. |
-| `vehicle_thrust_setpoint` | Required for correct MC/VTOL low-thrust/land detection. Publish continuously, for example at 50 Hz or the control rate. `xyz` is normalized body-FRD thrust, **not Newtons, PWM, or mean ESC command**. In lift-supported hover `xyz[2]` is negative; publish the main topic, not just `vehicle_thrust_setpoint_virtual_mc`. |
-| `vtol_vehicle_status` | Required to report actual VTOL mode now that `vtol_att_control` is absent. Publish periodically (for example 20 Hz) and on changes. States are 1 transition-to-FW, 2 transition-to-MC, 3 MC, 4 FW. Report `fixed_wing_system_failure` truthfully. Start in MC. |
-| `offboard_control_mode` | Required **if using PX4 Offboard mode**, not merely because the controller is built from Simulink. For direct motor/servo output, use `direct_actuator=true` and the other control-level flags false. Publish continuously (for example 10 Hz), including before requesting Offboard. PX4 checks freshness against `COM_OF_LOSS_T`. |
-| `takeoff_status` | Publish if implementing the takeoff state machine that replaces `mc_pos_control`. States are 0 uninitialized, 1 disarmed, 2 spoolup, 3 ready, 4 rampup, 5 flight; include `tilt_limit` in radians. The land detector uses this for ground-effect reporting. It is **not** the signal that directly cancels Commander's preflight auto-disarm timer. |
-| `hover_thrust_estimate` | Optional if your controller owns a valid hover-thrust estimator. Set `MPC_USE_HTE=1` only for that arrangement; publish a valid estimate with current timestamps and appropriate variance/status fields. Otherwise use the fixed calibrated `MPC_THR_HOVER`; this airframe defaults `MPC_USE_HTE=0`. |
-| `trajectory_setpoint` | Needed for the commanded-descent test when Commander's `vehicle_control_mode.flag_control_climb_rate_enabled` is true. Publish the real NED trajectory; positive `velocity[2]` means down. Unused fields should be NaN. Direct-actuator Offboard does not enable that climb-rate flag, so this is not required just for its land-detection path. |
+| Simulink application | Command generation, flight control, mixing and actuator demand |
+| PX4 | Input calibration/source selection, accepted mode, arming, estimation, output drivers, logging and MAVLink transport |
+| Model / airframe | `S2F_X200_PX4_26b`, X200 (`SYS_AUTOSTART=22000`) |
+| GCS output | `simulink_outbound` |
+| Stock controllers / allocator | Not started on this airframe |
 
-`vehicle_attitude_setpoint`, `vehicle_rates_setpoint`,
-`vehicle_local_position_setpoint`, and `vehicle_torque_setpoint` are also useful
-for telemetry, logs, and setpoint comparisons, as in the tested quad model.
-They are not substitutes for the actual actuator and land-detector inputs.
+Installation and tuning are covered in [README.md](README.md). Keep these documents together so links work in either the firmware or the project's `PX4-Firmware Setup` folder. Source-file paths are relative to the installed firmware root.
 
-### Thrust normalization and hover detection
+## Pilot input and control level
 
-`MulticopterLandDetector` calculates its throttle signal as
-`-vehicle_thrust_setpoint.xyz[2]`. Without this publication, that signal starts
-at zero. A stationary hover can then satisfy low-thrust and low-motion tests,
-so outputting working motor commands alone is insufficient.
+RC receivers and MAVLink joysticks converge at `manual_control_setpoint`. PX4 selects one complete source according to `COM_RC_IN_MODE`; it does not mix axes from several sources. RC calibration, reversal and channel-function mapping happen before this topic. The Simulink application therefore uses the same normalized fields regardless of which source is selected.
 
-Use the normalized **collective lift demand actually applied by the controller**.
-For a controller expressed in body forces, a useful convention is
-`xyz = commanded_body_force / reference_max_lift_thrust`, with that reference
-consistent with `MPC_THR_HOVER` and the controller's saturation. Do not average
-motor PWM/RPM fractions and assume they are equivalent to thrust: the motor
-and propeller response is nonlinear. In forward flight, cruise thrust belongs
-on body X; lift thrust remains on body negative Z. Set the VTOL state to FW only
-when that is physically true, not as a workaround for land detection.
+The four primary fields enter the controller's configurable stick-mapping function as follows. Every axis, including throttle, spans **[-1, +1]**.
 
-There is no requirement to run the stock hover-thrust estimator. With
-`MPC_USE_HTE=0`, calibrate `MPC_THR_HOVER` in the same thrust normalization as the
-reported setpoint. The Gazebo approximation sets a nominal value of 0.4; that
-number is not a hardware calibration. Relevant land-detector settings include
-`MPC_THR_MIN`, `MPC_MANTHR_MIN`, `MPC_LAND_SPEED`, `MPC_LAND_CRWL`,
-`LNDMC_TRIG_TIME`, `LNDMC_XY_VEL_MAX`, `LNDMC_Z_VEL_MAX`, `LNDMC_ROT_MAX`, and
-`LNDMC_ALT_GND`. Sensor/estimator validity and distance-to-ground availability
-also affect detection.
+| PX4 field | Mapping-function input | Meaning before configurable remapping |
+| --- | --- | --- |
+| `roll` | `dlat_in = roll` | Lateral stick |
+| `pitch` | `dver_in = -pitch` | Longitudinal stick, inverted at this interface |
+| `yaw` | `ddir_in = yaw` | Directional stick |
+| `throttle` | `dacc_in = throttle` | Throttle stick, full range without offset |
 
-## What the model reads and leaves owned by PX4
+The mapping function selects/swaps/inverts the sticks for the configured layout and outputs `[dLAT; dVER; dDIR; dACC]`. These are controller axes, not fixed physical sticks. The controller applies its own deadzones, filtering, speed-dependent response and holds.
 
-Read `actuator_armed` for arming, prearming, lockdown, manual lockdown/kill, and
-failsafe state. Read `vehicle_status`, `vehicle_control_mode`, `failsafe_flags`,
-and `vehicle_land_detected` to follow the commanded mode and system state.
-Continue to read EKF2 state topics and sensor validity as appropriate.
+| Control level | dVER path | dACC path |
+| --- | --- | --- |
+| 1 and 2 | Direct longitudinal/pitch demand | Propulsor demand |
+| 3 and 4 | Vertical/path command | Acceleration/speed command |
 
-Do not publish competing `actuator_armed`, `vehicle_status`,
-`vehicle_control_mode`, `failsafe_flags`, or `vehicle_land_detected` messages.
-Use the normal RC/GCS arm action, or a supported `vehicle_command` arm request
-and its acknowledgment, so Commander retains the arming checks. A controller
-may request arming; it must not manufacture the armed state. Actuator drivers
-also apply PX4's arming/lockdown/failsafe gates; do not bypass them through raw
-physical PWM writes.
+### Auxiliary inputs and pilot-command vector
 
-Prearmed servos may move if their output provider allows prearm control;
-motor outputs require arming. In the model, gate/reset integrators and motor
-commands appropriately on disarm and kill, and account for saved output
-disarmed/failsafe values. An unused channel should not inadvertently command
-an endpoint.
+| Input / vector entries | Purpose |
+| --- | --- |
+| Entries [1, 4] | dLAT, dVER, dDIR, dACC from the stick-mapping function |
+| `aux1` → entries [5, 14] | Selected automatic-flight event: TKO, DXN, NAV, AXN, LND, then M1–M5 |
+| `aux1` → auxiliary paths | Can alternatively select source handoff or model RTH; RTH does not select PX4 RTL |
+| `aux2` | Rotary-dial command, mapped from [-1, +1] to [0, +1] |
+| Entries [15, 16] | Configured nacelle automatic/manual selection and manual angle; not joystick axes |
+| Entry 17 | `SIGNAL_LOSS = ~manual_control_setpoint.valid` |
+| Entry 18 | Model handoff signal, not PX4's `data_source` enumeration |
+| Entries [19, 20] | Reserved zeros |
+| AUX3–AUX6 / `flaps` | Available in PX4 but unused by this input map |
 
-### Auto-disarm and failsafe behavior
+AUX1 uses `(aux1 + 1)/2`. A two-position switch therefore supplies 0 or 1; a rising 0→1 requests an event. Release before requesting another event. TKO/DXN/NAV/AXN/LND mean takeoff, departure transition, navigation, arrival transition and landing. M1–M5 are reserved and have no maneuver-engagement implementation.
 
-Commander marks takeoff after `vehicle_land_detected.landed` changes from true
-to false while armed. Until that happens, the preflight auto-disarm path remains
-active (`COM_SPOOLUP_TIME` plus `COM_DISARM_PRFLT`; parameter defaults are 1 s
-and 10 s). After takeoff, the normal landed auto-disarm uses `COM_DISARM_LAND`
-(default 2 s). A `takeoff_status=FLIGHT` message alone does not change this.
-Those are the generic Commander parameter defaults. The X200 airframe overrides
-`COM_DISARM_LAND=-1` and `COM_DISARM_PRFLT=-1`, disabling these two timers by
-default. It also sets `COM_KILL_DISARM=0` and `COM_LKDOWN_TKO=1`. Other lockdown
-and failure-triggered actions remain; see the README's disarming section.
-Correct landed detection is still required by other PX4 consumers; do not
-hardcode an airborne state to substitute for a working detector.
+**Use `SM_PI_MODE=1` in Pilot Inceptor Blending.** The input labelled Transmitter already contains PX4's selected RC or joystick data. The separate GCS input is inactive and can replace commands with zeros if selected. PX4 handles source selection and its input timeout; a cycle without a new uORB sample is not itself signal loss.
 
-**Retaining the PX4 failsafe state machine does not retain the excluded flight
-controllers.** If Commander selects RTL, Land, Hold, or another recovery mode,
-the Simulink controller must implement that requested behavior, or the operating
-configuration must use a separately designed recovery mechanism. Removing the
-stock controllers means PX4 cannot supply their control laws on demand.
-Likewise, direct actuator output providers retain their last received values;
-do not assume stopping one publisher automatically gives a complete controller
-watchdog. Stop the Offboard heartbeat when the control computation is unhealthy,
-monitor `COM_OF_LOSS_T` / `COM_OBL_RC_ACT`, and verify the resulting behavior in
-SITL. Mode requests, RC loss, data-link loss, and kill/disarm must all be handled
-by the integrated design.
+### Accepted flight mode
 
-## Findings from the on-disk MATLAB models
+The control-level function reads **`vehicle_status.nav_state`**, the accepted active mode, and retains its last mapped level for all other values:
 
-The inspected `Jacks_eVTOL_Simulator/systems/HardwareModel.slx` publishes
-`vehicle_thrust_setpoint` from `ControlOutput.Force / MaxTotalThrust`, with
-current PX4 time, and publishes `offboard_control_mode` from its control-status
-flags. It also publishes trajectory, attitude, rate, torque, and local-position
-setpoints. Its quad behavior is a useful reference; it does not establish a
-VTOL transition-state publisher for the new controller.
+| Accepted PX4 mode | `nav_state` | Controller level |
+| --- | --- | --- |
+| Manual | 0 | 1: direct/calibration path |
+| Stabilized | 15 | 2: attitude-command path |
+| Altitude | 1 | 3: full command-generation/TCS path |
+| Position | 2 | 4: full command-generation/TCS path |
 
-The inspected `S2F_X200_PX4_26b.slx` in the X200 simulation folder publishes
-`actuator_motors`, `actuator_servos`, and `simulink_outbound`, but does not contain
-publishers for `vehicle_thrust_setpoint`, `vtol_vehicle_status`, or
-`offboard_control_mode`. Add the relevant interfaces before relying on PX4
-land detection and Offboard supervision. The active/unsaved MATLAB model may
-differ from this on-disk snapshot.
+| Situation | Controller behavior |
+| --- | --- |
+| Application starts | Initialize persistent control level to 1 |
+| A mapped mode is accepted | Update the control level |
+| Disarm or unmapped mode | Retain the last mapped level |
+| Application restarts | Initialize again |
+| Levels 3 and 4 | Use the same main control-law branches; configured holds determine behavior |
+| RTL, Land, Offboard or other unmapped mode | Does not implicitly activate a corresponding controller function |
 
-Also check its final `Send To Motors` and `Send To Servos` conversion blocks:
-the inspected wiring applies the -1 bias **before** the 1/2000 gain, giving
-`(PWM - 1) / 2000`. For a 1000–2000 us PWM input, that produces approximately
-0.4995–0.9995: neither a full-range motor command nor a centered servo command.
-For typical endpoint conventions, the expected conversions are:
+Read `nav_state`, not `nav_state_user_intention`. PX4 may reject/change a requested mode when required input or estimates are unavailable. The four mapped modes do not require an Offboard heartbeat.
 
-- Non-reversible motor: `(PWM - 1000) / 1000`, yielding 0–1.
-- Centered servo: `(PWM - 1500) / 500`, yielding -1–1.
+## Arming, kill and actuator authority
 
-Confirm the actual upstream units and wiring before changing the model. Match
-servo direction and motor command interpretation to the output driver/model;
-these equations do not define a thrust/RPM calibration. No MATLAB model has
-been edited as part of this integration.
+The application reads `actuator_armed`, rather than deriving permission from stick positions or requests. Its current logic is:
 
-## SITL launch and virtual outputs
-
-For an external MAVLink-connected dynamics simulator:
-
-```bash
-cd ~/PX4/v1.16.1-mod
-PX4_SYS_AUTOSTART=22000 make px4_sitl_simulinkctrl none
+```matlab
+Arm = armed && ~in_esc_calibration_mode;
+Kill = manual_lockdown;
+ActuatorsArmed = Arm && ~Kill;
 ```
 
-Use `px4_sitl_default` instead if that is the minimal profile configured by
-MATLAB setup. The external simulator must connect to `simulator_mavlink` and
-supply its normal sensor/ground-truth stream; the airframe does not launch a
-MATLAB dynamics simulation automatically. SITL virtual `PWM_MAIN` channels 1–5
-map to motors 1–5; channels 6–12 map to servos 1–7. This is the virtual simulator
-interface, not the hardware pin mapping. Existing saved parameters may override
-these defaults.
+| Signal / state | Effect |
+| --- | --- |
+| `Arm` | Enables the flight-control subsystem |
+| `ActuatorsArmed` | Gates motor/servo commands and reported thrust demand |
+| Kill while still armed | Computation can continue; inhibited controls are NaN |
+| Subsequent Commander disarm | Removes `Arm`; X200 has no configured kill-disarm delay |
+| Unused actuator channels | NaN; motors use `reversible_flags=0` |
+| Driver lockdown / failsafe | PX4 enforces final disarmed/failsafe outputs independently |
 
-For the experimental Gazebo model in the Gazebo fork:
+`lockdown` and `force_failsafe` are not separate inputs to this model's Arm expression. Flight termination differs from `Kill`. Driver lockdown affects servos as well as motors, so running the controller does not guarantee physically active surfaces.
 
-```bash
-make px4_sitl_simulinkctrl gz_s2f_x200
-# For a headless session:
-HEADLESS=1 make px4_sitl_simulinkctrl gz_s2f_x200
-```
+## GCS messages and RC input
 
-The Gazebo fork owns `models/s2f_x200` and `airframes/22001_gz_s2f_x200`; PX4
-registers that launch target and copies the fork-owned script into SITL ROMFS.
-Gazebo outputs use `SIM_GZ_EC_FUNC1..5` and `SIM_GZ_SV_FUNC1..7`, not physical
-PWM routing. The airframe provides these mappings. Read the model's README
-for its normalization and approximation limits.
+A GCS should send a regular MAVLink heartbeat and use MAVLink 2. Continuous manual input is separate from discrete requests such as arm or change mode. Send manual samples comfortably faster than the configured loss timeout (for example 20 Hz); a heartbeat alone does not keep manual input valid.
 
-## Integration checks before hardware use
+### Normalized joystick input
 
-Record a SITL log while exercising these cases with the actual controller:
+Send `MANUAL_CONTROL` (message 69), addressed to the vehicle system ID. This firmware accepts the following wire values and performs the conversions shown:
 
-1. Disarmed and prearmed: verify `actuator_armed`, motor stop, servo behavior,
-   and no competing actuator publishers.
-2. Arm and wait on the ground: verify the configured preflight auto-disarm.
-3. Take off and hold a stationary hover: verify negative body-Z thrust,
-   `vehicle_land_detected.landed=false`, and no false auto-disarm.
-4. Transition both ways: verify the reported VTOL state and Commander's vehicle
-   type/transition flags follow the physical transition.
-5. Land, reduce thrust, and wait: verify land detection and landed auto-disarm.
-6. Stop or stall controller updates, lose RC/data link, request recovery modes,
-   and use kill/disarm: verify the designed response rather than assuming that
-   the absent stock controllers will perform it.
+| MAVLink field | Wire range | Selected PX4 field |
+| --- | --- | --- |
+| `x` | [-1000, +1000] | `pitch = x/1000` |
+| `y` | [-1000, +1000] | `roll = y/1000` |
+| `z` | **[0, 1000]** | `throttle = z/500 - 1` |
+| `r` | [-1000, +1000] | `yaw = r/1000` |
+| `aux1`, `aux2` | [-1000, +1000] | `aux1/1000`, `aux2/1000` |
 
-Useful PX4 shell checks are `listener vehicle_thrust_setpoint`,
-`listener vehicle_land_detected`, `listener vtol_vehicle_status`,
-`listener actuator_armed`, `listener offboard_control_mode`, and `uorb top`.
-The generated airframe/model packaging tests do not replace these closed-loop
-controller tests.
+| GCS requirement | What to send / configure |
+| --- | --- |
+| Primary axes | Valid x/y/z/r on every sample; this receiver accepts z only in **[0, 1000]**, even though the common definition permits signed z |
+| AUX1 / AUX2 | Set `enabled_extensions` bits 2 and 3; mask **12** enables both |
+| AUX3–AUX6 | Extension bits [4, 7]; unused by the model |
+| AUX1 inactive / active | Send **-1000 / +1000**, giving model values 0 / 1; wire zero gives 0.5 |
+| AUX continuity | Send valid extensions continuously; omission does not retain the previous switch value |
+| Input source | `COM_RC_IN_MODE=1` for joystick, or 2 for RC/joystick fallback |
+| Buttons | Use explicit PX4 commands or encode model functions on AUX; this model does not consume the `buttons` bitmask |
+
+A GCS must actually transmit the AUX extensions. A button shown in its UI is not automatically an AUX mapping or an arm/kill/mode request. Source selection chooses one stream; it does not blend trainer inputs.
+
+### Raw RC channels
+
+A physical receiver uses PX4's normal RC path. A GCS can supply equivalent channel frames with `RC_CHANNELS_OVERRIDE` (message 70).
+
+| Item | Contract |
+| --- | --- |
+| PX4 route | `input_rc` → RC calibration, function mapping and switch processing |
+| Source selection | Treated as RC; requires an RC-permitted input setting |
+| Channel values | Complete calibrated PWM-equivalent frame, typically **[1000, 2000] µs** |
+| Functions to include | Primary axes, AUX1/AUX2 and any assigned flight-mode, arm and kill switches |
+| Partial overrides | No persistent per-channel merge with a physical receiver; do not combine competing publishers using partial/release semantics |
+| `RC_CHANNELS` / `RC_CHANNELS_RAW` | Telemetry, not control-input messages for this route |
+
+### Requests for mode, arm and emergency stop
+
+Use `COMMAND_LONG` with the correct vehicle/component target and inspect `COMMAND_ACK`; then observe the accepted state. `MAV_CMD_DO_SET_MODE` (176) uses `param1=1` (custom mode enabled), `param2` equal to the PX4 main mode, and `param3=0` for these selections:
+
+| Requested mode | PX4 main-mode value (`param2`) | Resulting controller level |
+| --- | --- | --- |
+| Manual | 1 | 1 |
+| Stabilized | 7 | 2 |
+| Altitude | 2 | 3 |
+| Position | 3 | 4 |
+
+These main-mode values are not `nav_state` values. A GCS can also use `SET_MODE` with PX4's encoded custom mode; Commander converges both paths into `vehicle_status`. An RC flight-mode switch reaches that same accepted state.
+
+| Action | Request / route | Accepted result |
+| --- | --- | --- |
+| Arm | `MAV_CMD_COMPONENT_ARM_DISARM` (400), `param1=1`, `param2=0` | `actuator_armed.armed`, subject to PX4 checks |
+| Normal disarm | Command 400, `param1=0`, `param2=0` | Armed state changes if Commander accepts |
+| Emergency force-disarm | Command 400, `param1=0`, `param2=21196` | Forces disarm; does not set `manual_lockdown` |
+| Kill / unkill | Configured RC kill switch, including selected raw RC override | Internal KILL/UNKILL request → `actuator_armed.manual_lockdown` |
+| Optional kill gesture | Configured kill-stick gesture on selected manual input | Internal KILL request |
+| Flight termination | `MAV_CMD_DO_FLIGHTTERMINATION` (185), `param1=1`, while armed | Actual PX4 termination; different from the model's Kill flag |
+
+Normalized joystick messages have no direct kill-switch field. AUX1/AUX2 and the button bitmask do not themselves request arm, kill or flight-mode changes. To obtain the identical RC kill state from a GCS, use the selected RC switch path or a deliberately defined command bridge. Internal `action_request` is uORB, not a standard MAVLink message. Termination is not reversible kill/unkill; command 185 with `param1=0` does not unkill this firmware.
+
+## State feedback and control outputs
+
+The Sensor Outputs subsystem selects/blends PX4 sensor feeds into the controller's attitude, rates, velocity, altitude, position, track and ground-contact bus.
+
+| PX4 input | Controller information |
+| --- | --- |
+| `vehicle_attitude.q` | Attitude quaternion |
+| `vehicle_angular_velocity.xyz` | Body rates |
+| `vehicle_acceleration.xyz` | Acceleration |
+| `vehicle_local_position` | Horizontal/vertical velocity, local height and position accuracy |
+| `vehicle_global_position.lat/lon` | Global position |
+| `distance_sensor` | Distance/height feed |
+| `airspeed.true_airspeed_m_s` | Airspeed |
+| GPS support-package block | Additional GPS feed |
+
+Ground contact is constructed from the model's sensor path, rather than read from `vehicle_land_detected`.
+
+The application publishes these control-side messages with PX4 boot-relative microsecond timestamps. It does not publish competing arming or vehicle-mode state messages.
+
+| Publication | Model contract |
+| --- | --- |
+| `actuator_motors` | Control indices [0, 3]: lift motors LP1–LP4; control 4: cruise motor MP1. Non-reversible demand [0, +1], computed as `PWM/1000 - 1` from the controller's PWM-equivalent demand. Unused/inhibited controls are NaN. |
+| `actuator_servos` | Control indices [0, 6]: left outboard aileron, left flap, right flap, right outboard aileron, left elevator, right elevator, rudder. Demand [-1, +1], computed as `2*(PWM/1000 - 1.5)`. Unused/inhibited controls are NaN. |
+| `vehicle_thrust_setpoint` | Land-detector feedback. Body-Z is negative for lift; X/Y are zero in the current publisher. Lift is approximated from collective lift RPM, the static propeller polynomial, four motors and their 15° cant, normalized against weight and hover thrust. Disabled outputs report zero thrust. This is normalized demand, not PWM or Newtons. |
+| `vtol_vehicle_status` | Reports MC (3), transition toward FW (1), transition toward MC (2), or FW (4), from TCS mode and departure/arrival status. The function retains state when its automatic-regime inputs are not applicable. |
+
+The motor/servo channel order is logical: hardware PWM/CAN routing is assigned separately to the corresponding output functions. In SITL, the simulator's output-function mapping determines the destination. `offboard_control_mode` and `trajectory_setpoint` are not pilot-input requirements for this interface; implementing Offboard or other navigation modes would require their own reference and supervision contract.
+
+## GCS output, MAVLink and flight logs
+
+| Interface item | Contract |
+| --- | --- |
+| Producer | Model Post-Processing block |
+| uORB output / ULog topic | **`simulink_outbound`**, using `DebugArray` |
+| Payload | 58 `float32` values |
+| MAVLink message | **`DEBUG_FLOAT_ARRAY` (350)**; no private dialect needed |
+| GCS channel identity | **`array_id=100`, `name="outbound"`** |
+| Simulink fields to write | `timestamp` and `data` |
+| ID/name assignment | PX4 supplies fixed identities when transmitting; original uORB/logged fields are unchanged |
+
+The GCS dispatches by `array_id` and decodes the payload below. Identify logged data by its ULog topic name.
+
+Three additional outbound topics are available for expansion and are currently unused by the X200 model:
+
+| uORB topic | MAVLink `array_id` | MAVLink name |
+| --- | --- | --- |
+| `simulink_outbound` | 100 | `outbound` |
+| `simulink_outbound_1` | 101 | `outbound1` |
+| `simulink_outbound_2` | 102 | `outbound2` |
+| `simulink_outbound_3` | 103 | `outbound3` |
+
+Each carries its own 58-element array; publishing one does not update the others. Only published samples generate telemetry/log records. These are named topics sharing one structure, not alternative instance numbers. The generic `SimulinkCustomMessage` support-package message is not the GCS telemetry format.
+
+The GCS output layout below uses **zero-based** array indices (add one for MATLAB indexing). Bracketed index intervals include every integer index between their endpoints. Commands and states retain the units indicated by the model bus; angle commands are degrees, measured attitude/track/heading are radians, controller speed is knots, and linear velocities are metres per second.
+
+| `data` indices | Contents, in order |
+| --- | --- |
+| [0, 2] | EMF `ulat`, `ulon`, `udir` |
+| [3, 4] | Collective lift RPM, cruise RPM |
+| [5, 10] | Bank command, pitch command, yaw-rate command, vertical-speed command, acceleration command (g), speed command (knots) |
+| [11, 16] | TWH, TWV, wing/nacelle command, cruise T/W command, lift T/W command, encoded TCS status |
+| [17, 25] | Heading memory, track memory, longitudinal/lateral position errors, altitude memory, lateral/vertical/speed blend factors, encoded hold status |
+| 26 | Encoded autoflight status |
+| [27, 30] | LNAV cue, VNAV cue, speed cue, navigation status |
+| [31, 36] | Navigation latitude/longitude/speed signals, waypoint index, distance to target, target track |
+| [37, 49] | North/east velocity, altitude, equivalent airspeed, forward/lateral speed, latitude/longitude, vertical speed, ground contact, controller speed, track, heading |
+| 50 | Armed-time accumulator (seconds) |
+| [51, 53] | Control level, signal-loss flag, model handoff/source signal |
+| [54, 57] | Filtered dLAT, dVER, dDIR, dACC |
+
+Status fields use decimal weights, not bitmasks. Add each listed state multiplied by its decimal weight to the base value.
+
+| Encoding | Base | States, from highest to lowest decimal weight |
+| --- | --- | --- |
+| TCS | 111111 | TCS mode, takeoff mode, high throttle, low throttle, path priority, speed priority; weights 10^5 through 10^0 |
+| Holds | 111 | Direction, position, altitude; weights 10^2 through 10^0 |
+| Autoflight | 1111111 | TKO, DXN, NAV, AXN, LDG, FAP, maneuver; weights 10^6 through 10^0 |
+
+Preserve fractional states when decoding transition/abort values.
+
+### Automatic X200 transport setup
+
+| X200 default | Purpose |
+| --- | --- |
+| `SDLOG_PROFILE=4097` | Standard logging plus Simulink topics |
+| `SM_LOG=511` | All custom logging groups |
+| Inbound/outbound logging interval: 20 ms | Limits recording to up to 50 Hz |
+| `MAV_PROTO_VER=2` | Supports debug-array telemetry |
+| `SM_MAV=511` | All custom streams selected on every link/profile |
+| Inbound/outbound stream rates: 20 Hz | Target telemetry rate |
+| `MAV_0_MODE=15` | Lean Simulink standard-telemetry preset on the primary hardware link |
+
+SITL selects the Simulink preset through startup. Other profiles retain their own standard messages and use the same global `SM_MAV` selection. Set `SM_MAV=0` to disable automatic custom streams; selected streams also need positive rates. Restart links/reboot after changes. Explicit GCS stream requests can override rates.
+
+| Check | What matters |
+| --- | --- |
+| Applying defaults | Rebuild/restart; saved values take precedence |
+| Gazebo variant | Source shared X200 airframe defaults to inherit logging/rate settings |
+| Actual rates | Limited by model publication and link/storage capacity |
+| Recording | Logger and recording session must be active; topic selection does not enable continuous disarmed recording |
+| Missing output | Check masks/rates, MAVLink version, logger state and any custom `logger_topics.txt` replacing the profile |
+| Runtime inspection | `listener simulink_outbound`, `mavlink status`, `logger status`; confirm ULog topic and received array ID 100 |
+
+Do not transmit GCS debug arrays with ID 100 back to PX4: the receiver can publish them onto the same output topic. The Simulink preset's standard messages are selected separately through `SM_MAVSTD`; see [setup and streaming controls](README.md).
+
+## Guidance topic ownership
+
+| Platform | Trajectory location selected by the X200 preset |
+| --- | --- |
+| Hardware | `SMG_TRAJ_DIR=1`: `/fs/microsd/Trajectories/` on the SD card |
+| SITL | `SMG_TRAJ_DIR=0`: `./Trajectories/` relative to the PX4 working directory, normally `rootfs` |
+
+Provide the trajectory files in that directory. Presets set defaults; saved values take precedence when switching platforms. See [trajectory setup](README.md#guidance-trajectory-location).
+
+Reserve the following interfaces for `simulink_guidance`; do not use them as extra pilot commands or GCS telemetry channels. Starting the module does not itself arm the aircraft, select a flight mode, or make the X200 controller follow its references. A consuming controller must implement that connection.
+
+| Topic | Guidance role and payload |
+| --- | --- |
+| `sim_guidance_request` | Input: prepare/start, reset, capture home, start execution, or stop. Results are reported asynchronously. |
+| `vehicle_local_position` | Shared PX4 state input when `SMG_IN_TYPE=0`; requires valid, recent local position and yaw. |
+| `simulink_inbound` (array ID 200, `inbound`) | Alternative state input when `SMG_IN_TYPE=1`: zero-based `data[18:20]` NED velocity, `[24:27]` quaternion w/x/y/z, `[32:34]` NED acceleration, `[35:37]` NED position. These ranges are inclusive, not Python slices. The X200 GCS output layout is incompatible with this contract. |
+| `companion_guidance_outbound` (120, `compg_out`) | Companion-to-PX4 input when `SMG_EN=2`: readiness, finished flag, trajectory time, then absolute NED position and derivatives through snap. |
+| `companion_guidance_inbound` (121, `compg_in`) | PX4-to-companion output: execution requests, current reference and derivatives, and measured position. |
+| `sim_guidance_status` | Output: prepared/loaded/executing/finished/valid flags. |
+| `trajectory_setpoint`, `sim_guidance_trajectory` | Selectable reference outputs: NED position/velocity/acceleration and yaw; the custom trajectory adds jerk/snap and trajectory time. Do not introduce another publisher on a reference topic being used by guidance. |
+| `simulink_guidance` (150, `guidance`) | Selectable debug-array output: finished flag followed by four-axis position, velocity, acceleration, jerk and snap. |
+
+| Integration rule | Meaning |
+| --- | --- |
+| Companion direction | Companion **outbound** is an input to PX4; companion **inbound** is an output from PX4 |
+| `simulink_inbound_ctrl` (250, `in_ctrl`) | Available but not consumed by guidance; publishing it does not issue a guidance request |
+| Incoming debug-array packets | GCS/companion must supply the correct `array_id` for routing |
+| Outgoing debug-array packets | PX4 supplies the fixed ID/name for each named topic |
+| Detailed guidance contract | `src/modules/simulink_guidance/README.md` in the installed firmware |
+
+## Source references
+
+| Source | Interface definition |
+| --- | --- |
+| Saved `S2F_X200_PX4_26b` model | Signal routing and controller payloads |
+| `msg/versioned/ManualControlSetpoint.msg`, `VehicleStatus.msg` | Selected input and accepted mode fields |
+| `msg/ActuatorArmed.msg`, `msg/DebugArray.msg` | Actuator permission and custom telemetry structures |
+| `manual_control`, `mavlink_receiver.cpp`, Commander | Source selection, wire conversions and accepted requests |
+| `streams/DEBUG_FLOAT_ARRAY.hpp` | Outgoing channel identity and payload transport |
+| `ROMFS/px4fmu_common/init.d/airframes/22000_s2f_x200_simulink` | Shared X200 defaults |
+
+Wire references: [MAVLink manual control](https://mavlink.io/en/services/manual_control.html) and [common messages](https://mavlink.io/en/messages/common.html). The local receiver's supported ranges and behavior define this firmware's interface.

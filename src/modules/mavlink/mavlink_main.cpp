@@ -1813,11 +1813,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	/* fallthrough */
 	case MAVLINK_MODE_CUSTOM:
-		//stream nothing
+		// No profile-specific standard streams.
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
-		add_simulink_topics(configure_stream_local);
 		// Note: streams requiring low latency come first
 		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
@@ -2044,23 +2043,11 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	{
 		add_std_topics_minimal(configure_stream_local);
 		add_std_topics_custom_rates(configure_stream_local);
-		add_simulink_topics(configure_stream_local);
 		break;
 	}
 
 	case MAVLINK_MODE_COMPANION:
 	{
-		static param_t h = param_find("SMG_MAVIN_R");
-		float compg_in_mav_rate = 0.f;
-
-		if (h != PARAM_INVALID) {
-			param_get(h, &compg_in_mav_rate);
-		}
-
-		if (compg_in_mav_rate > 0.f) {
-			configure_stream_local("COMPANION_GUIDANCE_INBOUND", compg_in_mav_rate);
-		}
-
 		configure_stream_local("PING", 0.1f);
 		configure_stream_local("SYS_STATUS", 5.0f);
 		configure_stream_local("TIMESYNC", 5.0f);
@@ -2071,6 +2058,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		ret = -1;
 		break;
 	}
+
+	// Custom topic selection is independent of the link's standard-stream profile.
+	// SM_MAV and the corresponding rates apply to every MAVLink instance.
+	add_simulink_topics(configure_stream_local);
 
 	if (configure_single_stream && !stream_configured && strcmp(configure_single_stream, "HEARTBEAT") != 0) {
 		// stream was not found, assume it is disabled by default

@@ -214,7 +214,9 @@ parameters:
                 description:
                     short: Choose custom Simulink MAVLink streams
                     long: |
-                        Select individual custom topics to broadcast over MAVLink.
+                        Select individual custom topics to broadcast on every MAVLink link,
+                        independently of its selected profile. Set to 0 to disable automatic
+                        custom streams. Restart links or reboot after changing this mask.
                         Rates are controlled by respective SM_MAVOUT_* and SMG_MAV* rate parameters.
                 type: bitmask
                 bit:
