@@ -131,6 +131,77 @@ an already saved parameter value on the vehicle.
 
 ## 4. Modified firmware: topics, telemetry, and logging
 
+For the required controller publications, PX4 arming/land detection, VTOL state,
+and S2F-X200 SITL/Gazebo launch instructions, see
+`src/modules/simulink_parameters/CONTROLLER_INTEGRATION.md`.
+
+### S2F-X200 hardware airframe
+
+Select **S2F-X200** in the **Standard VTOL** airframe group, or set
+`SYS_AUTOSTART=22000` and reboot. Its startup file is
+`ROMFS/px4fmu_common/init.d/airframes/22000_s2f_x200_simulink`.
+It uses the standard VTOL vehicle defaults and exposes five motor channels and
+seven servo channels for the Simulink model:
+
+| Logical channel | Model function |
+| --- | --- |
+| Motors 1–4 | Lift propellers LP-1 through LP-4 |
+| Motor 5 | Cruise propeller MP-1 |
+| Servo 1 | Left outboard aileron |
+| Servo 2 | Left flap |
+| Servo 3 | Right flap |
+| Servo 4 | Right outboard aileron |
+| Servo 5 | Left elevator |
+| Servo 6 | Right elevator |
+| Servo 7 | Rudder |
+
+Physical output routing is deliberately not preset. Assign motor and servo
+functions to the actual PWM/CAN outputs in QGC. The airframe does not overwrite
+existing saved routing. The counts and surface labels describe the logical
+outputs, not a tuned PX4 allocation matrix: the Simulink model publishes
+`actuator_motors` and `actuator_servos` directly. The S2F-X200 startup path runs
+airspeed selection and VTOL land detection without starting stock controllers
+or the PX4 control allocator. MATLAB setup remains responsible for installing
+and starting its generated application.
+
+Hardware `simulinkctrl` builds package only S2F-X200 and generate a matching
+single-airframe `airframes.xml`. Hardware `default` builds using the copied
+minimal profile get the same filter. Stock-control `simulink` builds retain the
+normal airframe selection. SITL retains its existing simulation airframes and
+adds the external-simulator S2F-X200 (`22000`), plus the experimental Gazebo
+S2F-X200 (`22001`) from the Gazebo fork. A GCS
+that uses its own bundled or cached airframe catalog may still show stock
+entries; firmware filtering does not rewrite that GCS catalog. The airframe ID
+can be selected directly even if the GCS has not loaded the custom metadata.
+
+### X200 disarming defaults
+
+The shared X200 airframe sets these defaults for hardware, external-simulator
+SITL, and the Gazebo X200 variant:
+
+| Parameter | Default | Effect |
+| --- | --- | --- |
+| `COM_DISARM_LAND` | -1 | Disable landing-triggered automatic disarming. |
+| `COM_DISARM_PRFLT` | -1 | Disable preflight/no-takeoff automatic disarming. |
+| `COM_KILL_DISARM` | 0 | Disarm without a configured delay after kill/lockdown. |
+| `COM_LKDOWN_TKO` | 1 s | Shorten the early critical-failure disarm window; does not disable it. |
+
+These do not make every disarm pilot-only or guarantee acceptance of every
+ordinary disarm request. Commander still has automatic lockdown and failsafe
+paths. The early critical-failure window is measured from arming and includes
+`COM_SPOOLUP_TIME` in addition to `COM_LKDOWN_TKO`; spoolup battery/ESC failures
+also have disarm paths. Some configured failsafes can terminate outputs.
+
+`COM_DISARM_MAN=1` (the stock default) permits RC switch/stick/button disarming
+while airborne in multicopter manual-thrust modes such as Stabilized. It does
+not grant the same exception in FW flight or for ordinary MAVLink disarm
+commands. Kill uses a forced path; an explicitly requested MAVLink force-disarm
+uses `MAV_CMD_COMPONENT_ARM_DISARM` with `param1=0`, `param2=21196`.
+
+Airframe defaults do not overwrite saved user values. On an already configured
+vehicle, set the four parameters explicitly or reset those parameters to their
+airframe defaults after rebuilding/restarting.
+
 ### Separate debug-array topics for Simulink
 
 `msg/DebugArray.msg` defines one shared message structure: a timestamp in
@@ -282,15 +353,36 @@ The shared debug-array schema and routing IDs are in `msg/DebugArray.msg`.
 
 ## Troubleshooting
 
-### Known recurring issue in R2026b: Run on Board fails after setup
+### R2026b: startup errors or Run on Board does not work properly
 
-If you complete the PX4 support package setup and immediately select **Run on
-Board**, the build or deployment may fail with an unclear error. In this
-project's R2026b workflow, this mode has been observed to omit copying the new
-`px4_simulink_utils` module into the firmware tree.
+Before a clean support-package setup, make sure the old
+`src/modules/px4_simulink_utils` directory is deleted, not merely emptied.
+Preserve any custom files in that directory before deleting it, then rerun the
+MATLAB setup app so it can install the required module files.
 
-Switch to **Connected I/O** and run it once. This populates the required module;
-afterward, switch back to **Run on Board** and retry.
+Git does not track empty directories, so discarding files or reverting changes
+in VS Code can leave this directory behind. The R2026b setup checks whether the
+directory exists and skips copying the module files if it does, even when the
+directory is empty. This can cause startup errors such as
+`px4_simulink_utils: not found`, connection failures, or problems with **Run on
+Board**. After setup, verify that the directory contains `CMakeLists.txt`,
+`Kconfig`, `px4_simulink_utils.cpp`, `px4_simulink_utils.h`, and
+`px4_simulink_utils_params.c`.
+
+### Missing controller tuning parameters in a minimal VTOL build
+
+`simulinkctrl` intentionally excludes stock controllers and the stock hover-thrust
+estimator. Their private tuning parameters (for example `MC_ROLL_P` and
+`HTE_VXY_THR`) can therefore be absent. `rc.vtol_defaults` applies those optional
+defaults with `param set-default -s`, preserving stock-build values while quietly
+skipping absent parameters. Required shared parameters remain supplied by
+`src/modules/simulink_parameters`; there is no need to re-enable the excluded
+controllers to obtain their private tuning settings.
+
+In SITL, X200 airframes default `SMG_TRAJ_DIR=0` (local `./Trajectories/`). This
+does not create trajectory files. If the guidance module is used, provide the
+selected trajectory there. Existing saved values can override the new default;
+use `param set SMG_TRAJ_DIR 0` to switch an existing session from the SD-card path.
 
 ### Missing custom uORB header during Simulink setup
 

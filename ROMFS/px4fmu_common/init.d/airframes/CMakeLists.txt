@@ -31,6 +31,15 @@
 #
 ############################################################################
 
+if(PX4_SIMULINK_ONLY_AIRFRAMES)
+	px4_add_romfs_files(${PX4_SIMULINK_AIRFRAME_FILES})
+	return()
+endif()
+
+if(CONFIG_MODULES_SIMULINK_PARAMETERS)
+	px4_add_romfs_files(${PX4_SIMULINK_AIRFRAME_FILES})
+endif()
+
 px4_add_romfs_files(
 	# [0-999] Reserved (historical)
 

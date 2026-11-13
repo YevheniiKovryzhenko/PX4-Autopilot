@@ -84,6 +84,8 @@ def main():
                          metavar="BOARD",
                          help="Board to create airframes xml for")
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
+    parser.add_argument('--airframe-files', nargs='+',
+                        help="only scan these files relative to PATH/airframes")
     args = parser.parse_args()
 
     # Check for valid command
@@ -98,7 +100,11 @@ def main():
 
     # Scan directories, and parse the files
     if args.verbose: print("Scanning source path " + args.airframes_path)
-    if not scanner.ScanDir(args.airframes_path, parser):
+    if args.airframe_files:
+        for filename in args.airframe_files:
+            if not scanner.ScanFile(os.path.join(args.airframes_path, 'airframes', filename), parser):
+                sys.exit(1)
+    elif not scanner.ScanDir(args.airframes_path, parser):
         sys.exit(1)
     # We can't validate yet
     # if not parser.Validate():

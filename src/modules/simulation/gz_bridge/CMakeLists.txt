@@ -38,7 +38,13 @@ else()
 endif()
 
 file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
-file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+file(GLOB gz_airframes CONFIGURE_DEPENDS
+	${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+if(CONFIG_MODULES_SIMULINK_PARAMETERS)
+	file(GLOB project_gz_airframes CONFIGURE_DEPENDS
+		${PX4_SOURCE_DIR}/Tools/simulation/gz/airframes/*_gz_*)
+	list(APPEND gz_airframes ${project_gz_airframes})
+endif()
 
 if (gz-transport_FOUND)
 	px4_add_module(

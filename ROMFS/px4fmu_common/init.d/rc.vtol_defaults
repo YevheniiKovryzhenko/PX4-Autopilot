@@ -21,23 +21,25 @@ param set-default MIS_YAW_TMT 10
 param set-default EKF2_ARSP_THR 10
 param set-default EKF2_FUSE_BETA 1
 
-param set-default HTE_VXY_THR 2
+# These optional controller/estimator parameters are absent in simulinkctrl.
+# Keep their defaults for stock builds without reporting errors in minimal builds.
+param set-default -s HTE_VXY_THR 2
 
 param set-default MIS_TKO_LAND_REQ 2
 
 param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_VEL_MANUAL 5
-param set-default MPC_XY_ERR_MAX 5
-param set-default MPC_XY_VEL_MAX 8
+param set-default -s MPC_XY_ERR_MAX 5
+param set-default -s MPC_XY_VEL_MAX 8
 param set-default MPC_JERK_MAX 4.5
-param set-default MPC_YAW_MODE 4
+param set-default -s MPC_YAW_MODE 4
 
 # reduce aggressiveness around roll and yaw axis,
 # as VTOLs usually have high intertia and lot af drag due to wings
-param set-default MC_ROLL_P 5
-param set-default MC_ROLLRATE_MAX 120
-param set-default MC_YAW_P 2
-param set-default MC_YAWRATE_MAX 120
+param set-default -s MC_ROLL_P 5
+param set-default -s MC_ROLLRATE_MAX 120
+param set-default -s MC_YAW_P 2
+param set-default -s MC_YAWRATE_MAX 120
 param set-default MPC_MAN_Y_MAX 90
 
 param set-default RTL_TYPE 1

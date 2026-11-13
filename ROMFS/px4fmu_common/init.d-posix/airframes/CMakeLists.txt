@@ -123,3 +123,7 @@ px4_add_romfs_files(
 
 	# [22000, 22999] Reserve for custom models
 )
+
+if(CONFIG_MODULES_SIMULINK_PARAMETERS)
+	px4_add_romfs_files(22000_s2f_x200_simulink)
+endif()

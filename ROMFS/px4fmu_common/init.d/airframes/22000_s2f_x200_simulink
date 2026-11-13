@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Standard VTOL with four lift motors, one cruise motor and seven servo slots.
+# Control and allocation are provided by the Simulink model, not PX4 controllers.
+# Assign physical output functions in QGC; no PWM/CAN routing is preset here.
+#
+# @name S2F-X200
+# @type Standard VTOL
+# @class VTOL
+# @maintainer S2F-X200 project
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+set SIMULINK_MODE 1
+
+# Standard-VTOL actuator layout for the QGC actuator configuration page.
+# Simulink publishes these channels directly; this is not an allocation tune.
+param set-default MAV_TYPE 22
+param set-default CA_AIRFRAME 2
+param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR4_AX 1
+param set-default CA_ROTOR4_AZ 0
+param set-default CA_SV_CS_COUNT 7
+
+# Servo order from the S2F-X200 model:
+# 1 left outboard aileron, 2 left flap, 3 right flap, 4 right outboard aileron,
+# 5 left elevator, 6 right elevator, 7 rudder/reserved slot.
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TYPE 9
+param set-default CA_SV_CS2_TYPE 10
+param set-default CA_SV_CS3_TYPE 2
+param set-default CA_SV_CS4_TYPE 3
+param set-default CA_SV_CS5_TYPE 3
+param set-default CA_SV_CS6_TYPE 4
+
+# The stock hover-thrust estimator is excluded. Use a calibrated fixed hover
+# thrust unless the external controller supplies its own valid estimate.
+param set-default MPC_USE_HTE 0
+
+# Pilot-controlled disarming: disable landing/preflight timers and disarm
+# without a configured delay on kill. Other Commander failsafe paths remain.
+param set-default COM_DISARM_LAND -1
+param set-default COM_DISARM_PRFLT -1
+param set-default COM_KILL_DISARM 0
+param set-default COM_LKDOWN_TKO 1
+
+# Standard PX4 log profile plus project Simulink/guidance topics.
+param set-default SDLOG_PROFILE 4097

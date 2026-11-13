@@ -111,6 +111,7 @@ log/
 keys/
 
 # Matlab:
-#*.original
-#msg/SimulinkCustomMessage.msg
-#src/modules/px4_simulink_app
+*.original
+msg/SimulinkCustomMessage.msg
+src/modules/px4_simulink_app
+src/modules/px4_simulink_utils

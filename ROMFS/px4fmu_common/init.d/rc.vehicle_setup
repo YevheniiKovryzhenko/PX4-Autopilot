@@ -65,7 +65,12 @@ fi
 if [ $VEHICLE_TYPE = vtol ]
 then
 	# Start standard vtol apps.
-	. ${R}etc/init.d/rc.vtol_apps
+	if [ "${SIMULINK_MODE}" = "1" ]
+	then
+		. ${R}etc/init.d/rc.vtol_simulink_apps
+	else
+		. ${R}etc/init.d/rc.vtol_apps
+	fi
 fi
 
 #

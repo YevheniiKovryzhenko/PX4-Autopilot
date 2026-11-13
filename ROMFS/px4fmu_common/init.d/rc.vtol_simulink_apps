@@ -1,0 +1,6 @@
+#!/bin/sh
+# S2F-X200 publishes actuator_motors and actuator_servos directly from Simulink.
+# Do not start stock controllers or the allocator: they would share these outputs.
+
+airspeed_selector start
+land_detector start vtol

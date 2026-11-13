@@ -144,6 +144,7 @@ if(CONFIG_MODULES_SIMULINK_PARAMETERS)
 		rc.mc_apps
 		rc.vtol_defaults
 		rc.vtol_apps
+		rc.vtol_simulink_apps
 		rc.fw_defaults
 		rc.fw_apps
 	)

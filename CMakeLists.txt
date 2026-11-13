@@ -353,6 +353,18 @@ endif()
 #
 include(px4_metadata)
 
+# Keep hardware Simulink-control builds focused on project airframes. The
+# default label is also used by MATLAB with a copied simulinkctrl profile.
+set(PX4_SIMULINK_ONLY_AIRFRAMES OFF)
+if(PX4_PLATFORM STREQUAL "nuttx" AND CONFIG_MODULES_SIMULINK_PARAMETERS)
+	if(PX4_BOARD_LABEL STREQUAL "simulinkctrl" OR
+		(PX4_BOARD_LABEL STREQUAL "default" AND NOT CONFIG_MODULES_MC_RATE_CONTROL
+		 AND NOT CONFIG_MODULES_FW_RATE_CONTROL AND NOT CONFIG_MODULES_VTOL_ATT_CONTROL))
+		set(PX4_SIMULINK_ONLY_AIRFRAMES ON)
+	endif()
+endif()
+set(PX4_SIMULINK_AIRFRAME_FILES 22000_s2f_x200_simulink)
+
 add_subdirectory(msg EXCLUDE_FROM_ALL)
 
 px4_generate_airframes_xml(BOARD ${PX4_BOARD})

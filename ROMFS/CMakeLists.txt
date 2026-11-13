@@ -115,6 +115,22 @@ add_custom_command(
 
 
 set(romfs_copy_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_copy.stamp)
+# The Gazebo fork owns its project airframes as well as its models. Package
+# those scripts into SITL without maintaining duplicate copies in PX4.
+set(project_gz_airframes)
+set(project_gz_airframe_copy_commands)
+if(PX4_PLATFORM STREQUAL "posix" AND CONFIG_MODULES_SIMULATION_GZ_BRIDGE
+	AND CONFIG_MODULES_SIMULINK_PARAMETERS)
+	file(GLOB project_gz_airframes CONFIGURE_DEPENDS
+		${PX4_SOURCE_DIR}/Tools/simulation/gz/airframes/*_gz_*)
+	foreach(airframe IN LISTS project_gz_airframes)
+		get_filename_component(airframe_name ${airframe} NAME)
+		list(APPEND project_gz_airframe_copy_commands
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${airframe}
+				${romfs_gen_root_dir}/init.d-posix/airframes/${airframe_name})
+	endforeach()
+endif()
+
 add_custom_command(
 	OUTPUT
 		${romfs_gen_root_dir}/init.d/rc.serial
@@ -122,8 +138,11 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		${romfs_gen_root_dir}/init.d/rc.filepaths
 		${romfs_copy_stamp}
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
+	# Drop stale airframes when switching from a stock to a filtered profile.
+	COMMAND ${CMAKE_COMMAND} -E remove_directory
+		${romfs_gen_root_dir}/init.d/airframes ${romfs_gen_root_dir}/init.d-posix/airframes
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
+	${project_gz_airframe_copy_commands}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
@@ -137,7 +156,7 @@ add_custom_command(
 		--params-file ${CONFIG_BOARD_PARAM_FILE}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
-	DEPENDS ${romfs_tar_file}
+	DEPENDS ${romfs_tar_file} ${project_gz_airframes}
 	COMMENT "ROMFS: copying, generating airframes"
 	)
 
