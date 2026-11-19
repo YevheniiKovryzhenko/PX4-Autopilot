@@ -60,3 +60,7 @@ The PX4 Autopilot project including all of its trademarks is hosted under [Drone
 
 <a href="https://www.dronecode.org/" style="padding:20px" ><img src="https://dronecode.org/wp-content/uploads/sites/24/2020/08/dronecode_logo_default-1.png" alt="Dronecode Logo" width="110px"/></a>
 <div style="padding:10px">&nbsp;</div>
+
+## Custom development
+
+See [PX4 Simulink setup](src/modules/simulink_parameters/README.md) for shared build flags, startup modes, parameters, telemetry and tooling. Vehicle-specific setup is in [R1D1](Documentation/airframes/r1d1.md), [X500](Documentation/airframes/x500.md) and [X200](Documentation/airframes/x200.md).

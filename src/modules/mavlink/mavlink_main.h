@@ -540,6 +540,7 @@ private:
 	MavlinkReceiver 	_receiver;
 
 	int			_instance_id{-1};
+	int			_simulink_config_index{-1};
 	int			_task_id{-1};
 
 	px4::atomic_bool	_task_should_exit{false};

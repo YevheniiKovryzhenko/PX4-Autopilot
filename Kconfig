@@ -73,6 +73,26 @@ menu "Toolchain"
         help
             relative path to the ROMFS root directory
 
+    config BOARD_STOCK_AIRFRAMES
+        bool "Package stock airframes"
+        default y
+        help
+            Disable for external-control builds that support only custom airframes.
+
+    config BOARD_CUSTOM_AIRFRAMES
+        bool "Package project development airframes"
+        default y if MODULES_SIMULINK_IO || MODULES_SIMULINK_PARAMETERS
+        default n
+
+    config BOARD_SIMULINK_MODE
+        int "Default Simulink startup mode"
+        range 0 2
+        default 0
+        help
+            0: stock startup. 1: stock control plus Simulink apps.
+            2: external control, with only required vehicle support apps.
+            Saved SIMULINK_MODE parameter values take precedence over this default.
+
     config BOARD_IO
         string "IO board name"
         default "px4_io-v2_default"

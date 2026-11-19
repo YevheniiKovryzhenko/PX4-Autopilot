@@ -1,59 +1,128 @@
-# PX4 and Simulink setup
+# Simulink parameters module and common PX4 setup
 
-This project uses a modified PX4 v1.16.1 firmware tree with custom Simulink support. Use the project installer and board configurations described below. The stock PX4 release does not include all of the required project changes.
+`simulink_parameters` provides this branch's project parameter definitions and the stock parameter metadata needed by retained components when their owning controllers are excluded. The generated control application is supplied by the existing MATLAB support-package workflow. [Controller integration](CONTROLLER_INTEGRATION.md) documents the existing project/model interface; vehicle setup belongs in the airframe guides linked below.
 
-| Document | Use it for |
+Both modified branches use the same startup modes, airframe selection flags and per-link telemetry settings. PX4 v1.16.1 retains its existing Simulink support-package integration and parameter module; v1.17.0 uses the custom `px4_simulink_io` toolbox and `simulink_io` runner. Model-specific controller parameters stay with their project.
+
+Vehicle-specific builds, preset parameters, output assignments and commissioning are documented separately:
+
+| Airframe | Hardware preset IDs | Guide |
+| --- | --- | --- |
+| R1D1 CAN avionics quadrotor | 22010 | [R1D1](../../../Documentation/airframes/r1d1.md) |
+| Holybro X500 V2 Simulink variants | 4030, 4031 | [X500](../../../Documentation/airframes/x500.md) |
+| S2F-X200 external-control VTOL | 22000 | [X200](../../../Documentation/airframes/x200.md) |
+
+## Build and startup
+
+Run these commands from the selected PX4 checkout. Replace `cubeorangeplus` with `cubeorange` or use `px4_fmu-v6c` for their corresponding Simulink profiles.
+
+| Target | Initial `SIMULINK_MODE` | Controllers | Hardware airframes |
+| --- | --- | --- | --- |
+| `make cubepilot_cubeorangeplus_default` | 0 | Stock PX4 | Stock |
+| `make cubepilot_cubeorangeplus_simulink` | 1 | Stock PX4 + Simulink tasks | Stock + custom |
+| `make cubepilot_cubeorangeplus_simulinkctrl` | 2 | External control; stock controllers and allocator omitted | Custom only |
+| `make px4_sitl_simulink` | 1 | Stock PX4 + Simulink tasks | Stock + custom simulation airframes |
+| `make px4_sitl_simulinkctrl` | 2 | External control | Stock + custom simulation airframes |
+
+Hardware `default.px4board` files follow their upstream release. The existing v1.16.1 SITL default configuration is intentionally retained. Upload the resulting target's `.px4` package using the normal PX4 uploader or QGroundControl custom firmware workflow.
+
+`SIMULINK_MODE` is a saved System parameter; reboot after changing it. Zero runs stock vehicle startup and starts no additional Simulink tasks. One runs stock vehicle startup and then the branch's Simulink tasks. Two starts the land detector (and airspeed selector for fixed-wing/VTOL), followed by the Simulink tasks, while omitting stock controller and allocator startup. In v1.17.0 these tasks are `simulink_io` and `simulink_guidance`; in v1.16.1 the shared startup starts `simulink_guidance`, and the existing support-package deployment supplies the generated application. Mode zero cannot restore controllers absent from a minimal binary: choose a full build when testing stock control.
+
+Board configuration flags make packaging explicit, without interpreting target names:
+
+| Flag | Purpose |
 | --- | --- |
-| This setup guide | Installation, build selection, firmware configuration and troubleshooting |
-| [Controller interface](CONTROLLER_INTEGRATION.md) | Pilot inputs, GCS commands, actuator outputs and telemetry payloads |
+| `CONFIG_BOARD_STOCK_AIRFRAMES=y/n` | Include/exclude stock hardware and simulation airframe scripts and their selection metadata |
+| `CONFIG_BOARD_CUSTOM_AIRFRAMES=y/n` | Include/exclude development airframes and common defaults |
+| `CONFIG_BOARD_SIMULINK_MODE=0/1/2` | Initial parameter default for this build |
 
-Identical copies are distributed in the firmware's `src/modules/simulink_parameters` folder and the aircraft project's `S2F-X200/PX4-Firmware Setup` folder. Keep the two documents together so their relative links work. Source paths below are relative to the firmware root; project paths are independent of the OneDrive mount location.
+Enabling the branch's Simulink module also packages vehicle startup scripts and defaults, even when their usual owning controllers are excluded. Minimal builds therefore retain scripts such as `rc.mc_defaults`. Actuator configuration metadata is retained without linking the allocator task. Builds do not select an airframe or change `SYS_AUTOSTART`. Select the desired preset in QGroundControl and reboot; saved user parameters continue to take precedence over defaults.
 
-## 1. Install the firmware in Ubuntu
+## Adding custom airframes
 
-| Item | Location / requirement |
+Place hardware scripts in `ROMFS/px4fmu_common/custom_airframes/init.d/airframes/` and simulation scripts in `ROMFS/px4fmu_common/custom_airframes/init.d-posix/airframes/`, using the usual numeric ID and PX4 airframe header. CMake discovers these files automatically; no filename lists or parser changes are required. Custom Gazebo scripts supplied by `Tools/simulation/gz/airframes/` are also discovered automatically for Gazebo builds. Keep IDs unique within each collection and make custom scripts self-contained or dependent only on other enabled scripts.
+
+The stock/custom flags select entire collections independently of Simulink mode or build name. Both custom X500 presets are included when custom airframes are enabled; select the one compatible with the compiled controllers and `SIMULINK_MODE`. The standard PX4 parser and flat runtime script paths are unchanged.
+
+## Custom airframes in QGroundControl
+
+Upload the selected `.px4` file through QGroundControl’s **Custom Firmware** option, then fully close and restart QGC to see the new airframes. Select the desired preset and apply/reboot the flight controller.
+
+## Shared custom-airframe parameters
+
+These defaults come from `ROMFS/px4fmu_common/custom_airframes/init.d/rc.development_airframe_defaults`; stock airframes do not source this script. They apply when the selected custom airframe loads, and saved values take precedence.
+
+| Parameter | Default | Purpose |
+| --- | ---: | --- |
+| `COM_DISARM_LAND` | -1 | Disable automatic disarming after landing |
+| `COM_DISARM_PRFLT` | -1 | Disable the preflight automatic-disarm timer |
+| `COM_KILL_DISARM` | 0 | No configured delay before disarming on kill |
+| `COM_LKDOWN_TKO` | 1 s | Allow attitude-failure disarming during the first second after takeoff, in applicable flight modes |
+| `MAV_0_MODE` | 15 | Simulink telemetry: Normal messages plus selected parameter rate overrides |
+
+These settings do not eliminate other Commander disarming/failsafe paths. Review kill, lockdown and disarming behavior for the installed vehicle. `MAV_0_MODE` controls telemetry; `SIMULINK_MODE` controls task startup. Selecting telemetry mode 15 does not start a Simulink controller.
+
+## Gazebo assets
+
+Both branches pin the same existing experimental model revision, `5b6fdc041f24d7a570b162dade68e083426f4e7f`, from `v1.16.1-custom-frames` in the Gazebo-model fork. The historical branch name does not select the PX4 firmware version. Use `git submodule update --init --recursive` to obtain the pinned models. Launch commands and model limitations belong in each airframe guide.
+
+## Independent MAVLink links
+
+Custom hardware airframes preset `MAV_0_MODE=15` for the configured telemetry link. This custom Simulink MAVLink profile starts with the complete Normal-profile message set, including `DISTANCE_SENSOR`, `OBSTACLE_DISTANCE` and `SCALED_PRESSURE`, then applies the selected standard-stream rate overrides and custom streams. Other profiles retain their existing behavior. This telemetry profile is independent of `SIMULINK_MODE` and does not start a Simulink controller. Saved profile settings take precedence; select mode 15 in QGC if an existing setup still uses mode 0.
+
+Custom Simulink streams can accompany any standard MAVLink profile, including normal telemetry and USB. `MAV_n_SM_MASK` selects custom streams for link profile `n`; `MAV_n_SM_STD` selects the standard-stream overrides used by MAVLink mode 15 (Simulink). A mask of `-1` inherits `SM_MAV` or `SM_MAVSTD`; zero disables that custom selection. Each `MAV_n_SM_Ck_R` or `MAV_n_SM_Sk_R` rate is in Hz: `-1` inherits the corresponding global rate, zero disables the selected stream, and a positive value requests that rate. Reboot/restart the link after changing these settings. Actual throughput remains limited by source updates and the link bandwidth budget.
+
+| Link | Profile `n` |
 | --- | --- |
-| Environment | Ubuntu 24.04 |
-| Installer | Aircraft project: `S2F-X200/PX4-Firmware Setup/install.sh` |
-| Firmware destination | `~/PX4/v1.16.1-mod/` |
-| Installer actions | Clone the modified firmware, install dependencies and test-build the default SITL target |
+| Configured `MAV_0`, `MAV_1`, `MAV_2` serial/network links | 0, 1, 2 respectively |
+| Hardware USB | 3 |
+| SITL GCS, offboard, payload, gimbal, SIH | 0, 1, 2, 3, 4 respectively |
+| Manually started link | Supply `mavlink start -I n ...` (0–5); omission uses global settings |
 
-Open an Ubuntu terminal in `PX4-Firmware Setup`, or copy `install.sh` into a convenient Ubuntu directory and open a terminal there. Run:
+These indices identify configuration profiles, independent of runtime MAVLink instance start order. For example, set `MAV_0_SM_MASK=0` to suppress custom streams on TELEM1 and `MAV_3_SM_MASK=511` to select all custom streams on USB. Set `MAV_3_SM_C3_R=50` to request USB's primary outbound stream at 50 Hz without changing other links.
 
-```bash
-bash install.sh
-```
+| `k` | Custom stream (`Ck_R`) | Global rate |
+| --- | --- | --- |
+| 0 | `COMPANION_GUIDANCE_OUTBOUND` | `SMG_MAVOUT_R` |
+| 1 | `COMPANION_GUIDANCE_INBOUND` | `SMG_MAVIN_R` |
+| 2 | `SIMULINK_INBOUND` | `SM_MAVIN_R` |
+| 3 | `SIMULINK_OUTBOUND` | `SM_MAVOUT_0_R` |
+| 4–6 | `SIMULINK_OUTBOUND_1..3` | `SM_MAVOUT_1_R..3_R` |
+| 7 | `SIMULINK_GUIDANCE` | `SMG_MAV_R` |
+| 8 | `SIMULINK_INBOUND_CTRL` | `SM_MAVCTRL_R` |
 
-After a successful installation and test build, continue with MATLAB setup. The installer is distributed with the aircraft project, not in the firmware documentation folder.
+| `k` | Standard stream (`Sk_R`, mode 15) | Global rate |
+| --- | --- | --- |
+| 0 | `ATTITUDE` | `SM_MAV_ATT_R` |
+| 1 | `ATTITUDE_QUATERNION` | `SM_MAV_ATTQ_R` |
+| 2 | `ATTITUDE_TARGET` | `SM_MAV_ATTT_R` |
+| 3 | `LOCAL_POSITION_NED` | `SM_MAV_LP_R` |
+| 4 | `POSITION_TARGET_LOCAL_NED` | `SM_MAV_LPT_R` |
+| 5 | `GLOBAL_POSITION` | `SM_MAV_GP_R` |
+| 6 | `GLOBAL_POSITION_INT` | `SM_MAV_GPI_R` |
+| 7 | `POSITION_TARGET_GLOBAL_INT` | `SM_MAV_GPT_R` |
+| 8 | `SERVO_OUTPUT_RAW_0` | `SM_MAV_SRV_R` |
+| 9 | `ESC_STATUS` | `SM_MAV_ESC_R` |
+| 10 | `RAW_RPM` | `SM_MAV_RPM_R` |
 
-### Update an existing installation
+Masks use the same bit numbers as the tables. A cleared standard override bit leaves the inherited Normal-profile rate in place; it does not suppress every stock stream with that name. Custom MAVLink messages still require the matching ground-side dialect. DroneCAN device discovery and configuration are separate from this MAVLink stream policy.
 
-Update the existing repository rather than rerunning the installer. From the firmware directory, run:
+## Toolbox and installation
 
-```bash
-cd ~/PX4/v1.16.1-mod
-git pull
-git submodule update --init --recursive
-```
+The v1.17.0 custom toolbox is `/home/jack/GitHub/px4_simulink_io`; its `px4/` folder mirrors matching firmware integration files. Export generated model code into `src/modules/simulink_io/generated_code`, then build the selected target. Keep the runner and generator versions together. v1.16.1 continues using its existing support-package deployment and `simulink_parameters`; the common firmware startup does not invent a generated controller task when no model is deployed.
 
-| Command / next step | Purpose |
-| --- | --- |
-| `git pull` | Fetch and integrate updates to the currently checked-out firmware branch |
-| `git submodule update --init --recursive` | Initialize missing submodules and check out the exact revisions recorded by the updated firmware, including nested submodules |
-| Rebuild | Generate a new firmware binary; use the build command for your selected target below |
-| Hardware upload | Flash the rebuilt firmware to apply the update on the autopilot |
-| MATLAB setup | Rerun if the board/target or uORB message definitions used by Simulink changed |
+The installation script belongs in the toolbox at `tools/install_mod.sh`, mirrored from `/home/jack/Jack_Scripts/ubuntu/PX4/install_mod.sh`. Run it deliberately: it offers to replace an existing checkout, clones the modified branch with pinned submodules, installs dependencies and test-builds SITL. The mirrored installer currently targets `v1.17.0-mod`; use the existing v1.16.1 checkout/project installation for the support-package workflow. It is not part of the PX4 source overlay.
 
-Preserve or commit local changes before updating; resolve any conflicts before rebuilding. The recursive submodule command is safe to run after every pull and does not track arbitrary newer submodule revisions. Updating source files alone does not update a running SITL binary or flashed firmware. Existing saved parameter values remain in effect.
+PX4 owns input calibration/source selection, accepted mode, arming, estimation, output drivers and transport. External controllers should use `manual_control_setpoint` for the selected RC/joystick source and `vehicle_status` for accepted navigation/arming state, then publish the output topic expected by the selected driver. Controller-specific stick mapping, state transitions and tuning remain in the model. Avoid multiple controllers publishing competing actuator demands.
 
-## 2. Configure the MATLAB support package
+## MATLAB support-package deployment
 
 Install **UAV Toolbox Support Package for PX4 Autopilots** in MATLAB and launch its setup app.
 
 1. Select the firmware directory installed by the script, normally `~/PX4/v1.16.1-mod` (expand `~` to your Ubuntu home directory if required by the file picker).
 2. Select **Validate**. A firmware validation warning is expected for this modified tree; proceed with setup. Actual validation errors should be resolved before continuing.
 3. Select the build configuration for your target using the table below.
-4. Leave the option to **disable multicopter and fixed-wing modules** **unchecked**. The project board configuration already excludes the stock controllers needed to hand control over to Simulink.
+4. Leave the option to **disable multicopter and fixed-wing modules** **unchecked**. The selected board profile determines which stock controllers are included; the setup app should not independently remove them.
 5. Complete the remaining setup steps for your target.
 
 ### Select the build configuration
@@ -71,9 +140,9 @@ Paths in this table are relative to the firmware directory.
 | --- | --- |
 | `simulinkctrl.px4board` | Minimal Simulink-controlled build: excludes stock controllers and selected unnecessary drivers; retains guidance and custom parameters |
 | `simulink.px4board` | Stock controllers plus project Simulink features |
-| `default.px4board` | Required SITL setup entry point; hardware defaults in this project also use the copied minimal profile |
+| `default.px4board` | Required SITL setup entry point; hardware default profiles remain stock |
 
-For hardware, select the explicit `simulinkctrl.px4board` file. The project's hardware defaults are not stock reference configurations.
+For hardware, select the explicit `simulinkctrl.px4board` file. Hardware `default.px4board` files remain stock; select the explicit custom profile.
 
 ### When to rerun setup
 
@@ -85,7 +154,7 @@ For hardware, select the explicit `simulinkctrl.px4board` file. The project's ha
 
 After setup, use Connected I/O, Run on Board or normal compilation as supported by the target.
 
-## 3. Maintain custom parameters
+## Maintain parameter definitions
 
 The module supplies parameter definitions for the custom application and for PX4 components retained in a minimal build.
 
@@ -96,98 +165,9 @@ The module supplies parameter definitions for the custom application and for PX4
 | `simulinkctrl` profile | Excludes stock controller code from compilation, avoiding competing controllers and reducing firmware size/memory |
 | `CONFIG_MODULES_SIMULINK_PARAMETERS=y` | Packages the required vehicle defaults and startup scripts through the shared CMake configuration |
 
-### Rebuild after changing parameter definitions
 
-**Rebuild after adding or changing parameters, defaults or metadata.** Editing YAML alone does not update an existing binary.
-
-From the firmware root (`cd ~/PX4/v1.16.1-mod`), run only the command for your target:
-
-| Target | Build command |
-| --- | --- |
-| SITL | `make px4_sitl_default` |
-| CubeOrange | `make cubepilot_cubeorange_simulinkctrl` |
-| CubeOrange+ | `make cubepilot_cubeorangeplus_simulinkctrl` |
-| FMU-v6C | `make px4_fmu-v6c_simulinkctrl` |
-
-If setup explicitly uses a hardware `default` profile, build that target instead, for example `make cubepilot_cubeorangeplus_default`.
-
-| After rebuilding | What to do |
-| --- | --- |
-| SITL | Run the rebuilt binary |
-| Hardware | Upload the rebuilt firmware; building does not flash it |
-| Changed default value | Check existing saved values, which take precedence over the new default |
-
-## 4. Modified firmware: topics, telemetry, and logging
-
-For the current pilot-input mapping, accepted mode and arm/kill state, actuator outputs, GCS command formats and controller telemetry, see the [X200 PX4–Simulink interface overview](CONTROLLER_INTEGRATION.md).
-
-### S2F-X200 hardware airframe
-
-Select **S2F-X200** in the **Standard VTOL** airframe group, or set `SYS_AUTOSTART=22000` and reboot. Its startup file is `ROMFS/px4fmu_common/init.d/airframes/22000_s2f_x200_simulink`. It uses the standard VTOL vehicle defaults and exposes five motor channels and seven servo channels for the Simulink model:
-
-| Logical channel | Model function |
-| --- | --- |
-| Motors [1, 4] | Lift propellers LP-1 through LP-4 |
-| Motor 5 | Cruise propeller MP-1 |
-| Servo 1 | Left outboard aileron |
-| Servo 2 | Left flap |
-| Servo 3 | Right flap |
-| Servo 4 | Right outboard aileron |
-| Servo 5 | Left elevator |
-| Servo 6 | Right elevator |
-| Servo 7 | Rudder |
-
-| Responsibility | Owner / action |
-| --- | --- |
-| Control and mixing | Simulink publishes `actuator_motors` and `actuator_servos` directly |
-| Physical PWM/CAN routing | Assign the corresponding motor/servo output functions in QGC; existing saved routing is preserved |
-| Airspeed selection and VTOL land detection | Started by the X200 startup path |
-| Stock flight controllers and allocator | Not started on this airframe |
-| Generated application installation/startup | MATLAB support-package setup |
-
-The channel list describes logical outputs, not a tuned PX4 allocation matrix.
-
-| Build | Airframes packaged |
-| --- | --- |
-| Hardware `simulinkctrl`, or copied minimal `default` | X200 only, with matching single-airframe `airframes.xml` |
-| Stock-control `simulink` | Normal airframe selection |
-| SITL | Existing simulation airframes plus external-simulator X200 (22000); experimental Gazebo X200 (22001) comes from the Gazebo fork |
-
-A GCS may display its own cached/bundled airframe catalog. Select the airframe ID directly if the custom entry is missing.
-
-### Guidance trajectory location
-
-The X200 presets select the trajectory location for the platform:
-
-| Platform | `SMG_TRAJ_DIR` default | Trajectory directory |
-| --- | --- | --- |
-| Hardware | **1: SD card** | `/fs/microsd/Trajectories/`; copy `Trajectories` to the SD-card root |
-| SITL | **0: local** | `./Trajectories/` relative to the PX4 working directory, normally the SITL `rootfs` directory |
-
-The shared hardware airframe sets the SD-card default. The SITL airframe sources it first, then overrides the default to local storage. Place the trajectory files in the selected directory; the preset does not create them. Saved parameter values take precedence, so reset `SMG_TRAJ_DIR` to its airframe default or set it explicitly when changing platforms. A Gazebo-specific wrapper should source the SITL X200 preset or apply the same local override after the shared defaults.
-
-### X200 disarming defaults
-
-The shared X200 airframe sets these defaults for hardware, external-simulator SITL, and the Gazebo X200 variant:
-
-| Parameter | Default | Effect |
-| --- | --- | --- |
-| `COM_DISARM_LAND` | -1 | Disable landing-triggered automatic disarming. |
-| `COM_DISARM_PRFLT` | -1 | Disable preflight/no-takeoff automatic disarming. |
-| `COM_KILL_DISARM` | 0 | Disarm without a configured delay after kill/lockdown. |
-| `COM_LKDOWN_TKO` | 1 s | Shorten the early critical-failure disarm window; does not disable it. |
-
-| Behavior | Meaning |
-| --- | --- |
-| Normal RC disarm | `COM_DISARM_MAN=1` permits airborne RC switch/stick/button disarm in multicopter manual-thrust modes such as Stabilized |
-| FW or ordinary MAVLink disarm | The same airborne exception does not apply; Commander checks the request |
-| Emergency force-disarm | `MAV_CMD_COMPONENT_ARM_DISARM`, `param1=0`, `param2=21196` |
-| Automatic protection | Commander lockdown, spoolup battery/ESC failures and configured failsafes can still disarm or terminate outputs |
-| Early critical-failure window | Includes `COM_SPOOLUP_TIME` plus `COM_LKDOWN_TKO`, measured from arming |
-
-These defaults do not make disarming exclusively pilot-controlled. Existing saved values take precedence; reset the four settings to airframe defaults or set them explicitly when updating an already configured vehicle.
-
-### Separate debug-array topics for Simulink
+Rebuild after changing parameter definitions or metadata. MATLAB model bindings do not create firmware parameter definitions. Existing saved parameter values can override updated defaults. Use the build commands above for the selected target.
+## Debug-array topic contract
 
 Each named topic below is an independent channel using the `DebugArray` structure.
 
@@ -197,7 +177,6 @@ Each named topic below is an independent channel using the `DebugArray` structur
 | Identity fields | uORB `id` and 10-character `name`; the MAVLink streamer supplies fixed identities for the named channels |
 | Simulink access | Publish/subscribe by the exact topic name; these are not interchangeable instance numbers |
 | Application data | Producer and consumer must agree on the array layout |
-| X200 GCS output | `simulink_outbound`; three extra outbound channels are available but unused |
 | Guidance channels | Reserved for guidance state, references and companion traffic; see [topic ownership](CONTROLLER_INTEGRATION.md#guidance-topic-ownership) |
 
 Publishing one channel does not update the others. Stock controllers do not populate these project-specific topics.
@@ -214,57 +193,21 @@ Publishing one channel does not update the others. Stock controllers do not popu
 | `companion_guidance_inbound` | 121 | `compg_in` | 1 | `SMG_MAVIN_R` |
 | `companion_guidance_outbound` | 120 | `compg_out` | 0 | `SMG_MAVOUT_R` |
 
-### MAVLink streaming to the ground station
 
-Custom Simulink telemetry is available on **every MAVLink profile**. The profile selects the standard telemetry preset; `SM_MAV` independently selects which custom topics to send on all links.
-
-| Setting | Purpose | X200 default |
-| --- | --- | --- |
-| `MAV_0_MODE` | Standard telemetry preset for the primary hardware link | **15: Simulink**, a lean status/navigation preset with configurable standard streams |
-| `SM_MAVSTD` | Select additional standard messages within the Simulink preset | See the standard-stream table below |
-| `SM_MAV` | Select custom Simulink topics on every link | **511: all custom topics enabled** |
-| Custom rate parameters | Set each custom stream's target frequency; names are in the topic table above | **20 Hz** |
-| `MAV_PROTO_VER` | MAVLink wire protocol | **2**, required for `DEBUG_FLOAT_ARRAY` |
-| `MAV_n_RATE` | Overall bandwidth budget for link `n` | Depends on the link configuration |
-
-SITL selects the Simulink preset through its startup script. Other profiles, including Normal, Onboard, Config and Companion, keep their own standard telemetry while using the same custom-topic selection.
-
-| Desired custom telemetry | `SM_MAV` value |
-| --- | --- |
-| Disabled | **0** |
-| X200 GCS output only (`simulink_outbound`) | **8** |
-| All custom topics | **511** |
-| Any other combination | Sum the bit values for the desired topics, using the table above |
-
-The general firmware default is 255; X200 overrides it to 511. A selected stream also needs a positive rate. Restart the affected links or reboot after changing the automatic stream settings. Explicit GCS stream requests can override the configured rates.
-
-**What the ground station receives**
-
-| Item | Interface |
-| --- | --- |
-| MAVLink message | `DEBUG_FLOAT_ARRAY` (message 350), containing 58 float values |
-| Active X200 output | `simulink_outbound`: `array_id=100`, `name="outbound"` |
-| Spare output channels | `simulink_outbound_1`, `_2`, `_3`; available but unused by the current model |
-| Channel identification | PX4 assigns each named topic's fixed ID and name when transmitting; the GCS selects the channel by `array_id` |
-| Fields to populate in Simulink | `timestamp` and `data`; no need to assign `id` or `name` |
-
-The [interface overview](CONTROLLER_INTEGRATION.md) describes the X200 payload and reserves the guidance channels. PX4's outgoing ID/name assignment does not change the original uORB or logged fields.
-
-Telemetry is sent only when new topic data is available. Publication rate and link bandwidth can reduce the achieved rate; these streaming settings do not change the controller's sample time or ULog recording rate.
-
-### Automatic ULog topic logging
+Named custom channels are carried in MAVLink `DEBUG_FLOAT_ARRAY` and need MAVLink 2. The streamer supplies their fixed channel ID/name; a model normally populates `timestamp` and `data`. See [Controller integration](CONTROLLER_INTEGRATION.md) for the existing project payload and topic ownership. Global and per-link rate controls are documented above.
+## ULog configuration
 
 Logging has three independent decisions: enable the profile, select topics, and run a recording session.
 
 | Setting | Role | Useful values |
 | --- | --- | --- |
-| `SDLOG_PROFILE` | Include the Simulink topic profile (bit 12, value 4096) | **4097**: standard + Simulink (X200 default); **4227**: SITL profile 131 + Simulink |
+| `SDLOG_PROFILE` | Include the Simulink topic profile (bit 12, value 4096) | **4097**: standard + Simulink; **4227**: SITL profile 131 + Simulink |
 | `SM_LOG` | Select custom topic groups | **511**: all nine groups (default) |
 | Interval parameters | Limit the recording frequency of selected groups | See table below |
 | `SDLOG_MODE` | Decide when recording runs | See session table below |
 | Custom `etc/logging/logger_topics.txt` | A nonempty file replaces normal profile selection | Include desired topics explicitly when using it |
 
-`SM_LOG` alone does not enable the Simulink profile. The general SITL profile 131 does not include bit 12; X200 supplies its own default. Data is recorded only while the logger/session is active and the topic is publishing.
+`SM_LOG` alone does not enable the Simulink profile. The general SITL profile 131 does not include bit 12; select a profile that includes it when these topics are needed. Data is recorded only while the logger/session is active and the topic is publishing.
 
 | `SM_LOG` bit | Topics | Interval parameter | Default |
 | --- | --- | --- | --- |
@@ -302,37 +245,6 @@ Actual recording is limited by publication rate, logger scheduling and storage. 
 
 `SDLOG_BOOT_BAT=1` additionally prevents boot-start logging without detected battery power; its default is 0. Reboot after changing logging mode/profile settings. Selecting topics does not by itself start a recording session.
 
-### Standard telemetry rate controls in Simulink mode
-
-| Control | Behavior |
-| --- | --- |
-| Scope | Selected standard PX4 messages in the Simulink MAVLink preset |
-| Selection | `SM_MAVSTD=2015` enables all defined bits below; bit 5 is unused |
-| Frequency | Each selected message uses its own rate parameter |
-| Clear bit / zero rate | Skip that override; another mechanism may still configure the stream |
-| Apply changes | Restart the MAVLink instance or reboot |
-
-These controls are separate from custom-topic streaming (`SM_MAV`) and recording (`SM_LOG`).
-
-| `SM_MAVSTD` bit | MAVLink stream | Rate parameter | Default | Range |
-| --- | --- | --- | --- | --- |
-| 0 | `ATTITUDE` | `SM_MAV_ATT_R` | 15 Hz | [0, 250] Hz |
-| 1 | `ATTITUDE_QUATERNION` | `SM_MAV_ATTQ_R` | 10 Hz | [0, 250] Hz |
-| 2 | `ATTITUDE_TARGET` | `SM_MAV_ATTT_R` | 2 Hz | [0, 250] Hz |
-| 3 | `LOCAL_POSITION_NED` | `SM_MAV_LP_R` | 10 Hz | [0, 250] Hz |
-| 4 | `POSITION_TARGET_LOCAL_NED` | `SM_MAV_LPT_R` | 10 Hz | [0, 250] Hz |
-| 6 | `GLOBAL_POSITION_INT` | `SM_MAV_GPI_R` | 5 Hz | [0, 50] Hz |
-| 7 | `POSITION_TARGET_GLOBAL_INT` | `SM_MAV_GPT_R` | 1 Hz | [0, 50] Hz |
-| 8 | `SERVO_OUTPUT_RAW_0` | `SM_MAV_SRV_R` | 10 Hz | [0, 250] Hz |
-| 9 | `ESC_STATUS` | `SM_MAV_ESC_R` | 1 Hz | [0, 50] Hz |
-| 10 | `RAW_RPM` | `SM_MAV_RPM_R` | 2 Hz | [0, 100] Hz |
-
-| Source file | Definitions |
-| --- | --- |
-| `src/modules/mavlink/module.yaml` | Custom and standard telemetry controls |
-| `src/modules/logger/module.yaml` | Logging masks and intervals |
-| `msg/DebugArray.msg` | Shared debug-array schema and routing IDs |
-
 ## Troubleshooting
 
 | Symptom | Check / action |
@@ -341,10 +253,16 @@ These controls are separate from custom-topic streaming (`SM_MAV`) and recording
 | Missing `simulink_custom_message.h` | Ensure the message definition is present and registered, then rerun setup. Preserve custom work before restoring clean project firmware if generated integration files are stale. |
 | Missing `MC_ROLL_P`, `HTE_VXY_THR` or similar tuning parameters | These can be absent in a minimal build because their stock controllers/estimator are excluded. Required shared definitions come from `simulink_parameters`; do not re-enable controllers solely to restore private tuning settings. |
 | Missing `rc.mc_defaults` or similar startup script | Check `CONFIG_MODULES_SIMULINK_PARAMETERS=y` and shared startup CMake packaging, then rebuild. Vehicle defaults are needed even when stock controllers are excluded. |
-| Guidance cannot find its trajectory in SITL | Supply the selected file under local `./Trajectories/`. X200 uses `SMG_TRAJ_DIR=0`; saved SD-card settings can override this. Set `SMG_TRAJ_DIR=0` for an existing session if needed. |
+| Guidance cannot find its trajectory in SITL | Supply the selected file under local `./Trajectories/`. Simulation airframes can select `SMG_TRAJ_DIR=0`; saved SD-card settings can override this. Set `SMG_TRAJ_DIR=0` for an existing session if needed. |
 
 **Verify the R2026b support module after setup**
 
 The `px4_simulink_utils` directory should contain `CMakeLists.txt`, `Kconfig`, `px4_simulink_utils.cpp`, `px4_simulink_utils.h`, and `px4_simulink_utils_params.c`. Git does not track empty directories, so reverting files may leave an empty directory that must still be removed before a clean setup.
 
 Optional stock defaults use `param set-default -s` in `rc.vtol_defaults`, allowing excluded-controller parameters to be skipped quietly. The trajectory directory setting selects a location; it does not create trajectory files.
+
+## Items to complete
+
+- Verify independent MAVLink rates with the actual GCS/toolbox and connection bandwidth.
+- Verify each project's generated-controller deployment, output ownership and failsafes before using startup mode 2.
+- Complete the installation-specific checks in the selected airframe guide.

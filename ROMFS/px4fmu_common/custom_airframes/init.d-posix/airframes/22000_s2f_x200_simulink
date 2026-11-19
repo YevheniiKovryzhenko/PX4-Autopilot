@@ -25,3 +25,5 @@ param set-default PWM_MAIN_FUNC9 204
 param set-default PWM_MAIN_FUNC10 205
 param set-default PWM_MAIN_FUNC11 206
 param set-default PWM_MAIN_FUNC12 207
+
+. ${R}etc/init.d/rc.development_airframe_defaults

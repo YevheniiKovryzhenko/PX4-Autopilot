@@ -8,3 +8,5 @@
 . ${R}etc/init.d-posix/airframes/4040_gz_s500_simulink
 
 PX4_SIM_MODEL=s500_lidar_down
+
+. ${R}etc/init.d/rc.development_airframe_defaults

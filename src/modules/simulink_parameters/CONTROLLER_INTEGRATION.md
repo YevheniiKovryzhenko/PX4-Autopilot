@@ -8,7 +8,7 @@ Simulink reads PX4's selected inputs and accepted state, then publishes actuator
 | PX4 | Input calibration/source selection, accepted mode, arming, estimation, output drivers, logging and MAVLink transport |
 | Model / airframe | `S2F_X200_PX4_26b`, X200 (`SYS_AUTOSTART=22000`) |
 | GCS output | `simulink_outbound` |
-| Stock controllers / allocator | Not started on this airframe |
+| Stock controllers / allocator | Not started when `SIMULINK_MODE=2`; the airframe does not force the startup mode |
 
 Installation and tuning are covered in [README.md](README.md). Keep these documents together so links work in either the firmware or the project's `PX4-Firmware Setup` folder. Source-file paths are relative to the installed firmware root.
 
@@ -270,7 +270,7 @@ Do not transmit GCS debug arrays with ID 100 back to PX4: the receiver can publi
 | Hardware | `SMG_TRAJ_DIR=1`: `/fs/microsd/Trajectories/` on the SD card |
 | SITL | `SMG_TRAJ_DIR=0`: `./Trajectories/` relative to the PX4 working directory, normally `rootfs` |
 
-Provide the trajectory files in that directory. Presets set defaults; saved values take precedence when switching platforms. See [trajectory setup](README.md#guidance-trajectory-location).
+Provide the trajectory files in that directory. Presets set defaults; saved values take precedence when switching platforms. See [trajectory setup](../../../Documentation/airframes/x200.md#simulation).
 
 Reserve the following interfaces for `simulink_guidance`; do not use them as extra pilot commands or GCS telemetry channels. Starting the module does not itself arm the aircraft, select a flight mode, or make the X200 controller follow its references. A consuming controller must implement that connection.
 
@@ -305,3 +305,5 @@ Reserve the following interfaces for `simulink_guidance`; do not use them as ext
 | `ROMFS/px4fmu_common/init.d/airframes/22000_s2f_x200_simulink` | Shared X200 defaults |
 
 Wire references: [MAVLink manual control](https://mavlink.io/en/services/manual_control.html) and [common messages](https://mavlink.io/en/messages/common.html). The local receiver's supported ranges and behavior define this firmware's interface.
+
+See the [module README](README.md) for common firmware setup and the [X200 airframe guide](../../../Documentation/airframes/x200.md) for presets and hardware/simulation output layout. External X200 control uses mode 2; modes 0 and 1 retain stock controller startup.

@@ -1361,175 +1361,98 @@ Mavlink::update_rate_mult()
 	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
 }
 
-template <typename Func>
-void add_std_topics_minimal(Func&& configure_stream_local)
+static int32_t simulink_link_mask(int profile, const char *suffix, const char *global_name)
 {
-	configure_stream_local("PING", 0.1f);
-	configure_stream_local("SYS_STATUS", 1.0f);
-	configure_stream_local("TIMESYNC", 5.0f);
-	configure_stream_local("BATTERY_STATUS", 0.5f);
-	configure_stream_local("CURRENT_MODE", 0.5f);
-	configure_stream_local("AVAILABLE_MODES", 0.3f);
-	configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-	configure_stream_local("HOME_POSITION", 0.5f);
-	configure_stream_local("RC_CHANNELS", 5.0f);
-	configure_stream_local("VFR_HUD", 4.0f);
-	configure_stream_local("ESTIMATOR_STATUS", 0.5f);
-	configure_stream_local("VIBRATION", 0.1f);
-	configure_stream_local("GPS_RAW_INT", 5.0f);
-	configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-	configure_stream_local("ALTITUDE", 1.0f);
+	int32_t mask = -1;
+	char name[17];
+
+	if (profile >= 0 && profile < 6) {
+		snprintf(name, sizeof(name), "MAV_%u_SM_%.4s", static_cast<unsigned>(profile), suffix);
+		const param_t handle = param_find(name);
+
+		if (handle != PARAM_INVALID) { param_get(handle, &mask); }
+	}
+
+	if (mask < 0) {
+		mask = 0;
+		const param_t handle = param_find(global_name);
+
+		if (handle != PARAM_INVALID) { param_get(handle, &mask); }
+	}
+
+	return mask;
+}
+
+static float simulink_link_rate(int profile, char group, unsigned index, const char *global_name)
+{
+	float rate = -1.f;
+	char name[17];
+
+	if (profile >= 0 && profile < 6 && index < 11) {
+		snprintf(name, sizeof(name), "MAV_%u_SM_%c%u_R", static_cast<unsigned>(profile), group, index);
+		const param_t handle = param_find(name);
+
+		if (handle != PARAM_INVALID) { param_get(handle, &rate); }
+	}
+
+	if (rate < 0.f) {
+		rate = 0.f;
+		const param_t handle = param_find(global_name);
+
+		if (handle != PARAM_INVALID) { param_get(handle, &rate); }
+	}
+
+	return rate;
 }
 
 template <typename Func>
-void add_std_topics_custom_rates(Func&& configure_stream_local)
+void add_std_topics_custom_rates(int profile, Func &&configure_stream_local)
 {
-	static param_t sm_std_handle = param_find("SM_MAVSTD");
-	int32_t sm_std_mask = 0;
+	static constexpr struct { const char *stream; const char *parameter; } streams[] = {
+		{"ATTITUDE", "SM_MAV_ATT_R"},
+		{"ATTITUDE_QUATERNION", "SM_MAV_ATTQ_R"},
+		{"ATTITUDE_TARGET", "SM_MAV_ATTT_R"},
+		{"LOCAL_POSITION_NED", "SM_MAV_LP_R"},
+		{"POSITION_TARGET_LOCAL_NED", "SM_MAV_LPT_R"},
+		{"GLOBAL_POSITION", "SM_MAV_GP_R"},
+		{"GLOBAL_POSITION_INT", "SM_MAV_GPI_R"},
+		{"POSITION_TARGET_GLOBAL_INT", "SM_MAV_GPT_R"},
+		{"SERVO_OUTPUT_RAW_0", "SM_MAV_SRV_R"},
+		{"ESC_STATUS", "SM_MAV_ESC_R"},
+		{"RAW_RPM", "SM_MAV_RPM_R"}
+	};
+	const int32_t mask = simulink_link_mask(profile, "STD", "SM_MAVSTD");
 
-	if (sm_std_handle != PARAM_INVALID && param_get(sm_std_handle, &sm_std_mask) == OK) {
-		// Bit 0: ATTITUDE
-		if (sm_std_mask & (1 << 0)) {
-			static param_t h = param_find("SM_MAV_ATT_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("ATTITUDE", rate);
-		}
-		// Bit 1: ATTITUDE_QUATERNION
-		if (sm_std_mask & (1 << 1)) {
-			static param_t h = param_find("SM_MAV_ATTQ_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("ATTITUDE_QUATERNION", rate);
-		}
-		// Bit 2: ATTITUDE_TARGET
-		if (sm_std_mask & (1 << 2)) {
-			static param_t h = param_find("SM_MAV_ATTT_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("ATTITUDE_TARGET", rate);
-		}
-		// Bit 3: LOCAL_POSITION_NED
-		if (sm_std_mask & (1 << 3)) {
-			static param_t h = param_find("SM_MAV_LP_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("LOCAL_POSITION_NED", rate);
-		}
-		// Bit 4: POSITION_TARGET_LOCAL_NED
-		if (sm_std_mask & (1 << 4)) {
-			static param_t h = param_find("SM_MAV_LPT_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("POSITION_TARGET_LOCAL_NED", rate);
-		}
-		// Bit 6: GLOBAL_POSITION_INT
-		if (sm_std_mask & (1 << 6)) {
-			static param_t h = param_find("SM_MAV_GPI_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("GLOBAL_POSITION_INT", rate);
-		}
-		// Bit 7: POSITION_TARGET_GLOBAL_INT
-		if (sm_std_mask & (1 << 7)) {
-			static param_t h = param_find("SM_MAV_GPT_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("POSITION_TARGET_GLOBAL_INT", rate);
-		}
-		// Bit 8: SERVO_OUTPUT_RAW_0
-		if (sm_std_mask & (1 << 8)) {
-			static param_t h = param_find("SM_MAV_SRV_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SERVO_OUTPUT_RAW_0", rate);
-		}
-		// Bit 9: ESC_STATUS
-		if (sm_std_mask & (1 << 9)) {
-			static param_t h = param_find("SM_MAV_ESC_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("ESC_STATUS", rate);
-		}
-		// Bit 10: RAW_RPM
-		if (sm_std_mask & (1 << 10)) {
-			static param_t h = param_find("SM_MAV_RPM_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("RAW_RPM", rate);
+	for (unsigned i = 0; i < sizeof(streams) / sizeof(streams[0]); ++i) {
+		if (mask & (1 << i)) {
+			const float rate = simulink_link_rate(profile, 'S', i, streams[i].parameter);
+			// Zero is an explicit per-link disable; negative values inherit globals.
+			configure_stream_local(streams[i].stream, rate);
 		}
 	}
 }
 
 template <typename Func>
-void add_simulink_topics(Func&& configure_stream_local)
+void add_simulink_topics(int profile, Func &&configure_stream_local)
 {
-	static param_t sm_mav_log_handle = param_find("SM_MAV");
-	int32_t sm_mav_mask = 0;
+	static constexpr struct { const char *stream; const char *parameter; } streams[] = {
+		{"COMPANION_GUIDANCE_OUTBOUND", "SMG_MAVOUT_R"},
+		{"COMPANION_GUIDANCE_INBOUND", "SMG_MAVIN_R"},
+		{"SIMULINK_INBOUND", "SM_MAVIN_R"},
+		{"SIMULINK_OUTBOUND", "SM_MAVOUT_0_R"},
+		{"SIMULINK_OUTBOUND_1", "SM_MAVOUT_1_R"},
+		{"SIMULINK_OUTBOUND_2", "SM_MAVOUT_2_R"},
+		{"SIMULINK_OUTBOUND_3", "SM_MAVOUT_3_R"},
+		{"SIMULINK_GUIDANCE", "SMG_MAV_R"},
+		{"SIMULINK_INBOUND_CTRL", "SM_MAVCTRL_R"}
+	};
+	const int32_t mask = simulink_link_mask(profile, "MASK", "SM_MAV");
 
-	if (sm_mav_log_handle != PARAM_INVALID && param_get(sm_mav_log_handle, &sm_mav_mask) == OK) {
-		// Bit 0: companion_guidance_outbound
-		if (sm_mav_mask & (1 << 0)) {
-			static param_t h = param_find("SMG_MAVOUT_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("COMPANION_GUIDANCE_OUTBOUND", rate);
-		}
-		// Bit 1: companion_guidance_inbound
-		if (sm_mav_mask & (1 << 1)) {
-			static param_t h = param_find("SMG_MAVIN_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("COMPANION_GUIDANCE_INBOUND", rate);
-		}
-		// Bit 2: simulink_inbound
-		if (sm_mav_mask & (1 << 2)) {
-			static param_t h = param_find("SM_MAVIN_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SIMULINK_INBOUND", rate);
-		}
-		// Bit 3: simulink_outbound (Base)
-		if (sm_mav_mask & (1 << 3)) {
-			static param_t h = param_find("SM_MAVOUT_0_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND", rate);
-		}
-		// Bit 4: simulink_outbound_1
-		if (sm_mav_mask & (1 << 4)) {
-			static param_t h = param_find("SM_MAVOUT_1_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND_1", rate);
-		}
-		// Bit 5: simulink_outbound_2
-		if (sm_mav_mask & (1 << 5)) {
-			static param_t h = param_find("SM_MAVOUT_2_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND_2", rate);
-		}
-		// Bit 6: simulink_outbound_3
-		if (sm_mav_mask & (1 << 6)) {
-			static param_t h = param_find("SM_MAVOUT_3_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SIMULINK_OUTBOUND_3", rate);
-		}
-		// Bit 7: simulink_guidance
-		if (sm_mav_mask & (1 << 7)) {
-			static param_t h = param_find("SMG_MAV_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SIMULINK_GUIDANCE", rate);
-		}
-		// Bit 8: simulink_inbound_ctrl
-		if (sm_mav_mask & (1 << 8)) {
-			static param_t h = param_find("SM_MAVCTRL_R");
-			float rate = 0.f;
-			if (h != PARAM_INVALID) param_get(h, &rate);
-			if (rate > 0.f) configure_stream_local("SIMULINK_INBOUND_CTRL", rate);
+	for (unsigned i = 0; i < sizeof(streams) / sizeof(streams[0]); ++i) {
+		if (mask & (1 << i)) {
+			const float rate = simulink_link_rate(profile, 'C', i, streams[i].parameter);
+			// Zero is an explicit per-link disable; negative values inherit globals.
+			configure_stream_local(streams[i].stream, rate);
 		}
 	}
 }
@@ -1589,6 +1512,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
+	case MAVLINK_MODE_SIMULINK:
 		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
 		configure_stream_local("ALTITUDE", 1.0f);
 		configure_stream_local("ATTITUDE", 15.0f);
@@ -2039,20 +1963,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #endif // !CONSTRAINED_FLASH
 		break;
 
-	case MAVLINK_MODE_SIMULINK:
-	{
-		add_std_topics_minimal(configure_stream_local);
-		add_std_topics_custom_rates(configure_stream_local);
-		break;
-	}
 
-	case MAVLINK_MODE_COMPANION:
-	{
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("TIMESYNC", 5.0f);
-		break;
-	}
+	case MAVLINK_MODE_COMPANION: {
+			configure_stream_local("PING", 0.1f);
+			configure_stream_local("SYS_STATUS", 5.0f);
+			configure_stream_local("TIMESYNC", 5.0f);
+			break;
+		}
 
 	default:
 		ret = -1;
@@ -2061,7 +1978,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	// Custom topic selection is independent of the link's standard-stream profile.
 	// SM_MAV and the corresponding rates apply to every MAVLink instance.
-	add_simulink_topics(configure_stream_local);
+
+
+	// Simulink retains the Normal message set and overrides only selected rates.
+	if (_mode == MAVLINK_MODE_SIMULINK) {
+		add_std_topics_custom_rates(_simulink_config_index, configure_stream_local);
+	}
+
+	// Apply custom streams independently of the standard link profile.
+	add_simulink_topics(_simulink_config_index, configure_stream_local);
 
 	if (configure_single_stream && !stream_configured && strcmp(configure_single_stream, "HEARTBEAT") != 0) {
 		// stream was not found, assume it is disabled by default
@@ -2126,8 +2051,17 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZp", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:I:fswxzZp", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'I':
+			if (px4_get_parameter_value(myoptarg, _simulink_config_index) != 0
+			    || _simulink_config_index < 0 || _simulink_config_index > 5) {
+				PX4_ERR("invalid Simulink link profile (use 0..5)");
+				err_flag = true;
+			}
+
+			break;
+
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
 				PX4_ERR("baudrate parsing failed");
@@ -3157,6 +3091,8 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::display_status()
 {
+	printf("  Simulink telemetry profile: %d (-1: global settings)\n", _simulink_config_index);
+
 #if !defined(CONSTRAINED_FLASH)
 	_receiver.enable_message_statistics();
 #endif // !CONSTRAINED_FLASH
@@ -3606,6 +3542,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force hardware flow control always on", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('Z', "Force hardware flow control always off", true);
 
+	PRINT_MODULE_USAGE_PARAM_INT('I', -1, 0, 5, "Simulink telemetry parameter profile (omitted: globals)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop a running instance");

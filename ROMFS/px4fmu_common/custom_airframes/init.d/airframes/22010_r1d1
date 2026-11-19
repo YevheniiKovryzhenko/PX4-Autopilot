@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# @name R1D1
+# @type Quadrotor x
+# @class Copter
+# @maintainer Yevhenii Kovryzhenko
+#
+. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.development_airframe_defaults
+
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
+
+# New-installation defaults only; existing saved routing remains authoritative.
+param set-default GPS_1_CONFIG 0
+param set-default GPS_2_CONFIG 0
+param set-default UAVCAN_ENABLE 3
+param set-default UAVCAN_BITRATE 1000000
+param set-default UAVCAN_NODE_ID 1
+param set-default UAVCAN_SUB_GPS 1
+param set-default UAVCAN_SUB_MAG 1
+param set-default UAVCAN_SUB_RNG 1
+param set-default UAVCAN_SUB_DPRES 1
+param set-default SENS_EN_SF45_CFG 0
+param set-default SF45C_ENABLE 1
+param set-default SF45C_NODE 70
+param set-default SF45C_SENSOR 0
+param set-default SF45C_ORIENT 24
+param set-default SF45C_YAW 0
+param set-default SF45C_TIMEOUT 100
+
+# Stock Position-mode collision prevention using the horizontal SF45 scan.
+param set-default -s MPC_POS_MODE 4
+param set-default CP_DIST 1.0
+param set-default CP_GO_NO_DATA 0
+
+# Downward US-D1: conditional EKF height aiding and terrain following.
+# Keep the existing primary height reference and stock sensor-validity checks.
+# Ainstein US-D1 published operating range; shared CAN rangefinder bounds.
+param set-default UAVCAN_RNG_MIN 0.5
+param set-default UAVCAN_RNG_MAX 50.0
+# Conservative PX4 starting noise, not measured US-D1 covariance.
+param set-default EKF2_RNG_NOISE 0.10
+param set-default EKF2_RNG_SFE 0.05
+param set-default EKF2_RNG_CTRL 1
+param set-default -s MPC_ALT_MODE 1
+param set-default SYS_HAS_NUM_DIST 1
+
+# Combined node 70/71 (or standalone 71): ArrayCommand IDs are zero-based.
+# CAN slot 6 -> wire ID 5 -> pad 1 (pump / Motor 5).
+# CAN slot 7 -> wire ID 6 -> pad 2 (nozzle 1 / Motor 6).
+# CAN slot 8 -> wire ID 7 -> pad 3 (nozzle 2 / Motor 7).
+# PX4's 0..1000 range becomes -1..+1 on CAN, then 1000..2000 us on the node.
+# Motor functions enforce motor prearm gating; disarmed/failsafe commands use the low endpoint.
+param set-default UAVCAN_SV_FUNC6 105
+param set-default UAVCAN_SV_MIN6 0
+param set-default UAVCAN_SV_MAX6 1000
+param set-default UAVCAN_SV_DIS6 0
+param set-default UAVCAN_SV_FAIL6 0
+param set-default UAVCAN_SV_FUNC7 106
+param set-default UAVCAN_SV_MIN7 0
+param set-default UAVCAN_SV_MAX7 1000
+param set-default UAVCAN_SV_DIS7 0
+param set-default UAVCAN_SV_FAIL7 0
+param set-default UAVCAN_SV_FUNC8 107
+param set-default UAVCAN_SV_MIN8 0
+param set-default UAVCAN_SV_MAX8 1000
+param set-default UAVCAN_SV_DIS8 0
+param set-default UAVCAN_SV_FAIL8 0
+param set-default UAVCAN_SV_REV 0
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+# Telemetry radio on TELEM1; serial baud must match the installed modem.
+param set-default MAV_0_CONFIG 101
+param set-default SER_TEL1_BAUD 230400
+param set-default MAV_0_MODE 15
+param set-default MAV_0_RADIO_CTL 1
+param set-default MAV_0_FLOW_CTRL 1
+param set-default MAV_0_RATE 18000
+param set-default MAV_0_FORWARD 0

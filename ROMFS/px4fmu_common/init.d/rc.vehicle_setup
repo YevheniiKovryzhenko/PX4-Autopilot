@@ -5,6 +5,34 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
+# Read the persisted setting after parameter loading and airframe defaults.
+set SIMULINK_MODE 0
+if param compare SIMULINK_MODE 1
+then
+    set SIMULINK_MODE 1
+fi
+if param compare SIMULINK_MODE 2
+then
+    set SIMULINK_MODE 2
+fi
+
+if [ "${SIMULINK_MODE}" = "2" ]
+then
+    if [ "$VEHICLE_TYPE" = "mc" ]
+    then
+        land_detector start multicopter
+    fi
+    if [ "$VEHICLE_TYPE" = "vtol" ]
+    then
+        airspeed_selector start
+        land_detector start vtol
+    fi
+    if [ "$VEHICLE_TYPE" = "fw" ]
+    then
+        airspeed_selector start
+        land_detector start fixedwing
+    fi
+else
 #
 # Fixed wing setup.
 #
@@ -65,12 +93,7 @@ fi
 if [ $VEHICLE_TYPE = vtol ]
 then
 	# Start standard vtol apps.
-	if [ "${SIMULINK_MODE}" = "1" ]
-	then
-		. ${R}etc/init.d/rc.vtol_simulink_apps
-	else
-		. ${R}etc/init.d/rc.vtol_apps
-	fi
+	. ${R}etc/init.d/rc.vtol_apps
 fi
 
 #
@@ -99,4 +122,14 @@ fi
 if [ $VEHICLE_TYPE = none ]
 then
 	echo "No autostart ID found"
+fi
+
+fi
+
+if [ "${SIMULINK_MODE}" = "1" ] || [ "${SIMULINK_MODE}" = "2" ]
+then
+    if [ -f "${R}etc/init.d/rc.simulink_apps" ]
+    then
+        . ${R}etc/init.d/rc.simulink_apps
+    fi
 fi

@@ -35,7 +35,11 @@ set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_FORMAT no
 set STARTUP_TUNE 1
 set VEHICLE_TYPE none
-set SIMULINK_MODE 0
+
+if [ -f "${R}etc/init.d/rc.development_defaults" ]
+then
+    . ${R}etc/init.d/rc.development_defaults
+fi
 
 # Airframe parameter versioning
 # Value set to 1 by default but can optionally be overridden in the airframe configuration startup script.
@@ -470,10 +474,6 @@ else
 	# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 	. ${R}etc/init.d/rc.vehicle_setup
 
-	if [ "${SIMULINK_MODE}" = "1" ] && [ -f "${R}etc/init.d/rc.simulink_apps" ]
-	then
-		. ${R}etc/init.d/rc.simulink_apps
-	fi
 
 	# Pre-takeoff continuous magnetometer calibration
 	if param compare -s MBE_ENABLE 1
@@ -508,7 +508,7 @@ else
 		then
 			sercon
 			echo "Starting MAVLink on /dev/ttyACM0"
-			mavlink start -d /dev/ttyACM0
+			mavlink start -I 3 -d /dev/ttyACM0
 		fi
 	fi
 

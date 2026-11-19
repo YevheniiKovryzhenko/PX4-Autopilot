@@ -1,0 +1,9 @@
+#!/bin/sh
+# Shared custom-airframe defaults. These do not affect stock airframes.
+param set-default COM_DISARM_LAND -1
+param set-default COM_DISARM_PRFLT -1
+param set-default COM_KILL_DISARM 0
+param set-default COM_LKDOWN_TKO 1
+
+# Parameter-controlled telemetry, retaining the Normal message set.
+param set-default MAV_0_MODE 15

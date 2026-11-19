@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# @name Holybro X500 V2 - Simulink Guidance
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Yevhenii Kovryzhenko <yevhenii.kovryzhenko@okstate.edu>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default IMU_GYRO_CUTOFF 30
+
+param set-default -s MC_ROLLRATE_P 0.14
+param set-default -s MC_PITCHRATE_P 0.14
+param set-default -s MC_ROLLRATE_I 0.3
+param set-default -s MC_PITCHRATE_I 0.3
+param set-default -s MC_ROLLRATE_D 0.004
+param set-default -s MC_PITCHRATE_D 0.004
+
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
+
+
+
+param set-default SMG_EN 1
+param set-default SMG_OUT_TYPE 3
+param set-default SMG_TRAJ_DIR 1
+param set-default SDLOG_PROFILE 4097
+param set-default MPC_THR_HOVER 0.375
+
+. ${R}etc/init.d/rc.development_airframe_defaults
