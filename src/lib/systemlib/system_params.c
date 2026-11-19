@@ -301,3 +301,20 @@ PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
+
+/**
+ * Simulink startup mode.
+ *
+ * Stock startup (0), stock control with Simulink tasks (1), or external
+ * control without stock controllers and allocation (2). The selected build
+ * must contain the required modules. Reboot after changing this parameter.
+ *
+ * @value 0 Stock startup
+ * @value 1 Stock control plus Simulink
+ * @value 2 External Simulink control
+ * @min 0
+ * @max 2
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SIMULINK_MODE, 0);

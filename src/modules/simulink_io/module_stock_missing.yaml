@@ -124,3 +124,37 @@ parameters:
               decimal: 1
               increment: 1.0
 
+
+          MPC_XY_P:
+            description:
+              short: Proportional gain for horizontal position error
+              long: Defined as corrective velocity in m/s per m position error
+            type: float
+            default: 0.95
+            min: 0.0
+            max: 2.0
+            increment: 0.1
+            decimal: 2
+
+          MPC_XY_VEL_P_ACC:
+            description:
+              short: Proportional gain for horizontal velocity error
+              long: Defined as corrective acceleration in m/s^2 per m/s velocity error
+            type: float
+            default: 1.8
+            min: 1.2
+            max: 5.0
+            increment: 0.1
+            decimal: 2
+
+          MPC_VEL_MANUAL:
+            description:
+              short: Maximum horizontal velocity setpoint in Position mode
+              long: Must be smaller than MPC_XY_VEL_MAX. The maximum sideways and backward speed can be set differently using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
+            type: float
+            default: 10.0
+            min: 3.0
+            max: 20.0
+            increment: 1.0
+            decimal: 1
+            unit: m/s

@@ -11,14 +11,35 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/airframes/4019_x500_v2
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default IMU_GYRO_CUTOFF 30
+
+param set-default -s MC_ROLLRATE_P 0.14
+param set-default -s MC_PITCHRATE_P 0.14
+param set-default -s MC_ROLLRATE_I 0.3
+param set-default -s MC_PITCHRATE_I 0.3
+param set-default -s MC_ROLLRATE_D 0.004
+param set-default -s MC_PITCHRATE_D 0.004
+
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
 
 
 # Declare the Simulink operation mode
 # 0 = Standard stock PX4 behavior (Default if unset)
 # 1 = Standard vehicle setup + start Simulink guidance/IO modules at the end
 # 2 = Bypass standard setup, run custom apps only (Full Simulink Control)
-set SIMULINK_MODE 1
 
 # Simulink Guidance Parameters:
 param set-default SMG_EN 1
@@ -60,3 +81,5 @@ param set-default NAV_RCL_ACT 0
 # when an emergency kill command is received from the GCS or an RC switch.
 # Sets value in seconds to disarm after kill switch/termination is active
 param set-default COM_KILL_DISARM 0
+
+. ${R}etc/init.d/rc.development_airframe_defaults

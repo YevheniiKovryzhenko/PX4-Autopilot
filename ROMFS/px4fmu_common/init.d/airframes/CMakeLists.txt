@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+if(NOT CONFIG_BOARD_STOCK_AIRFRAMES)
+	return()
+endif()
+
 px4_add_romfs_files(
 	# [0-999] Reserved (historical)
 
@@ -177,16 +181,5 @@ if(CONFIG_MODULES_SPACECRAFT)
 	px4_add_romfs_files(
 		# [70000, 70999] Spacecraft
 		70000_atmos
-	)
-endif()
-
-
-if(CONFIG_MODULES_SIMULINK_IO)
-	if(NOT CONFIG_MODULES_MC_RATE_CONTROL)
-		px4_add_romfs_files(4019_x500_v2)
-	endif()
-	px4_add_romfs_files(
-		4030_x500_v2_simulink
-		4031_x500_v2_simulinkctrl
 	)
 endif()

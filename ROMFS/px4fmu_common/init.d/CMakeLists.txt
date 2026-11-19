@@ -124,11 +124,14 @@ if(CONFIG_MODULES_TEMPERATURE_COMPENSATION)
 	)
 endif()
 
-if(CONFIG_MODULES_SIMULINK_IO)
-	px4_add_romfs_files(
-		rc.simulink_apps
-		rc.mc_defaults
-		rc.vtol_defaults
-	)
+if(PX4_HAS_SIMULINK)
+    px4_add_romfs_files(
+        rc.simulink_apps
+        rc.mc_defaults
+        rc.mc_apps
+        rc.vtol_defaults
+        rc.vtol_apps
+        rc.fw_defaults
+        rc.fw_apps
+    )
 endif()
-

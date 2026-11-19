@@ -13,7 +13,6 @@ PX4_SIM_MODEL=s500
 # 0 = Standard stock PX4 behavior (Default if unset)
 # 1 = Standard vehicle setup + start Simulink guidance/IO modules at the end
 # 2 = Bypass standard setup, run custom apps only (Full Simulink Control)
-set SIMULINK_MODE 1
 
 # Simulink Guidance Parameters:
 # param set-default SMG_EN 1
@@ -21,3 +20,5 @@ set SIMULINK_MODE 1
 # param set-default SMG_TRAJ_DIR 0
 
 # param set-default SDLOG_PROFILE 4097
+
+. ${R}etc/init.d/rc.development_airframe_defaults

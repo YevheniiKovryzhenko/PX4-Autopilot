@@ -38,7 +38,7 @@ else()
 endif()
 
 file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
-file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+set(gz_airframes ${PX4_GZ_AIRFRAMES})
 
 if (gz-transport_FOUND)
     if (gz-transport_VERSION VERSION_LESS "15")

@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+if(NOT CONFIG_BOARD_STOCK_AIRFRAMES)
+	return()
+endif()
+
 px4_add_romfs_files(
 
 	1010_gazebo-classic_iris_opt_flow
@@ -88,16 +92,6 @@ px4_add_romfs_files(
 	4019_gz_x500_gimbal
 	4020_gz_tiltrotor
 	4021_gz_x500_flow
-
-	4030_gz_s500
-	4031_gz_s500_lidar_down
-	4032_gz_s500_lidar_2d
-
-	4040_gz_s500_simulink
-	4041_gz_s500_simulink_lidar_down
-
-	4050_gz_s500_simulinkctrl
-	4051_gz_s500_simulinkctrl_lidar_down
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post

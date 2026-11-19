@@ -1,0 +1,3 @@
+#!/bin/sh
+# Build defaults; saved user parameters take precedence.
+param set-default SIMULINK_MODE @CONFIG_BOARD_SIMULINK_MODE@

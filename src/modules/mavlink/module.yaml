@@ -36,7 +36,7 @@ serial_config:
         then
             set MAV_ARGS "${MAV_ARGS} -F p:MAV_${i}_HL_FREQ"
         fi
-        mavlink start ${MAV_ARGS} -x
+        mavlink start ${MAV_ARGS} -I ${i} -x
       port_config_param:
         name: MAV_${i}_CONFIG
         group: MAVLink
@@ -57,6 +57,8 @@ parameters:
                 long: |
                     The MAVLink Mode defines the set of streamed messages (for example the
                     vehicle's attitude) and their sending rates.
+                    Simulink retains Normal telemetry, with SM_MAVSTD stock-rate
+                    overrides and SM_MAV custom streams.
 
             type: enum
             values:
@@ -479,3 +481,288 @@ parameters:
                 min: 0.0
                 max: 100.0
                 default: 2.0
+
+    - group: Simulink MAVLink Links
+      definitions:
+        MAV_${i}_SM_MASK:
+            description:
+                short: Custom-topic mask; same bits as SM_MAV
+                long: -1 inherits the global mask. 0 disables this selection on this link. Restart the link or reboot after changing.
+            type: int32
+            num_instances: 6
+            instance_start: 0
+            min: -1
+            max: 511
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_STD:
+            description:
+                short: Standard-topic mask for Simulink profile; same bits as SM_MAVSTD
+                long: -1 inherits the global mask. 0 disables this selection on this link. Restart the link or reboot after changing.
+            type: int32
+            num_instances: 6
+            instance_start: 0
+            min: -1
+            max: 2047
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C0_R:
+            description:
+                short: COMPANION_GUIDANCE_OUTBOUND link rate
+                long: -1 inherits SMG_MAVOUT_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C1_R:
+            description:
+                short: COMPANION_GUIDANCE_INBOUND link rate
+                long: -1 inherits SMG_MAVIN_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C2_R:
+            description:
+                short: SIMULINK_INBOUND link rate
+                long: -1 inherits SM_MAVIN_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C3_R:
+            description:
+                short: SIMULINK_OUTBOUND link rate
+                long: -1 inherits SM_MAVOUT_0_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C4_R:
+            description:
+                short: SIMULINK_OUTBOUND_1 link rate
+                long: -1 inherits SM_MAVOUT_1_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C5_R:
+            description:
+                short: SIMULINK_OUTBOUND_2 link rate
+                long: -1 inherits SM_MAVOUT_2_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C6_R:
+            description:
+                short: SIMULINK_OUTBOUND_3 link rate
+                long: -1 inherits SM_MAVOUT_3_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C7_R:
+            description:
+                short: SIMULINK_GUIDANCE link rate
+                long: -1 inherits SMG_MAV_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_C8_R:
+            description:
+                short: SIMULINK_INBOUND_CTRL link rate
+                long: -1 inherits SM_MAVCTRL_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S0_R:
+            description:
+                short: ATTITUDE link rate
+                long: -1 inherits SM_MAV_ATT_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S1_R:
+            description:
+                short: ATTITUDE_QUATERNION link rate
+                long: -1 inherits SM_MAV_ATTQ_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S2_R:
+            description:
+                short: ATTITUDE_TARGET link rate
+                long: -1 inherits SM_MAV_ATTT_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S3_R:
+            description:
+                short: LOCAL_POSITION_NED link rate
+                long: -1 inherits SM_MAV_LP_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S4_R:
+            description:
+                short: POSITION_TARGET_LOCAL_NED link rate
+                long: -1 inherits SM_MAV_LPT_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S5_R:
+            description:
+                short: GLOBAL_POSITION link rate
+                long: -1 inherits SM_MAV_GP_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S6_R:
+            description:
+                short: GLOBAL_POSITION_INT link rate
+                long: -1 inherits SM_MAV_GPI_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S7_R:
+            description:
+                short: POSITION_TARGET_GLOBAL_INT link rate
+                long: -1 inherits SM_MAV_GPT_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S8_R:
+            description:
+                short: SERVO_OUTPUT_RAW_0 link rate
+                long: -1 inherits SM_MAV_SRV_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S9_R:
+            description:
+                short: ESC_STATUS link rate
+                long: -1 inherits SM_MAV_ESC_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true
+        MAV_${i}_SM_S10_R:
+            description:
+                short: RAW_RPM link rate
+                long: -1 inherits SM_MAV_RPM_R. 0 disables this selected stream on this link. Restart the link or reboot after changing.
+            type: float
+            num_instances: 6
+            instance_start: 0
+            unit: Hz
+            decimal: 1
+            min: -1
+            max: 250
+            default: -1
+            reboot_required: true

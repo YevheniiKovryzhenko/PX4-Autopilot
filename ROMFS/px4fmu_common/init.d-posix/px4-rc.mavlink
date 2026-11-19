@@ -22,7 +22,7 @@ case "${SIMULINK_MODE}" in
 esac
 
 # GCS link
-mavlink start -x -u $udp_gcs_port_local -r 4000000 -f -m $gcs_mavlink_mode
+mavlink start -I 0 -x -u $udp_gcs_port_local -r 4000000 -f -m $gcs_mavlink_mode
 if [ "$gcs_mavlink_mode" = "normal" ]; then
 	# Stock SITL overrides must not replace the configured Simulink rates.
 	mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
@@ -37,19 +37,19 @@ if [ "$gcs_mavlink_mode" = "normal" ]; then
 fi
 
 # API/Offboard link
-mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m $offboard_mavlink_mode -o $udp_offboard_port_remote
+mavlink start -I 1 -x -u $udp_offboard_port_local -r 4000000 -f -m $offboard_mavlink_mode -o $udp_offboard_port_remote
 
 # Onboard link to camera
-mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
+mavlink start -I 2 -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
 
 # Onboard link to gimbal
-mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m gimbal -o $udp_onboard_gimbal_port_remote
+mavlink start -I 3 -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m gimbal -o $udp_onboard_gimbal_port_remote
 
 # To display for SIH sitl
 if [ "$PX4_SIMULATOR" = "sihsim" ]; then
 	udp_sihsim_port_local=$((19450+px4_instance))
 	udp_sihsim_port_remote=$((19410+px4_instance))
-	mavlink start -x -u $udp_sihsim_port_local -r 400000 -m custom -o $udp_sihsim_port_remote
+	mavlink start -I 4 -x -u $udp_sihsim_port_local -r 400000 -m custom -o $udp_sihsim_port_remote
 	mavlink stream -r 200 -s HIL_ACTUATOR_CONTROLS -u  $udp_sihsim_port_local
 	mavlink stream -r 25 -s HIL_STATE_QUATERNION -u  $udp_sihsim_port_local
 fi

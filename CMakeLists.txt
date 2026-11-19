@@ -379,6 +379,7 @@ endif()
 # message, and airframe generation
 #
 include(px4_metadata)
+include(px4_custom_airframes)
 
 add_subdirectory(msg EXCLUDE_FROM_ALL)
 

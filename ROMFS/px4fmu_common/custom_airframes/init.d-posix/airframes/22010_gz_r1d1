@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# @name R1D1 - Gazebo S500 development surrogate
+# @type Quadrotor
+# @class Copter
+#
+# Source the existing S500 dynamics/output mapping. Hardware-only CAN presets
+# are intentionally not applied to the simulator.
+. ${R}etc/init.d-posix/airframes/4030_gz_s500
+. ${R}etc/init.d/rc.development_airframe_defaults
+param set-default -s SMG_TRAJ_DIR 0
