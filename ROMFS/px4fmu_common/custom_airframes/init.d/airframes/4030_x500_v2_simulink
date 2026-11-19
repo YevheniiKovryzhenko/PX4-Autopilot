@@ -82,4 +82,4 @@ param set-default NAV_RCL_ACT 0
 # Sets value in seconds to disarm after kill switch/termination is active
 param set-default COM_KILL_DISARM 0
 
-. ${R}etc/init.d/rc.development_airframe_defaults
+. ${R}etc/init.d/custom_airframes/rc.development_airframe_defaults

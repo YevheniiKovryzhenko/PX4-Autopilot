@@ -21,4 +21,4 @@ PX4_SIM_MODEL=s500
 
 # param set-default SDLOG_PROFILE 4097
 
-. ${R}etc/init.d/rc.development_airframe_defaults
+. ${R}etc/init.d/custom_airframes/rc.development_airframe_defaults

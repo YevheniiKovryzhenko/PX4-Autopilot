@@ -144,8 +144,8 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		${romfs_gen_root_dir}/init.d/rc.filepaths
 		${romfs_copy_stamp}
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/init.d/airframes ${romfs_gen_root_dir}/init.d-posix/airframes
-	COMMAND ${CMAKE_COMMAND} -E rm -f ${romfs_gen_root_dir}/init.d/rc.development_defaults ${romfs_gen_root_dir}/init.d/rc.development_airframe_defaults
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/init.d/airframes ${romfs_gen_root_dir}/init.d-posix/airframes ${romfs_gen_root_dir}/init.d/custom_airframes
+	COMMAND ${CMAKE_COMMAND} -E rm -f ${romfs_gen_root_dir}/init.d/rc.development_defaults
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
 	${PX4_CUSTOM_AIRFRAME_COPY_COMMANDS}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py

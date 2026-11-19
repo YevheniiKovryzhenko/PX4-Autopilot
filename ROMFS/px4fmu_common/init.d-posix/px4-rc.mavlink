@@ -12,7 +12,8 @@ udp_gcs_port_local=$((18570+px4_instance))
 
 # Apply the configured Simulink streams and rates to both telemetry links.
 # Keep the stock link profiles for non-Simulink airframes.
-gcs_mavlink_mode=normal
+# Normal mode is selected by its numeric MAVLink mode value.
+gcs_mavlink_mode=0
 offboard_mavlink_mode=onboard
 case "${SIMULINK_MODE}" in
 	1|2)
@@ -23,7 +24,7 @@ esac
 
 # GCS link
 mavlink start -I 0 -x -u $udp_gcs_port_local -r 4000000 -f -m $gcs_mavlink_mode
-if [ "$gcs_mavlink_mode" = "normal" ]; then
+if [ "$gcs_mavlink_mode" = "0" ]; then
 	# Stock SITL overrides must not replace the configured Simulink rates.
 	mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
 	mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local

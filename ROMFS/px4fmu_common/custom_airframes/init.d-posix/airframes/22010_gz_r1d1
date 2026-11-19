@@ -1,11 +1,14 @@
 #!/bin/sh
 #
-# @name R1D1 - Gazebo S500 development surrogate
+# @name R1D1 - Gazebo S500 with horizontal and downward lidar
 # @type Quadrotor
 # @class Copter
 #
-# Source the existing S500 dynamics/output mapping. Hardware-only CAN presets
-# are intentionally not applied to the simulator.
+# Use Gazebo sensors, S500 dynamics, and simulated ESC outputs.
+if [ "${PX4_SIM_MODEL}" = "gz_r1d1" ] || [ -z "${PX4_SIM_MODEL}" ]; then
+	PX4_SIM_MODEL=s500_lidar_2d_1d_down
+fi
+
 . ${R}etc/init.d-posix/airframes/4030_gz_s500
-. ${R}etc/init.d/rc.development_airframe_defaults
-param set-default -s SMG_TRAJ_DIR 0
+. ${R}etc/init.d/custom_airframes/rc.development_airframe_defaults
+. ${R}etc/init.d/custom_airframes/rc.r1d1_defaults

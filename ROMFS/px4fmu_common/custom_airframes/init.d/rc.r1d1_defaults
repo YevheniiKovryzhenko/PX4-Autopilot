@@ -1,0 +1,25 @@
+#!/bin/sh
+# Flight-control defaults shared by the hardware and Gazebo R1D1 airframes.
+param set-default -s MPC_POS_MODE 4
+param set-default CP_DIST 1.0
+param set-default CP_GO_NO_DATA 0
+
+# Match the flight-tested position and vertical speed limits.
+param set-default MPC_VEL_MANUAL 10.0
+param set-default MPC_XY_VEL_MAX 12.0
+param set-default MPC_Z_VEL_MAX_UP 3.0
+param set-default MPC_Z_VEL_MAX_DN 1.5
+
+# Use GNSS as the height reference with conditional range aiding.
+param set-default EKF2_HGT_REF 1
+param set-default EKF2_RNG_NOISE 0.10
+param set-default EKF2_RNG_SFE 0.05
+param set-default EKF2_RNG_CTRL 1
+param set-default EKF2_RNG_A_HMAX 5.0
+param set-default EKF2_RNG_A_VMAX 1.0
+param set-default EKF2_TERR_GRAD 0.5
+param set-default EKF2_TERR_NOISE 5.0
+# Use the R1D1 landing-gear clearance for the on-ground fallback in both builds.
+param set-default EKF2_MIN_RNG 0.20
+param set-default -s MPC_ALT_MODE 1
+param set-default SYS_HAS_NUM_DIST 1

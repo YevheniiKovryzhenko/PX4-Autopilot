@@ -9,4 +9,4 @@
 
 PX4_SIM_MODEL=s500_lidar_down
 
-. ${R}etc/init.d/rc.development_airframe_defaults
+. ${R}etc/init.d/custom_airframes/rc.development_airframe_defaults

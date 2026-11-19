@@ -6,7 +6,7 @@
 # @maintainer Yevhenii Kovryzhenko
 #
 . ${R}etc/init.d/rc.mc_defaults
-. ${R}etc/init.d/rc.development_airframe_defaults
+. ${R}etc/init.d/custom_airframes/rc.development_airframe_defaults
 
 param set-default CA_AIRFRAME 0
 param set-default CA_ROTOR_COUNT 4
@@ -39,22 +39,10 @@ param set-default SF45C_ORIENT 24
 param set-default SF45C_YAW 0
 param set-default SF45C_TIMEOUT 100
 
-# Stock Position-mode collision prevention using the horizontal SF45 scan.
-param set-default -s MPC_POS_MODE 4
-param set-default CP_DIST 1.0
-param set-default CP_GO_NO_DATA 0
-
-# Downward US-D1: conditional EKF height aiding and terrain following.
-# Keep the existing primary height reference and stock sensor-validity checks.
-# Ainstein US-D1 published operating range; shared CAN rangefinder bounds.
+# Ainstein US-D1 operating range for the hardware CAN rangefinder.
 param set-default UAVCAN_RNG_MIN 0.5
 param set-default UAVCAN_RNG_MAX 50.0
-# Conservative PX4 starting noise, not measured US-D1 covariance.
-param set-default EKF2_RNG_NOISE 0.10
-param set-default EKF2_RNG_SFE 0.05
-param set-default EKF2_RNG_CTRL 1
-param set-default -s MPC_ALT_MODE 1
-param set-default SYS_HAS_NUM_DIST 1
+. ${R}etc/init.d/custom_airframes/rc.r1d1_defaults
 
 # Combined node 70/71 (or standalone 71): ArrayCommand IDs are zero-based.
 # CAN slot 6 -> wire ID 5 -> pad 1 (pump / Motor 5).
