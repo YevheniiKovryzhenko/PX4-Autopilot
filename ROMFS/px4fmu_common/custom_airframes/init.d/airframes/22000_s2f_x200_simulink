@@ -68,4 +68,3 @@ param set-default -s SM_MAVOUT_3_R 20
 param set-default -s SM_MAVCTRL_R 20
 
 . ${R}etc/init.d/custom_airframes/rc.development_airframe_defaults
-
