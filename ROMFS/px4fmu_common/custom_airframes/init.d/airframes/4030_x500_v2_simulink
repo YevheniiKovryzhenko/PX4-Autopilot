@@ -36,11 +36,50 @@ param set-default CA_ROTOR3_PY 1
 param set-default CA_ROTOR3_KM -0.05
 
 
+# Declare the Simulink operation mode
+# 0 = Standard stock PX4 behavior (Default if unset)
+# 1 = Standard vehicle setup + start Simulink guidance/IO modules at the end
+# 2 = Bypass standard setup, run custom apps only (Full Simulink Control)
 
+# Simulink Guidance Parameters:
 param set-default SMG_EN 1
 param set-default SMG_OUT_TYPE 3
 param set-default SMG_TRAJ_DIR 1
+
 param set-default SDLOG_PROFILE 4097
+
+
+# Hover Thrust (Crucial for Land Detector)
+# Set this to the exact expected hover throttle of your real vehicle (0.0 to 1.0)
+#  * @unit norm
+#  * @min 0.1
+#  * @max 0.8
+#  * @decimal 2
+#  * @increment 0.01
 param set-default MPC_THR_HOVER 0.375
 
-. ${R}etc/init.d/rc.development_airframe_defaults
+# Data Link Loss Failsafe Action
+#  * @value 0 Disabled
+#  * @value 1 Hold mode
+#  * @value 2 Return mode
+#  * @value 3 Land mode
+#  * @value 5 Terminate
+#  * @value 6 Disarm
+param set-default NAV_DLL_ACT 0
+
+
+# RC Link Loss Failsafe Action
+#  * @value 1 Hold mode
+#  * @value 2 Return mode
+#  * @value 3 Land mode
+#  * @value 5 Terminate
+#  * @value 6 Disarm
+param set-default NAV_RCL_ACT 0
+
+
+# Force PX4 to execute a full, permanent Flight Termination
+# when an emergency kill command is received from the GCS or an RC switch.
+# Sets value in seconds to disarm after kill switch/termination is active
+param set-default COM_KILL_DISARM 0
+
+. ${R}etc/init.d/custom_airframes/rc.development_airframe_defaults

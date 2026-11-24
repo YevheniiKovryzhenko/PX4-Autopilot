@@ -42,11 +42,17 @@ foreach(init_dir init.d init.d-posix)
         endif()
     endforeach()
 endforeach()
-# Common custom-airframe defaults use the same runtime paths as before.
+# Discover shared scripts alongside the project airframes. Give them a dedicated
+# runtime directory so removed scripts cannot survive ROMFS regeneration.
 if(CONFIG_BOARD_CUSTOM_AIRFRAMES)
-    set(custom_defaults ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/custom_airframes/init.d/rc.development_airframe_defaults)
-    list(APPEND PX4_CUSTOM_AIRFRAME_COPY_COMMANDS COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${custom_defaults} ${PX4_BINARY_DIR}/etc/init.d/rc.development_airframe_defaults)
+    file(GLOB custom_defaults CONFIGURE_DEPENDS LIST_DIRECTORIES false
+        ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/custom_airframes/init.d/rc.*)
+    list(APPEND PX4_CUSTOM_AIRFRAME_COPY_COMMANDS COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${PX4_BINARY_DIR}/etc/init.d/custom_airframes)
+    foreach(defaults_script IN LISTS custom_defaults)
+        list(APPEND PX4_CUSTOM_AIRFRAME_COPY_COMMANDS COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${defaults_script} ${PX4_BINARY_DIR}/etc/init.d/custom_airframes/)
+    endforeach()
     list(APPEND PX4_AIRFRAME_DEPENDENCIES ${custom_defaults})
 endif()
 
