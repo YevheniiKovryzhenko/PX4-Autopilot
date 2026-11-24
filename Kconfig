@@ -86,7 +86,6 @@ menu "Toolchain"
 
     config BOARD_CUSTOM_AIRFRAMES
         bool "Package project development airframes"
-        default y if MODULES_SIMULINK_IO || MODULES_SIMULINK_PARAMETERS
         default n
 
     config BOARD_SIMULINK_MODE
