@@ -43,7 +43,8 @@
         "files.watcherExclude": {
                 "**/build/**": true
         },
-        "git.detectSubmodulesLimit": 25,
+        "git.detectSubmodules": true,
+        "git.detectSubmodulesLimit": 100,
         "git.ignoreLimitWarning": true,
         "githubPullRequests.defaultMergeMethod": "squash",
         "githubPullRequests.telemetry.enabled": false,
