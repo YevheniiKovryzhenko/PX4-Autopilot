@@ -18,6 +18,10 @@
 # sources this file first, then selects the local trajectory directory.
 param set-default -s SMG_TRAJ_DIR 1
 
+# Simulink owns trajectory_setpoint for climb-rate/landing feedback.
+# Guidance uses its custom output, matching the other full-control presets.
+param set-default SMG_OUT_TYPE 2
+
 # Standard-VTOL actuator layout for the QGC actuator configuration page.
 # Simulink publishes these channels directly; this is not an allocation tune.
 param set-default MAV_TYPE 22
