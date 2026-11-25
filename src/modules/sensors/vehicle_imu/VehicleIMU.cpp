@@ -348,7 +348,11 @@ bool VehicleIMU::UpdateAccel()
 		}
 
 
-		const float dt = (accel.timestamp_sample - _accel_timestamp_sample_last) * 1e-6f;
+		// The first sample establishes the time origin, not an interval since boot.
+		// In SITL the simulator clock can start several seconds after sensors start.
+		const float dt = (_accel_timestamp_sample_last != 0
+				  && accel.timestamp_sample > _accel_timestamp_sample_last)
+				 ? (accel.timestamp_sample - _accel_timestamp_sample_last) * 1e-6f : 0.f;
 		_accel_timestamp_sample_last = accel.timestamp_sample;
 
 		const Vector3f accel_raw{accel.x, accel.y, accel.z};
@@ -456,7 +460,11 @@ bool VehicleIMU::UpdateGyro()
 
 		_gyro_last_generation = _sensor_gyro_sub.get_last_generation();
 
-		const float dt = (gyro.timestamp_sample - _gyro_timestamp_sample_last) * 1e-6f;
+		// The first sample establishes the time origin, not an interval since boot.
+		// In SITL the simulator clock can start several seconds after sensors start.
+		const float dt = (_gyro_timestamp_sample_last != 0
+				  && gyro.timestamp_sample > _gyro_timestamp_sample_last)
+				 ? (gyro.timestamp_sample - _gyro_timestamp_sample_last) * 1e-6f : 0.f;
 
 		_gyro_timestamp_sample_last = gyro.timestamp_sample;
 		_gyro_timestamp_last = gyro.timestamp;

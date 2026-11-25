@@ -173,7 +173,7 @@ The Sensor Outputs subsystem selects/blends PX4 sensor feeds into the controller
 | `airspeed.true_airspeed_m_s` | Airspeed |
 | GPS support-package block | Additional GPS feed |
 
-Ground contact is constructed from the model's sensor path, rather than read from `vehicle_land_detected`.
+Ground contact now comes from `vehicle_land_detected.ground_contact`. Terrain height and climb rate use the validated EKF/local-position adapter. See [the current X200 contract](S2F_X200_INTEGRATION.md).
 
 The application publishes these control-side messages with PX4 boot-relative microsecond timestamps. It does not publish competing arming or vehicle-mode state messages.
 
@@ -184,7 +184,7 @@ The application publishes these control-side messages with PX4 boot-relative mic
 | `vehicle_thrust_setpoint` | Land-detector feedback. Body-Z is negative for lift; X/Y are zero in the current publisher. Lift is approximated from collective lift RPM, the static propeller polynomial, four motors and their 15° cant, normalized against weight and hover thrust. Disabled outputs report zero thrust. This is normalized demand, not PWM or Newtons. |
 | `vtol_vehicle_status` | Reports MC (3), transition toward FW (1), transition toward MC (2), or FW (4), from TCS mode and departure/arrival status. The function retains state when its automatic-regime inputs are not applicable. |
 
-The motor/servo channel order is logical: hardware PWM/CAN routing is assigned separately to the corresponding output functions. In SITL, the simulator's output-function mapping determines the destination. `offboard_control_mode` and `trajectory_setpoint` are not pilot-input requirements for this interface; implementing Offboard or other navigation modes would require their own reference and supervision contract.
+The motor/servo channel order is logical: hardware PWM/CAN routing is assigned separately to the corresponding output functions. In SITL, the simulator's output-function mapping determines the destination. `trajectory_setpoint.velocity[2]` is required as commanded-descent feedback for landing detection when climb-rate control is enabled (Altitude/Position), even when the stock position controller is excluded. Publish the actual NED command; unused floating fields are NaN. The X200 airframe selects `SMG_OUT_TYPE=2` to avoid a competing guidance publisher on that topic. Offboard operation still requires its own `offboard_control_mode`, reference and supervision contract.
 
 ## GCS output, MAVLink and flight logs
 
